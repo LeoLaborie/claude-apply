@@ -25,6 +25,17 @@
   <label for="custom_auth">Are you authorized to work in the EU?</label>
   <select name="custom_auth" id="custom_auth"><option>Yes</option><option>No</option></select>
 
+  <label>
+    <input type="checkbox" name="_systemfield_consent" id="_systemfield_consent" required>
+    I accept the data processing terms
+  </label>
+
   <button type="submit">Submit</button>
 </form>
+<script>
+  document.querySelector('form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    document.body.innerHTML = '<h1>Your application has been received.</h1>';
+  });
+</script>
 </body></html>
