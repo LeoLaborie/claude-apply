@@ -20,7 +20,7 @@ import { detectPlatform } from './ats-detect.mjs';
 import { fetchLever } from './ats/lever.mjs';
 import { fetchGreenhouse } from './ats/greenhouse.mjs';
 import { fetchAshby } from './ats/ashby.mjs';
-import { runPrefilter } from './prefilter-rules.mjs';
+import { runPrefilter } from '../lib/prefilter-rules.mjs';
 import { appendFilteredOut } from '../lib/jsonl-writer.mjs';
 import {
   readPipelineMd,
