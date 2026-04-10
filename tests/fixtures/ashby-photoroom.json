@@ -1,0 +1,18 @@
+{
+  "jobs": [
+    {
+      "id": "job-photo-001",
+      "title": "ML Engineer Intern",
+      "jobUrl": "https://jobs.ashbyhq.com/photoroom/job-photo-001",
+      "location": "Paris, France",
+      "descriptionPlain": "6-month internship on computer vision and image processing. Based in Paris, France. Start: September 2026."
+    },
+    {
+      "id": "job-photo-002",
+      "title": "Backend Engineering Intern",
+      "jobUrl": "https://jobs.ashbyhq.com/photoroom/job-photo-002",
+      "location": "Paris, France",
+      "descriptionPlain": "Internship working on API infrastructure. Paris, France. September 2026."
+    }
+  ]
+}

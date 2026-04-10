@@ -1,0 +1,20 @@
+[
+  {
+    "hostedUrl": "https://jobs.lever.co/mistral/abc-intern-001",
+    "text": "Research Intern - LLM Training",
+    "categories": {
+      "location": "Paris, France",
+      "team": "Research"
+    },
+    "descriptionPlain": "Stage de recherche de 6 mois chez Mistral AI. Paris, France. Starting September 2026. Work on large language model training and evaluation."
+  },
+  {
+    "hostedUrl": "https://jobs.lever.co/mistral/abc-intern-002",
+    "text": "Software Engineering Intern",
+    "categories": {
+      "location": "Paris, France",
+      "team": "Engineering"
+    },
+    "descriptionPlain": "6-month internship on core inference stack. Paris, France. Start date: September 2026."
+  }
+]

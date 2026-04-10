@@ -1,0 +1,22 @@
+{
+  "jobs": [
+    {
+      "id": 1001,
+      "title": "Software Engineering Intern",
+      "absolute_url": "https://boards.greenhouse.io/testco/jobs/1001",
+      "location": {
+        "name": "San Francisco, CA"
+      },
+      "content": "&lt;h2&gt;About the role&lt;/h2&gt;&lt;p&gt;Join our engineering team for a 3-month internship. Paris, France office available. Starting September 2026.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Work on distributed systems&lt;/li&gt;&lt;li&gt;Collaborate with senior engineers&lt;/li&gt;&lt;/ul&gt;"
+    },
+    {
+      "id": 1002,
+      "title": "Research Internship - ML Safety",
+      "absolute_url": "https://boards.greenhouse.io/testco/jobs/1002",
+      "location": {
+        "name": "Paris, France"
+      },
+      "content": "&lt;p&gt;6-month research internship in ML safety. Based in Paris, France. September 2026 start.&lt;/p&gt;"
+    }
+  ]
+}
