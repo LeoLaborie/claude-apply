@@ -7,6 +7,12 @@ argument-hint: <job-url>
 
 Fetch the offer at `$ARGUMENTS`, build a prompt that compares it against `config/cv.md` + `config/candidate-profile.yml`, and append the structured result to `data/evaluations.jsonl`.
 
+## First-run guard
+
+Before running the scorer, check that `config/candidate-profile.yml` **and** `config/cv.md` exist. If either is missing, **stop** and tell the user:
+
+> "No config found. Run `/onboard` first — it will extract your CV and build the profile."
+
 ## Prerequisites
 
 - `config/cv.md` is filled with your real CV.

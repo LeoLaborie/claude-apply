@@ -5,6 +5,41 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
 
+# Flags for non-interactive runs (used by /onboard).
+#   --yes                       assume yes, never prompt
+#   --clone-chrome-profile      clone the default Chrome profile
+#   --no-clone-chrome-profile   create an empty Chrome profile
+#   --no-rc                     do not touch ~/.zshrc or ~/.bashrc
+#   -h | --help                 print usage
+ASSUME_YES=0
+CLONE_PROFILE=""   # "" = ask, "yes", "no"
+TOUCH_RC=1
+print_usage() {
+  cat <<'USAGE'
+Usage: bash scripts/setup.sh [flags]
+
+Flags:
+  --yes                       assume yes for all prompts (non-interactive)
+  --clone-chrome-profile      clone the default Chrome profile into the CDP profile
+  --no-clone-chrome-profile   create an empty CDP profile (do not clone)
+  --no-rc                     do not append the chrome-apply alias to ~/.zshrc or ~/.bashrc
+  -h, --help                  show this help
+
+Running without flags keeps the interactive prompts.
+USAGE
+}
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --yes) ASSUME_YES=1 ;;
+    --clone-chrome-profile) CLONE_PROFILE="yes" ;;
+    --no-clone-chrome-profile) CLONE_PROFILE="no" ;;
+    --no-rc) TOUCH_RC=0 ;;
+    -h|--help) print_usage; exit 0 ;;
+    *) echo "Unknown flag: $1" >&2; print_usage >&2; exit 2 ;;
+  esac
+  shift
+done
+
 echo "🚀 claude-apply setup"
 echo ""
 
@@ -51,8 +86,20 @@ esac
 if [[ ! -d "$CDP_PROFILE" ]]; then
   echo "→ Creating Chrome CDP profile at: $CDP_PROFILE"
   if [[ -d "$DEFAULT_PROFILE" ]]; then
-    read -r -p "  Clone your default Chrome profile (extensions, cookies)? [y/N] " yn
-    if [[ "${yn:-n}" =~ ^[Yy]$ ]]; then
+    decision="$CLONE_PROFILE"
+    if [[ -z "$decision" ]]; then
+      if [[ "$ASSUME_YES" -eq 1 ]]; then
+        decision="no"
+      else
+        read -r -p "  Clone your default Chrome profile (extensions, cookies)? [y/N] " yn
+        if [[ "${yn:-n}" =~ ^[Yy]$ ]]; then
+          decision="yes"
+        else
+          decision="no"
+        fi
+      fi
+    fi
+    if [[ "$decision" == "yes" ]]; then
       cp -a "$DEFAULT_PROFILE" "$CDP_PROFILE"
       echo "  ✓ Profile cloned"
     else
@@ -70,7 +117,11 @@ echo ""
 
 # 4. Shell alias
 SHELL_RC=""
-if [[ -f "$HOME/.zshrc" ]]; then
+if [[ "$TOUCH_RC" -eq 0 ]]; then
+  echo "→ --no-rc: skipping shell rc update. Add this alias manually if needed:"
+  echo "    alias chrome-apply='\"$CHROME_BIN\" --user-data-dir=\"$CDP_PROFILE\" --remote-debugging-port=9222 &'"
+  echo ""
+elif [[ -f "$HOME/.zshrc" ]]; then
   SHELL_RC="$HOME/.zshrc"
 elif [[ -f "$HOME/.bashrc" ]]; then
   SHELL_RC="$HOME/.bashrc"

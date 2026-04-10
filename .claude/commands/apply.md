@@ -7,6 +7,14 @@ argument-hint: <job-url>
 
 You will apply automatically to the offer at `$ARGUMENTS`. Follow this playbook **step by step**. At the slightest anomaly (login wall, captcha, unknown required field, submit error), **STOP and ask the user** before continuing.
 
+## First-run guard
+
+Before anything else, check that `config/candidate-profile.yml` exists. If it does not, **stop** and tell the user:
+
+> "No config found. Run `/onboard` first — it will extract your CV, build the profile, and prepare the target companies."
+
+Do not try to apply with the example templates.
+
 ## 0. Tool loading and pre-check
 
 1. Load the required `claude-in-chrome` tools via `ToolSearch`:

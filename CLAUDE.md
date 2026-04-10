@@ -31,23 +31,13 @@ The three stages are independent and communicate only via files in `data/`: `sca
 - `npm run check:pii` — PII gate (run locally before pushing)
 - `npm run scan` / `npm run score <url>` / `npm run dashboard` — module entry points
 
-## First-time setup (what the agent must do)
+## First-time setup
 
-If the user is running the project for the first time (no `config/candidate-profile.yml`, no `node_modules`, or `chrome-apply` alias missing), **do not silently run commands** — the setup writes to the shell rc file and can clone the user's Chrome profile. Walk through it explicitly:
+**If `config/candidate-profile.yml` does not exist, the user is a first-time user — run `/onboard`.** That slash command handles everything: CV PDF extraction, building `config/cv.md` + `candidate-profile.yml`, discovering ~30 target companies via WebSearch, and running `scripts/setup.sh` non-interactively with the right flags. Read `.claude/commands/onboard.md` before starting.
 
-1. **Run `bash scripts/setup.sh`.** It is idempotent. It will, in order:
-   - Check prereqs via `scripts/check-prereqs.sh` (Node 20+, Chrome, etc.). If it fails, stop and report the missing tool — do not try to install it for the user.
-   - `npm ci` (or `npm install` if no lockfile) when `node_modules` is absent.
-   - Create a dedicated Chrome CDP profile at `~/.config/google-chrome-claude-apply` (Linux) or `~/Library/Application Support/Google/Chrome-claude-apply` (macOS). **This step is interactive** — it asks `y/N` whether to clone the user's default Chrome profile (cookies, extensions). Do not answer for the user; let them type it. If running non-interactively, warn them that the script will block.
-   - Append an `alias chrome-apply='…'` to `~/.zshrc` or `~/.bashrc` (with a timestamped backup). If neither rc exists, print the alias and ask the user to add it manually.
-   - Copy templates from `templates/` to `config/` and `data/` (only if the destination is missing) — `candidate-profile.yml`, `cv.md`, `portals.yml`, `applications.md`.
-2. **Tell the user to edit the four config files** before doing anything else: `config/candidate-profile.yml`, `config/cv.md`, `config/portals.yml`, and optionally `data/applications.md`. Do not guess or pre-fill values — especially not PII (see invariants). The only allowed example persona is "Alice Martin" and it belongs in `templates/`, not `config/`.
-3. **Have the user reload their shell** (`source ~/.zshrc` or `source ~/.bashrc`) — a new Claude Code session may not pick up the alias otherwise.
-4. **Have the user launch `chrome-apply` themselves** in their own terminal. It is a GUI process that must keep running; do not background it from an agent session. Remind them to install the [claude-in-chrome](https://chromewebstore.google.com/) extension in that Chrome window if they have not already.
-5. **Verify before `/apply`**: run `node src/scan/index.mjs --dry-run` to confirm scan works without network writes, and confirm `mcp__claude-in-chrome__tabs_context_mcp` returns tabs (meaning the extension is reachable). If either fails, stop and diagnose — do not jump to `/apply`.
-6. **Only then** run `/scan`, `/score <url>`, `/apply <url>` in that order.
+The `/scan`, `/score`, and `/apply` commands each have a first-run guard that redirects the user to `/onboard` if the config is missing. Do not try to work around the guard by copying templates manually.
 
-If any step above is already done (e.g., `node_modules` present, alias already in rc), `setup.sh` will skip it and say so — re-running is safe.
+`scripts/setup.sh` accepts `--yes`, `--clone-chrome-profile`, `--no-clone-chrome-profile`, and `--no-rc` for non-interactive runs. Run `bash scripts/setup.sh --help` for details. Re-running is always safe — every step is idempotent.
 
 ## Entry points
 
