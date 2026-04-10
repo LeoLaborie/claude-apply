@@ -14,8 +14,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function parseYaml(filePath) {
   const raw = fs.readFileSync(filePath, 'utf8');
-  const { parse } = await import('yaml');
-  return parse(raw);
+  const yaml = await import('js-yaml');
+  return yaml.load(raw);
 }
 
 async function loadConfig() {

@@ -4,9 +4,9 @@ import { readFileSync } from 'node:fs';
 import { validateProfile, REQUIRED_FIELDS } from '../../src/apply/candidate-profile.schema.mjs';
 
 test('candidate-profile.example.yml parses and passes validation', async () => {
-  const { parse } = await import('yaml');
+  const yaml = await import('js-yaml');
   const raw = readFileSync(new URL('../fixtures/candidate-profile.example.yml', import.meta.url), 'utf8');
-  const profile = parse(raw);
+  const profile = yaml.load(raw);
   const { ok, errors } = validateProfile(profile);
   assert.equal(ok, true, `errors: ${JSON.stringify(errors)}`);
 });

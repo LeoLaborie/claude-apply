@@ -17,8 +17,8 @@ import { runPrefilter } from '../lib/prefilter-rules.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function parseYaml(filePath) {
-  const { parse } = await import('yaml');
-  return parse(fs.readFileSync(filePath, 'utf8'));
+  const yaml = await import('js-yaml');
+  return yaml.load(fs.readFileSync(filePath, 'utf8'));
 }
 
 async function fetchOffer(url) {
