@@ -1,0 +1,35 @@
+{
+  "name": "claude-apply",
+  "version": "0.1.0-alpha.0",
+  "description": "End-to-end job application automation piloted by Claude Code (scan, score, apply).",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test tests/**/*.test.mjs",
+    "test:watch": "node --test --watch tests/**/*.test.mjs",
+    "lint": "prettier --check .",
+    "format": "prettier --write .",
+    "check:pii": "bash scripts/check-no-pii.sh",
+    "scan": "node src/scan/index.mjs",
+    "score": "node src/score/index.mjs",
+    "dashboard": "node src/dashboard/build.mjs"
+  },
+  "keywords": ["claude-code", "job-search", "automation", "ats", "chrome-cdp"],
+  "author": "Léo Laborie <leo.laborie.ll@icloud.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/LeoLaborie/claude-apply.git"
+  },
+  "bugs": {
+    "url": "https://github.com/LeoLaborie/claude-apply/issues"
+  },
+  "homepage": "https://github.com/LeoLaborie/claude-apply#readme",
+  "devDependencies": {
+    "prettier": "^3.3.0",
+    "playwright": "^1.47.0",
+    "js-yaml": "^4.1.0"
+  }
+}

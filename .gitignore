@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# User config (NEVER commit)
+config/
+!config/.gitkeep
+
+# User data (NEVER commit)
+data/
+!data/.gitkeep
+
+# User CV PDFs
+*.pdf
+!tests/fixtures/fake-cv.pdf
+
+# Generated files
+dashboard.html
+*.log
+.DS_Store
+
+# OS / editor
+.vscode/
+.idea/
+*.swp
+
+# Local PII blocklist (contains private company names)
+.pii-blocklist
+
+# LaTeX temp files
+*.aux
+*.out
+*.toc
