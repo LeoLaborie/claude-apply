@@ -169,9 +169,56 @@ Apply the user's edits (remove X, add Y with URL Z, etc.) and loop until they ap
 - `tracked_companies:` — the approved list, each entry `{ name, careers_url, enabled: true }`
 - `title_filter:` — built in step 5 (`positive`, `negative`, optional `required_any`)
 
-## 7. Final instructions to the user
+## 7. Launch Chrome and finalize
 
-Print a clean summary + next steps:
+You can automate almost everything that's left. The user should only have to click "Add to Chrome" on the extension page (the Chrome Web Store does not expose a programmatic install API).
+
+### 7.1 Check if CDP is already up
+
+Probe the debug port:
+
+```bash
+curl -sf http://127.0.0.1:9222/json/version
+```
+
+- **If it responds with JSON**: Chrome is already running in CDP mode (user launched `chrome-apply` before). Skip to 7.3.
+- **Otherwise**: proceed to 7.2.
+
+### 7.2 Launch Chrome in background
+
+You do **not** need `source ~/.bashrc` — the `chrome-apply` alias is a convenience for the user's terminal. You can invoke the real command directly. Detect the Chrome binary and CDP profile path (same logic as `scripts/setup.sh`):
+
+- **Linux**: binary = first of `google-chrome`, `google-chrome-stable`, `chromium`, `chromium-browser`; profile = `$HOME/.config/google-chrome-claude-apply`.
+- **macOS**: binary = `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`; profile = `$HOME/Library/Application Support/Google/Chrome-claude-apply`.
+
+Launch Chrome with the CDP flag and open the extension page directly. **Use `run_in_background: true`** on the Bash tool — Chrome is a long-running GUI process and you must not block on it:
+
+```bash
+"<chrome_bin>" \
+  --user-data-dir="<cdp_profile>" \
+  --remote-debugging-port=9222 \
+  "https://chromewebstore.google.com/search/claude-in-chrome"
+```
+
+Then poll the CDP port for up to 8 seconds (4 probes of 2s), waiting for it to come up:
+
+```bash
+for i in 1 2 3 4; do
+  sleep 2
+  if curl -sf http://127.0.0.1:9222/json/version > /dev/null; then
+    echo "CDP up after ${i} probes"
+    exit 0
+  fi
+done
+exit 1
+```
+
+- **If CDP comes up**: great, continue to 7.3.
+- **If not** (8s elapsed): Chrome may have failed to start. Check the background task output for errors. Fall back to telling the user to run `chrome-apply` manually and print the summary from 7.3 anyway.
+
+### 7.3 Final summary
+
+Print a clean summary. The only manual step left is clicking "Add to Chrome" on the extension page that should now be open:
 
 ```
 ✅ Onboarding complete.
@@ -182,19 +229,20 @@ Files written:
   • config/candidate-profile.yml
   • config/portals.yml  (30 companies)
 
-Still needed from you:
-  1. Reload your shell:      source ~/.zshrc    (or ~/.bashrc)
-  2. Launch Chrome with CDP: chrome-apply
-  3. Install the claude-in-chrome extension in that Chrome window
-     https://chromewebstore.google.com/ (search: claude-in-chrome)
+Chrome launched in CDP mode (port 9222) with the claude-in-chrome
+extension page open.
 
-Then try:
+One last manual step:
+  → Click "Add to Chrome" on the page that just opened,
+    then confirm the install dialog.
+
+Then you can run:
   /scan                # fetch new offers into data/pipeline.md
   /score <url>         # LLM-evaluate an offer
   /apply <url>         # automated form fill + submit
 ```
 
-**Do not run `/scan` or `/apply` yourself** — the user needs to launch Chrome manually first. Your onboarding stops here.
+**Do not run `/scan` or `/apply` yourself** — the user still needs to install the extension manually. Your onboarding stops here.
 
 ## Absolute rules (recap)
 
