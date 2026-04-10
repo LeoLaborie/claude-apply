@@ -42,7 +42,7 @@ async function checkCdpUrl(cdpUrl) {
     throw new UploadError(
       'CDP_PORT_DOWN',
       `Chrome DevTools at ${cdpUrl} unreachable (${e.message}). ` +
-      `Relaunch Chrome with: google-chrome --remote-debugging-port=9222`
+        `Relaunch Chrome with: google-chrome --remote-debugging-port=9222`
     );
   }
 }
@@ -57,7 +57,12 @@ async function checkCdpUrl(cdpUrl) {
  * @param {string} opts.filePath     - Absolute path to the file to upload
  * @returns {{ success: boolean, filesCount: number, fileName: string, fileSize: number, path: string, pageUrl: string }}
  */
-export async function uploadFile({ cdpUrl = 'http://localhost:9222', pageMatcher, selector, filePath }) {
+export async function uploadFile({
+  cdpUrl = 'http://localhost:9222',
+  pageMatcher,
+  selector,
+  filePath,
+}) {
   if (!pageMatcher) throw new UploadError('BAD_ARGS', 'pageMatcher is required');
   if (!selector) throw new UploadError('BAD_ARGS', 'selector is required');
   if (!filePath) throw new UploadError('BAD_ARGS', 'filePath is required');
@@ -78,9 +83,8 @@ export async function uploadFile({ cdpUrl = 'http://localhost:9222', pageMatcher
     const contexts = browser.contexts();
     let targetPage = null;
 
-    const matchFn = typeof pageMatcher === 'function'
-      ? pageMatcher
-      : (page) => page.url().includes(pageMatcher);
+    const matchFn =
+      typeof pageMatcher === 'function' ? pageMatcher : (page) => page.url().includes(pageMatcher);
 
     for (const ctx of contexts) {
       for (const p of ctx.pages()) {
@@ -93,7 +97,7 @@ export async function uploadFile({ cdpUrl = 'http://localhost:9222', pageMatcher
     }
 
     if (!targetPage) {
-      const urls = contexts.flatMap(c => c.pages().map(p => p.url()));
+      const urls = contexts.flatMap((c) => c.pages().map((p) => p.url()));
       throw new UploadError(
         'TAB_NOT_FOUND',
         `No tab matches "${pageMatcher}". Open tabs:\n  - ${urls.join('\n  - ')}`
@@ -116,8 +120,10 @@ export async function uploadFile({ cdpUrl = 'http://localhost:9222', pageMatcher
     }));
 
     if (verification.filesCount !== 1) {
-      throw new UploadError('UPLOAD_VERIFY_FAILED',
-        `Expected 1 file on input, got ${verification.filesCount}`);
+      throw new UploadError(
+        'UPLOAD_VERIFY_FAILED',
+        `Expected 1 file on input, got ${verification.filesCount}`
+      );
     }
 
     return { success: true, ...verification, path: absPath, pageUrl: targetPage.url() };

@@ -1,6 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyField, classifyAddButton, mapProfileValue, countEntriesForSection } from '../../src/apply/field-classifier.mjs';
+import {
+  classifyField,
+  classifyAddButton,
+  mapProfileValue,
+  countEntriesForSection,
+} from '../../src/apply/field-classifier.mjs';
 
 const cases = [
   [{ name: 'email', type: 'email', label: 'Email Address' }, 'email'],
@@ -16,7 +21,10 @@ const cases = [
   [{ name: 'resume', type: 'file', label: 'Resume / CV' }, 'cv_upload'],
   [{ name: 'cv', type: 'file', label: 'Curriculum Vitae' }, 'cv_upload'],
   [{ name: 'coverLetter', type: 'file', label: 'Cover Letter' }, 'cover_letter_upload'],
-  [{ name: 'lettreMotivation', type: 'textarea', label: 'Lettre de motivation' }, 'cover_letter_text'],
+  [
+    { name: 'lettreMotivation', type: 'textarea', label: 'Lettre de motivation' },
+    'cover_letter_text',
+  ],
   [{ name: 'gender', type: 'select', label: 'Gender Identity' }, 'eeo_gender'],
   [{ name: 'veteran', type: 'select', label: 'Veteran Status' }, 'eeo_veteran'],
   [{ name: 'disability', type: 'select', label: 'Disability Status' }, 'eeo_disability'],
@@ -34,8 +42,14 @@ const cases = [
   [{ name: 'start', type: 'date', label: 'Start Date' }, 'experience_start'],
   [{ name: 'end', type: 'date', label: 'End Date' }, 'experience_end'],
   [{ name: 'graduation_year', type: 'number', label: 'Graduation Year' }, 'graduation_year'],
-  [{ name: 'workAuth', type: 'select', label: 'Are you authorized to work in the EU?' }, 'work_auth'],
-  [{ name: 'sponsorship', type: 'select', label: 'Will you require visa sponsorship?' }, 'sponsorship'],
+  [
+    { name: 'workAuth', type: 'select', label: 'Are you authorized to work in the EU?' },
+    'work_auth',
+  ],
+  [
+    { name: 'sponsorship', type: 'select', label: 'Will you require visa sponsorship?' },
+    'sponsorship',
+  ],
   [{ name: 'availability', type: 'date', label: 'Availability Date' }, 'availability'],
   [{ name: 'whyUs', type: 'textarea', label: 'Why do you want to work with us?' }, 'free_text'],
   [{ name: 'custom_xyz', type: 'text', label: 'Something unknown' }, 'unknown'],
@@ -72,27 +86,55 @@ for (const [label, expected] of addButtonCases) {
 
 test('mapProfileValue: indexed education entries', () => {
   const profile = {
-    first_name: 'Alice', last_name: 'Martin',
+    first_name: 'Alice',
+    last_name: 'Martin',
     education: [
-      { school: 'State University', degree: 'Engineer', field: 'Computer Science', start: '2023-09', end: '2028-06' },
-      { school: 'Central High School', degree: 'Baccalaureate', field: 'Maths-CS', start: '2020-09', end: '2023-06' },
+      {
+        school: 'State University',
+        degree: 'Engineer',
+        field: 'Computer Science',
+        start: '2023-09',
+        end: '2028-06',
+      },
+      {
+        school: 'Central High School',
+        degree: 'Baccalaureate',
+        field: 'Maths-CS',
+        start: '2020-09',
+        end: '2023-06',
+      },
     ],
   };
-  assert.equal(mapProfileValue('education_school', profile, { educationIndex: 0 }), 'State University');
-  assert.equal(mapProfileValue('education_school', profile, { educationIndex: 1 }), 'Central High School');
+  assert.equal(
+    mapProfileValue('education_school', profile, { educationIndex: 0 }),
+    'State University'
+  );
+  assert.equal(
+    mapProfileValue('education_school', profile, { educationIndex: 1 }),
+    'Central High School'
+  );
   assert.equal(mapProfileValue('education_field', profile, { educationIndex: 1 }), 'Maths-CS');
 });
 
 test('mapProfileValue: indexed experience entries', () => {
   const profile = {
     experiences: [
-      { company: 'Acme Corp', title: 'CTO', start: '2025-01', end: 'present', description: 'B2C platform' },
+      {
+        company: 'Acme Corp',
+        title: 'CTO',
+        start: '2025-01',
+        end: 'present',
+        description: 'B2C platform',
+      },
       { company: 'WidgetsCo', title: 'Mobile Dev', start: '2025-11', end: '2025-11' },
     ],
   };
   assert.equal(mapProfileValue('experience_company', profile, { experienceIndex: 0 }), 'Acme Corp');
   assert.equal(mapProfileValue('experience_title', profile, { experienceIndex: 1 }), 'Mobile Dev');
-  assert.equal(mapProfileValue('experience_summary', profile, { experienceIndex: 0 }), 'B2C platform');
+  assert.equal(
+    mapProfileValue('experience_summary', profile, { experienceIndex: 0 }),
+    'B2C platform'
+  );
 });
 
 test('countEntriesForSection', () => {

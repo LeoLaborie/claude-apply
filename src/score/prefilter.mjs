@@ -21,8 +21,7 @@ async function parseYaml(filePath) {
 async function loadConfig() {
   const CONFIG_DIR =
     process.env.CLAUDE_APPLY_CONFIG_DIR || path.join(__dirname, '..', '..', 'config');
-  const DATA_DIR =
-    process.env.CLAUDE_APPLY_DATA_DIR || path.join(__dirname, '..', '..', 'data');
+  const DATA_DIR = process.env.CLAUDE_APPLY_DATA_DIR || path.join(__dirname, '..', '..', 'data');
   const profilePath = path.join(CONFIG_DIR, 'profile.yml');
   const portalsPath = path.join(CONFIG_DIR, 'portals.yml');
   const profile = await parseYaml(profilePath);

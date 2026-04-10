@@ -30,6 +30,12 @@ test('uses english instructions when language=en', () => {
 
 test('truncates very long JD', () => {
   const longJd = 'x'.repeat(10_000);
-  const prompt = buildLetterPrompt({ company: 'X', role: 'Y', language: 'fr', jdText: longJd, candidateSummary: '' });
+  const prompt = buildLetterPrompt({
+    company: 'X',
+    role: 'Y',
+    language: 'fr',
+    jdText: longJd,
+    candidateSummary: '',
+  });
   assert.ok(prompt.length < 6000);
 });

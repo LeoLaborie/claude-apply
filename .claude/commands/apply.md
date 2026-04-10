@@ -10,6 +10,7 @@ You will apply automatically to the offer at `$ARGUMENTS`. Follow this playbook 
 ## 0. Tool loading and pre-check
 
 1. Load the required `claude-in-chrome` tools via `ToolSearch`:
+
    ```
    select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__read_page,mcp__claude-in-chrome__form_input,mcp__claude-in-chrome__find,mcp__claude-in-chrome__gif_creator,mcp__claude-in-chrome__javascript_tool,mcp__claude-in-chrome__get_page_text,mcp__claude-in-chrome__navigate
    ```
@@ -43,6 +44,7 @@ Search the page text and HTML for:
 **Some sites (e.g. Welcome to the Jungle, Indeed Apply) are aggregators, not ATSes.** Their "Apply" button is often an `<a target="_blank">` pointing to the real ATS (Lever, Greenhouse, Workable, Ashby, Teamtailor, SmartRecruiters, etc.). A naive `click()` may open a new tab that the browser extension does not see.
 
 **Procedure**:
+
 1. Find visible "Apply" / "Postuler" anchors via DOM query.
 2. Read their `getAttribute('href')` (not `.href`).
 3. Navigate directly via `window.location.href = '<real-ats-url>'` in the same tab.
@@ -211,10 +213,13 @@ After 15 s with no match → status `Submitted (unconfirmed)`, screenshot, notif
    - Use `Edit` with exact old/new content.
 
 2. **Append to `data/apply-log.jsonl`** via `appendApplyLog` from `src/apply/apply-log.mjs`:
+
    ```javascript
    appendApplyLog('data/apply-log.jsonl', {
      url: '$ARGUMENTS',
-     company, role, language,
+     company,
+     role,
+     language,
      finalStatus: '<Applied|Submitted (unconfirmed)|Failed|Discarded>',
      gifPath: '<gif path>',
      durationMs: Date.now() - startTime,

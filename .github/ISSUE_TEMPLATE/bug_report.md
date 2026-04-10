@@ -1,7 +1,7 @@
 ---
 name: Bug report
 about: Report a bug in claude-apply
-title: "[bug] "
+title: '[bug] '
 labels: bug
 ---
 

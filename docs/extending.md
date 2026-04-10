@@ -58,7 +58,9 @@ import { readFileSync } from 'node:fs';
 import { fetchExampleJobs } from '../../src/scan/ats/example.mjs';
 
 test('example: parses fixture', async () => {
-  const fixture = JSON.parse(readFileSync(new URL('../fixtures/example-acme.json', import.meta.url)));
+  const fixture = JSON.parse(
+    readFileSync(new URL('../fixtures/example-acme.json', import.meta.url))
+  );
   const fakeFetch = async () => ({ ok: true, status: 200, json: async () => fixture });
   const jobs = await fetchExampleJobs('acme', { fetch: fakeFetch });
   assert.ok(jobs.length > 0);
@@ -97,7 +99,7 @@ To add a new class:
 ```js
 const SUCCESS_TEXT = [
   // ... existing
-  /grazie per la tua candidatura/i,  // new
+  /grazie per la tua candidatura/i, // new
 ];
 ```
 

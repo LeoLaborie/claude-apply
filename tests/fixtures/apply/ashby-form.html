@@ -1,41 +1,46 @@
-<!DOCTYPE html>
-<html><body>
-<form>
-  <label for="_systemfield_name">Name</label>
-  <input type="text" name="_systemfield_name" id="_systemfield_name" required>
+<!doctype html>
+<html>
+  <body>
+    <form>
+      <label for="_systemfield_name">Name</label>
+      <input type="text" name="_systemfield_name" id="_systemfield_name" required />
 
-  <label for="_systemfield_email">Email</label>
-  <input type="email" name="_systemfield_email" id="_systemfield_email" required>
+      <label for="_systemfield_email">Email</label>
+      <input type="email" name="_systemfield_email" id="_systemfield_email" required />
 
-  <label for="_systemfield_phone">Phone Number</label>
-  <input type="tel" name="_systemfield_phone" id="_systemfield_phone">
+      <label for="_systemfield_phone">Phone Number</label>
+      <input type="tel" name="_systemfield_phone" id="_systemfield_phone" />
 
-  <label for="_systemfield_resume">Resume</label>
-  <input type="file" name="_systemfield_resume" id="_systemfield_resume" required>
+      <label for="_systemfield_resume">Resume</label>
+      <input type="file" name="_systemfield_resume" id="_systemfield_resume" required />
 
-  <label for="linkedin_url">LinkedIn</label>
-  <input type="url" name="linkedin_url" id="linkedin_url">
+      <label for="linkedin_url">LinkedIn</label>
+      <input type="url" name="linkedin_url" id="linkedin_url" />
 
-  <label for="github_url">GitHub</label>
-  <input type="url" name="github_url" id="github_url">
+      <label for="github_url">GitHub</label>
+      <input type="url" name="github_url" id="github_url" />
 
-  <label for="custom_motivation">Cover Letter (optional)</label>
-  <textarea name="custom_motivation" id="custom_motivation"></textarea>
+      <label for="custom_motivation">Cover Letter (optional)</label>
+      <textarea name="custom_motivation" id="custom_motivation"></textarea>
 
-  <label for="custom_auth">Are you authorized to work in the EU?</label>
-  <select name="custom_auth" id="custom_auth"><option>Yes</option><option>No</option></select>
+      <label for="custom_auth">Are you authorized to work in the EU?</label>
+      <select name="custom_auth" id="custom_auth">
+        <option>Yes</option>
+        <option>No</option>
+      </select>
 
-  <label>
-    <input type="checkbox" name="_systemfield_consent" id="_systemfield_consent" required>
-    I accept the data processing terms
-  </label>
+      <label>
+        <input type="checkbox" name="_systemfield_consent" id="_systemfield_consent" required />
+        I accept the data processing terms
+      </label>
 
-  <button type="submit">Submit</button>
-</form>
-<script>
-  document.querySelector('form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    document.body.innerHTML = '<h1>Your application has been received.</h1>';
-  });
-</script>
-</body></html>
+      <button type="submit">Submit</button>
+    </form>
+    <script>
+      document.querySelector('form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        document.body.innerHTML = '<h1>Your application has been received.</h1>';
+      });
+    </script>
+  </body>
+</html>

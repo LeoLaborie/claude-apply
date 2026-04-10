@@ -55,12 +55,12 @@ On macOS, substitute the path and use the same `cp -a` pattern.
 
 ## Troubleshooting
 
-| Symptom                                              | Cause                                              | Fix                                               |
-| ---------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------- |
-| `curl: (7) Failed to connect to 127.0.0.1 port 9222` | Chrome not running or not launched via the alias  | Run `chrome-apply`                                |
-| `DevTools remote debugging requires a non-default data directory` | Profile path points to default profile   | Use `~/.config/google-chrome-claude-apply`        |
-| Extension missing in CDP window                      | Skipped the clone at setup                         | Install the extension in the CDP window, or re-clone |
-| `TAB_NOT_FOUND` from upload helper                   | Multiple Chromes running, wrong one hit            | Kill all Chromes, start only via `chrome-apply`   |
+| Symptom                                                           | Cause                                            | Fix                                                  |
+| ----------------------------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------- |
+| `curl: (7) Failed to connect to 127.0.0.1 port 9222`              | Chrome not running or not launched via the alias | Run `chrome-apply`                                   |
+| `DevTools remote debugging requires a non-default data directory` | Profile path points to default profile           | Use `~/.config/google-chrome-claude-apply`           |
+| Extension missing in CDP window                                   | Skipped the clone at setup                       | Install the extension in the CDP window, or re-clone |
+| `TAB_NOT_FOUND` from upload helper                                | Multiple Chromes running, wrong one hit          | Kill all Chromes, start only via `chrome-apply`      |
 
 ## Windows support
 

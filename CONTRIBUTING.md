@@ -30,7 +30,7 @@ Before committing, run all three. CI will run them on every PR.
 - Prettier defaults (2-space indent, single quotes, trailing commas).
 - Prefer Node standard library (`node:fs`, `node:test`, `node:http`, global `fetch`).
 - No new runtime dependencies without a strong justification.
-- No comments unless the *why* is non-obvious — names should carry the meaning.
+- No comments unless the _why_ is non-obvious — names should carry the meaning.
 
 ## Commit conventions
 

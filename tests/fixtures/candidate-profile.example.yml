@@ -1,8 +1,8 @@
 first_name: Alice
 last_name: Martin
 email: alice.martin@example.com
-phone: "+33600000000"
-date_of_birth: "2002-01-15"
+phone: '+33600000000'
+date_of_birth: '2002-01-15'
 nationality: French
 
 linkedin_url: https://www.linkedin.com/in/alice-martin/
@@ -11,7 +11,7 @@ website_url: https://alice-martin.example.com
 
 city: Paris
 country: France
-postal_code: "75001"
+postal_code: '75001'
 
 school: Example Engineering School
 degree: Master of Engineering
@@ -22,35 +22,35 @@ education:
   - school: Example Engineering School
     degree: Master of Engineering
     field: Computer Science
-    start: "2021-09"
-    end: "2026-06"
+    start: '2021-09'
+    end: '2026-06'
     location: Paris, France
     description: Specialization in Software Engineering and AI.
   - school: Example High School
     degree: Baccalaureate
     field: Mathematics and Computer Science
-    start: "2018-09"
-    end: "2021-06"
+    start: '2018-09'
+    end: '2021-06'
     location: Lyon, France
     description: Graduated with honors.
 
 experiences:
   - company: Acme Corp
     title: CTO & Co-founder
-    start: "2024-01"
+    start: '2024-01'
     end: present
     location: France
     description: Built B2C platform from scratch using Next.js and Supabase.
   - company: WidgetsCo
     title: Mobile Developer
-    start: "2024-06"
-    end: "2024-08"
+    start: '2024-06'
+    end: '2024-08'
     location: Paris, France
     description: Built React Native screens with Auth0 integration.
 
 work_authorization: EU citizen
 requires_sponsorship: false
-availability_start: "2026-09-01"
+availability_start: '2026-09-01'
 internship_duration_months: 6
 
 languages:

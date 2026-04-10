@@ -10,13 +10,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturePath = path.join(__dirname, '..', 'fixtures', 'greenhouse-anthropic.json');
 
 let restore;
-afterEach(() => { if (restore) restore(); });
+afterEach(() => {
+  if (restore) restore();
+});
 
 test('stripHtml — enlève les tags et décode les entités courantes', () => {
   assert.equal(stripHtml('<p>Hello <b>world</b></p>'), 'Hello world');
   assert.equal(stripHtml('A &amp; B'), 'A & B');
   assert.equal(stripHtml('&lt;p&gt;code&lt;/p&gt;'), 'code');
-  assert.equal(stripHtml("&#39;quoted&#39;"), "'quoted'");
+  assert.equal(stripHtml('&#39;quoted&#39;'), "'quoted'");
   assert.equal(stripHtml('A &nbsp; B'), 'A   B');
   assert.equal(stripHtml(''), '');
   assert.equal(stripHtml(null), '');

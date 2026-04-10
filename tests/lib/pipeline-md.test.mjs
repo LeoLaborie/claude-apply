@@ -48,11 +48,17 @@ test('parsePipelineMd + serializePipelineMd — round-trip sémantique sur fichi
 test('appendOffer — ajoute à une section existante (case-insensitive)', () => {
   const doc = {
     header: '# Pipeline\n\n',
-    sections: [{ company: 'Acme Corp', location: 'Paris', lines: ['- [ ] https://a.co/1 | Acme Corp | Old job'] }],
+    sections: [
+      {
+        company: 'Acme Corp',
+        location: 'Paris',
+        lines: ['- [ ] https://a.co/1 | Acme Corp | Old job'],
+      },
+    ],
   };
   appendOffer(doc, {
     url: 'https://a.co/2',
-    company: 'acme corp',   // lowercase — doit matcher
+    company: 'acme corp', // lowercase — doit matcher
     title: 'New job',
     location: 'Paris',
   });
@@ -78,7 +84,9 @@ test('appendOffer — crée une nouvelle section si company absente', () => {
 test('appendOffer — skip silencieux si URL déjà présente dans la section', () => {
   const doc = {
     header: '# Pipeline\n\n',
-    sections: [{ company: 'Acme Corp', location: '', lines: ['- [ ] https://a.co/1 | Acme Corp | X'] }],
+    sections: [
+      { company: 'Acme Corp', location: '', lines: ['- [ ] https://a.co/1 | Acme Corp | X'] },
+    ],
   };
   appendOffer(doc, {
     url: 'https://a.co/1',
@@ -92,22 +100,25 @@ test('appendOffer — skip silencieux si URL déjà présente dans la section', 
 test('appendOffer — préserve les commentaires HTML trailing dans une section', () => {
   const doc = {
     header: '# Pipeline\n\n',
-    sections: [{
-      company: 'Éliminés',
-      location: '',
-      lines: [
-        '<!-- US Remote -->',
-        '<!-- Widgets Inc US Remote x5 -->',
-        '<!-- Acme Corp (SF), Foo Inc (SF) -->',
-      ],
-    }, {
-      company: 'Beta Ltd',
-      location: 'Paris',
-      lines: [
-        '- [ ] https://jobs.example.com/beta/existing | Beta Ltd | Old role',
-        '<!-- note: verifier compliance -->',
-      ],
-    }],
+    sections: [
+      {
+        company: 'Éliminés',
+        location: '',
+        lines: [
+          '<!-- US Remote -->',
+          '<!-- Widgets Inc US Remote x5 -->',
+          '<!-- Acme Corp (SF), Foo Inc (SF) -->',
+        ],
+      },
+      {
+        company: 'Beta Ltd',
+        location: 'Paris',
+        lines: [
+          '- [ ] https://jobs.example.com/beta/existing | Beta Ltd | Old role',
+          '<!-- note: verifier compliance -->',
+        ],
+      },
+    ],
   };
   appendOffer(doc, {
     url: 'https://jobs.example.com/beta/new',
@@ -117,7 +128,10 @@ test('appendOffer — préserve les commentaires HTML trailing dans une section'
   });
   // Beta Ltd section: new offer goes AFTER last checkbox, BEFORE the trailing comment
   assert.equal(doc.sections[1].lines.length, 3);
-  assert.equal(doc.sections[1].lines[0], '- [ ] https://jobs.example.com/beta/existing | Beta Ltd | Old role');
+  assert.equal(
+    doc.sections[1].lines[0],
+    '- [ ] https://jobs.example.com/beta/existing | Beta Ltd | Old role'
+  );
   assert.ok(doc.sections[1].lines[1].includes('Internship'));
   assert.equal(doc.sections[1].lines[2], '<!-- note: verifier compliance -->');
   // Éliminés section untouched
@@ -142,7 +156,13 @@ test('writePipelineMd — écriture atomique via .tmp + rename', () => {
   const p = path.join(tmp, 'pipeline.md');
   const doc = {
     header: '# Test\n\n',
-    sections: [{ company: 'Acme Corp', location: 'Paris', lines: ['- [ ] https://a.co/1 | Acme Corp | Dev'] }],
+    sections: [
+      {
+        company: 'Acme Corp',
+        location: 'Paris',
+        lines: ['- [ ] https://a.co/1 | Acme Corp | Dev'],
+      },
+    ],
   };
   writePipelineMd(p, doc);
   assert.ok(fs.existsSync(p));

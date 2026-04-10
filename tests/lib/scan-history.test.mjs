@@ -13,15 +13,17 @@ afterEach(() => {
 test('loadSeenUrls — union de scan-history.tsv et applications.md', () => {
   const histPath = path.join(tmp, 'scan-history.tsv');
   const appsPath = path.join(tmp, 'applications.md');
-  fs.writeFileSync(histPath,
+  fs.writeFileSync(
+    histPath,
     'url\tfirst_seen\tportal\ttitle\tcompany\tstatus\n' +
-    'https://a.co/1\t2026-04-01\tlever\tX\tAcme\tadded\n' +
-    'https://b.co/2\t2026-04-02\tlever\tY\tBeta\tskipped_title\n'
+      'https://a.co/1\t2026-04-01\tlever\tX\tAcme\tadded\n' +
+      'https://b.co/2\t2026-04-02\tlever\tY\tBeta\tskipped_title\n'
   );
-  fs.writeFileSync(appsPath,
+  fs.writeFileSync(
+    appsPath,
     '# Apps\n| # | Date | Company | Role | Score | Status | Report | Notes |\n' +
-    '|---|---|---|---|---|---|---|---|\n' +
-    '| 1 | 2026-04-05 | Gamma | Dev | 4.0 | Applied | [r](https://c.co/3) | note |\n'
+      '|---|---|---|---|---|---|---|---|\n' +
+      '| 1 | 2026-04-05 | Gamma | Dev | 4.0 | Applied | [r](https://c.co/3) | note |\n'
   );
   const seen = loadSeenUrls(histPath, appsPath);
   assert.ok(seen instanceof Set);
@@ -32,10 +34,7 @@ test('loadSeenUrls — union de scan-history.tsv et applications.md', () => {
 });
 
 test('loadSeenUrls — fichiers inexistants retournent Set vide', () => {
-  const seen = loadSeenUrls(
-    path.join(tmp, 'no-hist.tsv'),
-    path.join(tmp, 'no-apps.md')
-  );
+  const seen = loadSeenUrls(path.join(tmp, 'no-hist.tsv'), path.join(tmp, 'no-apps.md'));
   assert.ok(seen instanceof Set);
   assert.equal(seen.size, 0);
 });

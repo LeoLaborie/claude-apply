@@ -18,7 +18,7 @@ const ROW_RE = /^\|(.+)\|$/;
  */
 function parseRow(line) {
   return line
-    .slice(1, -1)           // strip leading/trailing |
+    .slice(1, -1) // strip leading/trailing |
     .split('|')
     .map((cell) => cell.trim());
 }

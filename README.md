@@ -81,18 +81,18 @@ Then:
 
 ## Commands reference
 
-| Command                           | Purpose                                                               |
-| --------------------------------- | --------------------------------------------------------------------- |
-| `node src/scan/index.mjs`         | Scan Group A ATSes; append new offers to `data/pipeline.md`.          |
-| `node src/score/index.mjs <url>`  | LLM-evaluate an offer; append to `data/evaluations.jsonl`.            |
-| `node src/apply/upload-file.mjs`  | CDP file upload helper (called by `/apply`).                          |
-| `node src/dashboard/build.mjs`    | Regenerate `dashboard.html` from `data/` and `reports/`.              |
-| `bash scripts/setup.sh`           | Interactive first-time setup (Chrome CDP profile + templates + rc).   |
-| `bash scripts/check-no-pii.sh`    | Grep the tree for personal data patterns (CI gate).                   |
-| `npm test`                        | Run the node test suite.                                              |
-| `/scan`                           | Claude Code slash command wrapping `node src/scan/index.mjs`.         |
-| `/score <url>`                    | Claude Code slash command wrapping `node src/score/index.mjs`.        |
-| `/apply <url>`                    | Claude Code orchestrator: open → classify → fill → upload → submit.   |
+| Command                          | Purpose                                                             |
+| -------------------------------- | ------------------------------------------------------------------- |
+| `node src/scan/index.mjs`        | Scan Group A ATSes; append new offers to `data/pipeline.md`.        |
+| `node src/score/index.mjs <url>` | LLM-evaluate an offer; append to `data/evaluations.jsonl`.          |
+| `node src/apply/upload-file.mjs` | CDP file upload helper (called by `/apply`).                        |
+| `node src/dashboard/build.mjs`   | Regenerate `dashboard.html` from `data/` and `reports/`.            |
+| `bash scripts/setup.sh`          | Interactive first-time setup (Chrome CDP profile + templates + rc). |
+| `bash scripts/check-no-pii.sh`   | Grep the tree for personal data patterns (CI gate).                 |
+| `npm test`                       | Run the node test suite.                                            |
+| `/scan`                          | Claude Code slash command wrapping `node src/scan/index.mjs`.       |
+| `/score <url>`                   | Claude Code slash command wrapping `node src/score/index.mjs`.      |
+| `/apply <url>`                   | Claude Code orchestrator: open → classify → fill → upload → submit. |
 
 ## Configuration
 
@@ -115,14 +115,14 @@ See also `docs/for-agents.md` for typical workflows, patterns to follow, and ant
 
 ## Supported ATS
 
-| ATS         | Scanner   | Form fill | File upload | Notes                                                       |
-| ----------- | --------- | --------- | ----------- | ----------------------------------------------------------- |
-| Lever       | ✅ auto    | ✅        | ✅ CDP      | Dedup by URL; blocks re-submission for ~3 months.           |
-| Greenhouse  | ✅ auto    | ✅        | ✅ CDP      | Splits first/last name; many optional subforms.             |
-| Ashby       | ✅ auto    | ✅        | ✅ CDP      | `_systemfield_*` naming; custom questions are free text.    |
-| WTTJ        | ⚠️ partial | ✅        | ✅ CDP      | Aggregator — jumps to the real ATS in most cases.           |
-| Workable    | ❌         | ✅        | ✅ CDP      | Scanner not shipped (requires auth for the public API).     |
-| SmartRecruiters, Teamtailor, custom pages | ❌ | — | — | Manual fallback; PRs welcome (see `docs/extending.md`). |
+| ATS                                       | Scanner    | Form fill | File upload | Notes                                                    |
+| ----------------------------------------- | ---------- | --------- | ----------- | -------------------------------------------------------- |
+| Lever                                     | ✅ auto    | ✅        | ✅ CDP      | Dedup by URL; blocks re-submission for ~3 months.        |
+| Greenhouse                                | ✅ auto    | ✅        | ✅ CDP      | Splits first/last name; many optional subforms.          |
+| Ashby                                     | ✅ auto    | ✅        | ✅ CDP      | `_systemfield_*` naming; custom questions are free text. |
+| WTTJ                                      | ⚠️ partial | ✅        | ✅ CDP      | Aggregator — jumps to the real ATS in most cases.        |
+| Workable                                  | ❌         | ✅        | ✅ CDP      | Scanner not shipped (requires auth for the public API).  |
+| SmartRecruiters, Teamtailor, custom pages | ❌         | —         | —           | Manual fallback; PRs welcome (see `docs/extending.md`).  |
 
 ## Contributing
 

@@ -22,11 +22,7 @@ import { fetchGreenhouse } from './ats/greenhouse.mjs';
 import { fetchAshby } from './ats/ashby.mjs';
 import { runPrefilter } from '../lib/prefilter-rules.mjs';
 import { appendFilteredOut } from '../lib/jsonl-writer.mjs';
-import {
-  readPipelineMd,
-  appendOffer,
-  writePipelineMd,
-} from '../lib/pipeline-md.mjs';
+import { readPipelineMd, appendOffer, writePipelineMd } from '../lib/pipeline-md.mjs';
 import { loadSeenUrls, appendHistoryRow } from '../lib/scan-history.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -103,9 +99,7 @@ export async function runScan(opts) {
   const seen = loadSeenUrls(historyPath, applicationsPath);
 
   const today = new Date().toISOString().slice(0, 10);
-  const doc = dryRun
-    ? { header: '', sections: [] }
-    : readPipelineMd(pipelinePath);
+  const doc = dryRun ? { header: '', sections: [] } : readPipelineMd(pipelinePath);
 
   const added = [];
   const errors = [];
@@ -139,11 +133,20 @@ export async function runScan(opts) {
         });
         historyWrites++;
       }
-      perCompany.push({ company: result.company, platform: result.platform, count: 0, error: result.error });
+      perCompany.push({
+        company: result.company,
+        platform: result.platform,
+        count: 0,
+        error: result.error,
+      });
       continue;
     }
 
-    perCompany.push({ company: result.company, platform: result.platform, count: result.offers.length });
+    perCompany.push({
+      company: result.company,
+      platform: result.platform,
+      count: result.offers.length,
+    });
     raw += result.offers.length;
 
     for (const offer of result.offers) {
@@ -278,7 +281,8 @@ async function main() {
     onlySlug = next;
   }
 
-  const CONFIG_DIR = process.env.CLAUDE_APPLY_CONFIG_DIR || path.join(__dirname, '..', '..', 'config');
+  const CONFIG_DIR =
+    process.env.CLAUDE_APPLY_CONFIG_DIR || path.join(__dirname, '..', '..', 'config');
   const DATA_DIR = process.env.CLAUDE_APPLY_DATA_DIR || path.join(__dirname, '..', '..', 'data');
 
   const portalsConfig = await parseYaml(path.join(CONFIG_DIR, 'portals.yml'));

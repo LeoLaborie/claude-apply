@@ -1,15 +1,15 @@
 # Supported ATS platforms
 
-| Platform             | Scan (API)     | Form fill | CDP upload | Known issues / notes                                              |
-| -------------------- | -------------- | --------- | ---------- | ----------------------------------------------------------------- |
-| **Lever**            | ✅ supported    | ✅        | ✅         | Blocks re-submission for ~3 months (returns `/already-received`). |
-| **Greenhouse**       | ✅ supported    | ✅        | ✅         | Splits name into `first_name` / `last_name`. Many optional EEO/subforms hidden behind `+ Add`. |
-| **Ashby**            | ✅ supported    | ✅        | ✅         | Field names use `_systemfield_*`. Custom questions map to `free_text`. |
-| **Welcome to the Jungle** | ⚠️ aggregator | ✅        | ✅         | Not an ATS — the apply button jumps to the real ATS (Lever, GH, Workable, Teamtailor…). The playbook follows the redirect automatically. Confirmation often silent — use the WTTJ application tracker as fallback. |
-| **Workable**         | ❌ no scan      | ✅        | ✅         | Public API requires authentication. Form filling works once the URL is known. |
-| **Teamtailor**       | ❌ no scan      | ⚠️ partial | ✅        | Custom React form; most standard fields classify correctly, but add-on questions may need manual intervention. |
-| **SmartRecruiters**  | ❌ no scan      | ⚠️ partial | ✅        | Similar to Teamtailor. |
-| **Custom career page** | ❌            | ❌        | ❌         | Not supported. Manual fallback or contribute an ATS fetcher (see [`extending.md`](extending.md)). |
+| Platform                  | Scan (API)    | Form fill  | CDP upload | Known issues / notes                                                                                                                                                                                               |
+| ------------------------- | ------------- | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Lever**                 | ✅ supported  | ✅         | ✅         | Blocks re-submission for ~3 months (returns `/already-received`).                                                                                                                                                  |
+| **Greenhouse**            | ✅ supported  | ✅         | ✅         | Splits name into `first_name` / `last_name`. Many optional EEO/subforms hidden behind `+ Add`.                                                                                                                     |
+| **Ashby**                 | ✅ supported  | ✅         | ✅         | Field names use `_systemfield_*`. Custom questions map to `free_text`.                                                                                                                                             |
+| **Welcome to the Jungle** | ⚠️ aggregator | ✅         | ✅         | Not an ATS — the apply button jumps to the real ATS (Lever, GH, Workable, Teamtailor…). The playbook follows the redirect automatically. Confirmation often silent — use the WTTJ application tracker as fallback. |
+| **Workable**              | ❌ no scan    | ✅         | ✅         | Public API requires authentication. Form filling works once the URL is known.                                                                                                                                      |
+| **Teamtailor**            | ❌ no scan    | ⚠️ partial | ✅         | Custom React form; most standard fields classify correctly, but add-on questions may need manual intervention.                                                                                                     |
+| **SmartRecruiters**       | ❌ no scan    | ⚠️ partial | ✅         | Similar to Teamtailor.                                                                                                                                                                                             |
+| **Custom career page**    | ❌            | ❌         | ❌         | Not supported. Manual fallback or contribute an ATS fetcher (see [`extending.md`](extending.md)).                                                                                                                  |
 
 ## Gotchas worth knowing
 

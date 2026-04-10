@@ -22,11 +22,11 @@ node src/scan/index.mjs [--dry-run] [--only <slug>] [--json]
 
 ## Supported ATSes
 
-| Platform   | URL pattern                      | API endpoint                                        |
-| ---------- | -------------------------------- | --------------------------------------------------- |
-| Lever      | `jobs.lever.co/<slug>`           | `https://api.lever.co/v0/postings/<slug>?mode=json` |
-| Greenhouse | `job-boards.greenhouse.io/<slug>` | `https://boards-api.greenhouse.io/v1/boards/<slug>/jobs?content=true` |
-| Ashby      | `jobs.ashbyhq.com/<slug>`        | `https://api.ashbyhq.com/posting-api/job-board/<slug>?includeCompensation=true` |
+| Platform   | URL pattern                       | API endpoint                                                                    |
+| ---------- | --------------------------------- | ------------------------------------------------------------------------------- |
+| Lever      | `jobs.lever.co/<slug>`            | `https://api.lever.co/v0/postings/<slug>?mode=json`                             |
+| Greenhouse | `job-boards.greenhouse.io/<slug>` | `https://boards-api.greenhouse.io/v1/boards/<slug>/jobs?content=true`           |
+| Ashby      | `jobs.ashbyhq.com/<slug>`         | `https://api.ashbyhq.com/posting-api/job-board/<slug>?includeCompensation=true` |
 
 A URL that doesn't match these patterns is skipped silently. To add a new ATS, see [`docs/extending.md`](extending.md).
 

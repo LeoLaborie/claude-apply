@@ -19,11 +19,11 @@ Instructions for Claude Code (and other LLM agents) working in this repository.
 
 ### Slash commands (`.claude/commands/`)
 
-| Command         | Contract                                                                                      |
-| --------------- | ---------------------------------------------------------------------------------------------- |
-| `/scan`         | `node src/scan/index.mjs` → appends new rows to `data/pipeline.md`; dedups via `scan-history.tsv`. |
-| `/score <url>`  | Reads `config/cv.md`; appends one JSON line to `data/evaluations.jsonl`.                       |
-| `/apply <url>`  | Opens the URL in Chrome, classifies/fills the form, uploads the CV via CDP, submits, updates `data/applications.md` + `data/apply-log.jsonl`. |
+| Command        | Contract                                                                                                                                      |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/scan`        | `node src/scan/index.mjs` → appends new rows to `data/pipeline.md`; dedups via `scan-history.tsv`.                                            |
+| `/score <url>` | Reads `config/cv.md`; appends one JSON line to `data/evaluations.jsonl`.                                                                      |
+| `/apply <url>` | Opens the URL in Chrome, classifies/fills the form, uploads the CV via CDP, submits, updates `data/applications.md` + `data/apply-log.jsonl`. |
 
 ### Modules (`src/`)
 
@@ -40,23 +40,23 @@ Instructions for Claude Code (and other LLM agents) working in this repository.
 - **Tests.** `node --test tests/**/*.test.mjs`. New code needs tests before merge. Prefer pure functions with fixture-driven tests; use Playwright CDP only where truly necessary (upload + integration).
 - **Style.** Prettier default, 2-space indent, single quotes, trailing commas. `npm run lint` and `npm run format`.
 - **Commits.** [Conventional Commits](https://www.conventionalcommits.org/) (`feat(scope): …`, `fix(scope): …`, `docs: …`, `test: …`, `chore: …`).
-- **No comments unless the *why* is non-obvious.** Good names beat comments.
+- **No comments unless the _why_ is non-obvious.** Good names beat comments.
 - **Errors.** Typed error classes (see `UploadError` in `upload-file.mjs`). Never swallow errors silently.
 
 ## Where to find what
 
-| Need                             | Location                                |
-| -------------------------------- | --------------------------------------- |
-| Architecture overview            | `docs/architecture.md`                  |
-| `/apply` step-by-step            | `docs/apply-workflow.md`                |
-| `/scan` details                  | `docs/scan-workflow.md`                 |
-| `/score` details                 | `docs/score-workflow.md`                |
-| CDP setup (Linux/macOS)          | `docs/cdp-setup.md`                     |
-| ATS support matrix + gotchas     | `docs/ats-support.md`                   |
-| Adding a new ATS                 | `docs/extending.md`                     |
-| Agent-specific guidance          | `docs/for-agents.md`                    |
-| Running tests, E2E checklist     | `docs/testing.md`                       |
-| PII gate                         | `scripts/check-no-pii.sh`               |
-| User config                      | `config/` (ignored)                     |
-| User data                        | `data/` (ignored)                       |
-| Example persona                  | `templates/candidate-profile.example.yml` |
+| Need                         | Location                                  |
+| ---------------------------- | ----------------------------------------- |
+| Architecture overview        | `docs/architecture.md`                    |
+| `/apply` step-by-step        | `docs/apply-workflow.md`                  |
+| `/scan` details              | `docs/scan-workflow.md`                   |
+| `/score` details             | `docs/score-workflow.md`                  |
+| CDP setup (Linux/macOS)      | `docs/cdp-setup.md`                       |
+| ATS support matrix + gotchas | `docs/ats-support.md`                     |
+| Adding a new ATS             | `docs/extending.md`                       |
+| Agent-specific guidance      | `docs/for-agents.md`                      |
+| Running tests, E2E checklist | `docs/testing.md`                         |
+| PII gate                     | `scripts/check-no-pii.sh`                 |
+| User config                  | `config/` (ignored)                       |
+| User data                    | `data/` (ignored)                         |
+| Example persona              | `templates/candidate-profile.example.yml` |

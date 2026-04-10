@@ -22,7 +22,9 @@ before(async () => {
     const urlPath = req.url === '/' ? '/index.html' : req.url;
     const filePath = join(FIXTURES_DIR, urlPath);
     if (!existsSync(filePath)) {
-      res.writeHead(404); res.end('not found'); return;
+      res.writeHead(404);
+      res.end('not found');
+      return;
     }
     const ext = filePath.split('.').pop();
     const mime = ext === 'html' ? 'text/html' : ext === 'pdf' ? 'application/pdf' : 'text/plain';
@@ -43,7 +45,7 @@ before(async () => {
       const res = await fetch(`http://127.0.0.1:${CDP_PORT}/json/version`);
       if (res.ok) break;
     } catch {}
-    await new Promise(r => setTimeout(r, 100));
+    await new Promise((r) => setTimeout(r, 100));
   }
 
   // Open the fixture page so there's a tab for uploadFile to find
@@ -97,7 +99,10 @@ test('uploadFile: file input is actually populated in the page after upload', as
     let targetPage = null;
     for (const ctx of contexts) {
       for (const p of ctx.pages()) {
-        if (p.url().includes('upload-form')) { targetPage = p; break; }
+        if (p.url().includes('upload-form')) {
+          targetPage = p;
+          break;
+        }
       }
       if (targetPage) break;
     }
@@ -131,7 +136,7 @@ test('uploadFile: throws FILE_NOT_FOUND for missing file', async () => {
       selector: '#cv',
       filePath: '/nonexistent/path/cv.pdf',
     }),
-    (e) => e instanceof UploadError && e.code === 'FILE_NOT_FOUND',
+    (e) => e instanceof UploadError && e.code === 'FILE_NOT_FOUND'
   );
 });
 
@@ -143,7 +148,7 @@ test('uploadFile: throws TAB_NOT_FOUND for unmatched URL', async () => {
       selector: '#cv',
       filePath: CV_PATH,
     }),
-    (e) => e instanceof UploadError && e.code === 'TAB_NOT_FOUND',
+    (e) => e instanceof UploadError && e.code === 'TAB_NOT_FOUND'
   );
 });
 
@@ -155,7 +160,7 @@ test('uploadFile: throws SELECTOR_NOT_FOUND for bad selector', async () => {
       selector: '#no-such-input-xyz',
       filePath: CV_PATH,
     }),
-    (e) => e instanceof UploadError && e.code === 'SELECTOR_NOT_FOUND',
+    (e) => e instanceof UploadError && e.code === 'SELECTOR_NOT_FOUND'
   );
 });
 
@@ -167,13 +172,13 @@ test('uploadFile: throws CDP_PORT_DOWN when port unreachable', async () => {
       selector: '#cv',
       filePath: CV_PATH,
     }),
-    (e) => e instanceof UploadError && e.code === 'CDP_PORT_DOWN',
+    (e) => e instanceof UploadError && e.code === 'CDP_PORT_DOWN'
   );
 });
 
 test('uploadFile: throws BAD_ARGS when pageMatcher is missing', async () => {
   await assert.rejects(
     uploadFile({ selector: '#cv', filePath: CV_PATH }),
-    (e) => e instanceof UploadError && e.code === 'BAD_ARGS',
+    (e) => e instanceof UploadError && e.code === 'BAD_ARGS'
   );
 });

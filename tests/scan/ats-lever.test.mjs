@@ -10,7 +10,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturePath = path.join(__dirname, '..', 'fixtures', 'lever-mistral.json');
 
 let restore;
-afterEach(() => { if (restore) restore(); });
+afterEach(() => {
+  if (restore) restore();
+});
 
 test('fetchLever — mappe correctement une fixture réelle', async () => {
   const fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));

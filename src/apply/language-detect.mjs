@@ -1,5 +1,7 @@
-const FR_MARKERS = /\b(stage|stagiaire|développeur|ingénieur|équipe|nous|vous|recherchons|rejoindre|française?|candidature)\b/gi;
-const EN_MARKERS = /\b(internship|intern|engineer|developer|team|we|you|looking for|join|candidate|english)\b/gi;
+const FR_MARKERS =
+  /\b(stage|stagiaire|développeur|ingénieur|équipe|nous|vous|recherchons|rejoindre|française?|candidature)\b/gi;
+const EN_MARKERS =
+  /\b(internship|intern|engineer|developer|team|we|you|looking for|join|candidate|english)\b/gi;
 
 export function detectLanguage({ title = '', description = '' } = {}) {
   const text = `${title} ${description}`;

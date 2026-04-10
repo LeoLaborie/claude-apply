@@ -1,7 +1,7 @@
 ---
 name: ATS support request
 about: Request support for a new ATS platform
-title: "[ats] "
+title: '[ats] '
 labels: enhancement, ats
 ---
 

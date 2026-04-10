@@ -1,6 +1,6 @@
 # `/apply` workflow
 
-The full playbook lives in [`.claude/commands/apply.md`](../.claude/commands/apply.md). This doc is the companion guide — it explains the *why* behind each step and links to the relevant module.
+The full playbook lives in [`.claude/commands/apply.md`](../.claude/commands/apply.md). This doc is the companion guide — it explains the _why_ behind each step and links to the relevant module.
 
 ## High-level pipeline
 
@@ -50,14 +50,14 @@ Rules are ordered — earlier rules win. `cover_letter_upload` comes before `cv_
 
 Three methods depending on the field and the framework:
 
-| Type                                 | Method                                                                 |
-| ------------------------------------ | ---------------------------------------------------------------------- |
-| Static text/email/tel/url/textarea   | `form_input`                                                           |
+| Type                                 | Method                                                                    |
+| ------------------------------------ | ------------------------------------------------------------------------- |
+| Static text/email/tel/url/textarea   | `form_input`                                                              |
 | React-controlled input/textarea      | Native setter + `dispatchEvent('input' + 'change')` via `javascript_tool` |
-| Checkbox / radio                     | `element.click()` via `javascript_tool` — never `form_input`           |
-| Custom dropdown (React Select, etc.) | `find` + `click` on the option element                                 |
-| Google Places autocomplete           | Physical keyboard via `mcp__claude-in-chrome__computer`                |
-| File                                 | CDP helper `src/apply/upload-file.mjs` — **never** JS                  |
+| Checkbox / radio                     | `element.click()` via `javascript_tool` — never `form_input`              |
+| Custom dropdown (React Select, etc.) | `find` + `click` on the option element                                    |
+| Google Places autocomplete           | Physical keyboard via `mcp__claude-in-chrome__computer`                   |
+| File                                 | CDP helper `src/apply/upload-file.mjs` — **never** JS                     |
 
 ## File upload
 
@@ -93,12 +93,12 @@ Two writes on success:
 
 ## Failure modes and recovery
 
-| Symptom                                             | Likely cause                                         | Recovery                                       |
-| --------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------- |
-| `CDP_PORT_DOWN`                                     | Chrome not launched via `chrome-apply`               | Relaunch via the alias, retry                  |
-| `TAB_NOT_FOUND`                                     | URL fragment too generic/specific                    | Refine the fragment                            |
-| `SELECTOR_NOT_FOUND`                                | File input hidden until parent expanded              | Expand subforms first (`+ Add` buttons)        |
-| `Please select a location` after submit             | Google Places autocomplete not triggered             | Use physical keyboard via `computer` tool      |
-| `Please attach a resume` after upload               | File set via JS then wiped by the page               | Always use the CDP helper                      |
-| Submit button clicked but nothing happened          | Multi-step form — clicked `Next`, not `Submit`       | Re-run step 4 on the new page                  |
-| React checkbox reverts after filling                | Wrong filling method                                 | Use `element.click()`, verify with `.checked`  |
+| Symptom                                    | Likely cause                                   | Recovery                                      |
+| ------------------------------------------ | ---------------------------------------------- | --------------------------------------------- |
+| `CDP_PORT_DOWN`                            | Chrome not launched via `chrome-apply`         | Relaunch via the alias, retry                 |
+| `TAB_NOT_FOUND`                            | URL fragment too generic/specific              | Refine the fragment                           |
+| `SELECTOR_NOT_FOUND`                       | File input hidden until parent expanded        | Expand subforms first (`+ Add` buttons)       |
+| `Please select a location` after submit    | Google Places autocomplete not triggered       | Use physical keyboard via `computer` tool     |
+| `Please attach a resume` after upload      | File set via JS then wiped by the page         | Always use the CDP helper                     |
+| Submit button clicked but nothing happened | Multi-step form — clicked `Next`, not `Submit` | Re-run step 4 on the new page                 |
+| React checkbox reverts after filling       | Wrong filling method                           | Use `element.click()`, verify with `.checked` |

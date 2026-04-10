@@ -1,59 +1,67 @@
-<!DOCTYPE html>
-<html><body>
-<form id="application_form">
-  <label for="first_name">First Name</label>
-  <input type="text" name="first_name" id="first_name" required>
+<!doctype html>
+<html>
+  <body>
+    <form id="application_form">
+      <label for="first_name">First Name</label>
+      <input type="text" name="first_name" id="first_name" required />
 
-  <label for="last_name">Last Name</label>
-  <input type="text" name="last_name" id="last_name" required>
+      <label for="last_name">Last Name</label>
+      <input type="text" name="last_name" id="last_name" required />
 
-  <label for="email">Email</label>
-  <input type="email" name="email" id="email" required>
+      <label for="email">Email</label>
+      <input type="email" name="email" id="email" required />
 
-  <label for="phone">Phone</label>
-  <input type="tel" name="phone" id="phone">
+      <label for="phone">Phone</label>
+      <input type="tel" name="phone" id="phone" />
 
-  <label for="resume">Resume/CV</label>
-  <input type="file" name="resume" id="resume" required>
+      <label for="resume">Resume/CV</label>
+      <input type="file" name="resume" id="resume" required />
 
-  <label for="cover_letter">Cover Letter</label>
-  <input type="file" name="cover_letter" id="cover_letter">
+      <label for="cover_letter">Cover Letter</label>
+      <input type="file" name="cover_letter" id="cover_letter" />
 
-  <label for="linkedin">LinkedIn Profile</label>
-  <input type="url" name="linkedin" id="linkedin">
+      <label for="linkedin">LinkedIn Profile</label>
+      <input type="url" name="linkedin" id="linkedin" />
 
-  <label for="github">GitHub</label>
-  <input type="url" name="github" id="github">
+      <label for="github">GitHub</label>
+      <input type="url" name="github" id="github" />
 
-  <label for="school">School</label>
-  <input type="text" name="school" id="school">
+      <label for="school">School</label>
+      <input type="text" name="school" id="school" />
 
-  <label for="degree">Degree</label>
-  <input type="text" name="degree" id="degree">
+      <label for="degree">Degree</label>
+      <input type="text" name="degree" id="degree" />
 
-  <label for="why">Why do you want to work here?</label>
-  <textarea name="why" id="why"></textarea>
+      <label for="why">Why do you want to work here?</label>
+      <textarea name="why" id="why"></textarea>
 
-  <label for="gender">Gender Identity</label>
-  <select name="gender" id="gender"><option>Prefer not to say</option></select>
+      <label for="gender">Gender Identity</label>
+      <select name="gender" id="gender">
+        <option>Prefer not to say</option>
+      </select>
 
-  <label for="veteran">Veteran Status</label>
-  <select name="veteran" id="veteran"><option>Prefer not to say</option></select>
+      <label for="veteran">Veteran Status</label>
+      <select name="veteran" id="veteran">
+        <option>Prefer not to say</option>
+      </select>
 
-  <label for="disability">Disability Status</label>
-  <select name="disability" id="disability"><option>Prefer not to say</option></select>
+      <label for="disability">Disability Status</label>
+      <select name="disability" id="disability">
+        <option>Prefer not to say</option>
+      </select>
 
-  <label>
-    <input type="checkbox" name="consent" id="consent" required>
-    I agree to the privacy policy
-  </label>
+      <label>
+        <input type="checkbox" name="consent" id="consent" required />
+        I agree to the privacy policy
+      </label>
 
-  <button type="submit">Submit Application</button>
-</form>
-<script>
-  document.querySelector('form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    document.body.innerHTML = '<h1>Thank you for applying!</h1>';
-  });
-</script>
-</body></html>
+      <button type="submit">Submit Application</button>
+    </form>
+    <script>
+      document.querySelector('form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        document.body.innerHTML = '<h1>Thank you for applying!</h1>';
+      });
+    </script>
+  </body>
+</html>

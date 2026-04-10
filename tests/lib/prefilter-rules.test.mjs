@@ -10,11 +10,15 @@ import {
 
 // ---------- checkLocation ----------
 test('checkLocation: pass si Paris mentionné', () => {
-  assert.deepEqual(checkLocation({ body: 'Based in Paris office', title: 'ML Engineer' }), { pass: true });
+  assert.deepEqual(checkLocation({ body: 'Based in Paris office', title: 'ML Engineer' }), {
+    pass: true,
+  });
 });
 
 test('checkLocation: pass si remote France', () => {
-  assert.deepEqual(checkLocation({ body: 'Remote from France accepted', title: 'Dev' }), { pass: true });
+  assert.deepEqual(checkLocation({ body: 'Remote from France accepted', title: 'Dev' }), {
+    pass: true,
+  });
 });
 
 test('checkLocation: reject si New York sans signal France', () => {
@@ -24,7 +28,9 @@ test('checkLocation: reject si New York sans signal France', () => {
 });
 
 test('checkLocation: pass si NYC mais aussi Paris mentionné', () => {
-  assert.deepEqual(checkLocation({ body: 'Offices in NYC and Paris', title: 'Dev' }), { pass: true });
+  assert.deepEqual(checkLocation({ body: 'Offices in NYC and Paris', title: 'Dev' }), {
+    pass: true,
+  });
 });
 
 test('checkLocation: pass ambigu (aucun signal)', () => {
@@ -33,7 +39,9 @@ test('checkLocation: pass ambigu (aucun signal)', () => {
 
 // ---------- checkStartDate ----------
 test('checkStartDate: pass si septembre 2026', () => {
-  assert.deepEqual(checkStartDate({ body: 'Starting September 2026' }, '2026-08-24'), { pass: true });
+  assert.deepEqual(checkStartDate({ body: 'Starting September 2026' }, '2026-08-24'), {
+    pass: true,
+  });
 });
 
 test('checkStartDate: reject si mars 2026', () => {
@@ -42,11 +50,15 @@ test('checkStartDate: reject si mars 2026', () => {
 });
 
 test('checkStartDate: pass si aucune date', () => {
-  assert.deepEqual(checkStartDate({ body: 'Immediate start, duration 6 months' }, '2026-08-24'), { pass: true });
+  assert.deepEqual(checkStartDate({ body: 'Immediate start, duration 6 months' }, '2026-08-24'), {
+    pass: true,
+  });
 });
 
 test('checkStartDate: pass si "à partir de septembre 2026"', () => {
-  assert.deepEqual(checkStartDate({ body: 'À partir de septembre 2026' }, '2026-08-24'), { pass: true });
+  assert.deepEqual(checkStartDate({ body: 'À partir de septembre 2026' }, '2026-08-24'), {
+    pass: true,
+  });
 });
 
 // ---------- checkTitle ----------

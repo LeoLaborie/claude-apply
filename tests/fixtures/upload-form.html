@@ -1,22 +1,22 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Upload Test</title>
-</head>
-<body>
-  <form id="form">
-    <label for="cv">CV / Resume</label>
-    <input type="file" id="cv" name="cv" accept=".pdf,.doc,.docx" />
-    <button type="submit">Submit</button>
-  </form>
-  <script>
-    document.getElementById('form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const file = document.getElementById('cv').files[0];
-      document.body.setAttribute('data-uploaded', file ? file.name : 'none');
-      document.body.setAttribute('data-uploaded-size', file ? String(file.size) : '0');
-    });
-  </script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>Upload Test</title>
+  </head>
+  <body>
+    <form id="form">
+      <label for="cv">CV / Resume</label>
+      <input type="file" id="cv" name="cv" accept=".pdf,.doc,.docx" />
+      <button type="submit">Submit</button>
+    </form>
+    <script>
+      document.getElementById('form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const file = document.getElementById('cv').files[0];
+        document.body.setAttribute('data-uploaded', file ? file.name : 'none');
+        document.body.setAttribute('data-uploaded-size', file ? String(file.size) : '0');
+      });
+    </script>
+  </body>
 </html>

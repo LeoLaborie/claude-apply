@@ -20,10 +20,9 @@ function runCheck(cwd) {
 }
 
 function initGitRepo(dir) {
-  execSync(
-    'git init -q && git add -A && git -c user.email=t@t.t -c user.name=t commit -qm init',
-    { cwd: dir }
-  );
+  execSync('git init -q && git add -A && git -c user.email=t@t.t -c user.name=t commit -qm init', {
+    cwd: dir,
+  });
 }
 
 test('check-no-pii passes on clean tree', () => {

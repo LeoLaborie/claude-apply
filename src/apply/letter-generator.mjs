@@ -2,9 +2,10 @@ const MAX_JD_CHARS = 3000;
 
 export function buildLetterPrompt({ company, role, language, jdText, candidateSummary }) {
   const jd = (jdText || '').slice(0, MAX_JD_CHARS);
-  const langInstruction = language === 'en'
-    ? 'Write the cover letter in English, formal register, 3 paragraphs, ~250 words.'
-    : 'Rédige la lettre de motivation en français, registre soutenu, 3 paragraphes, ~250 mots.';
+  const langInstruction =
+    language === 'en'
+      ? 'Write the cover letter in English, formal register, 3 paragraphs, ~250 words.'
+      : 'Rédige la lettre de motivation en français, registre soutenu, 3 paragraphes, ~250 mots.';
 
   return [
     `You are writing a cover letter for a job application.`,

@@ -86,13 +86,17 @@ function callClaude(system, user) {
     'claude',
     [
       '-p',
-      '--system-prompt', system,
+      '--system-prompt',
+      system,
       '--disable-slash-commands',
       '--no-chrome',
       '--strict-mcp-config',
-      '--mcp-config', emptyMcpPath,
-      '--setting-sources', '',
-      '--output-format', 'json',
+      '--mcp-config',
+      emptyMcpPath,
+      '--setting-sources',
+      '',
+      '--output-format',
+      'json',
     ],
     {
       input: user,
@@ -142,8 +146,7 @@ function nextId(evaluationsPath) {
 async function main() {
   const CONFIG_DIR =
     process.env.CLAUDE_APPLY_CONFIG_DIR || path.join(__dirname, '..', '..', 'config');
-  const DATA_DIR =
-    process.env.CLAUDE_APPLY_DATA_DIR || path.join(__dirname, '..', '..', 'data');
+  const DATA_DIR = process.env.CLAUDE_APPLY_DATA_DIR || path.join(__dirname, '..', '..', 'data');
 
   const args = process.argv.slice(2);
   let offer;

@@ -30,13 +30,17 @@ function parseFormFields(html) {
 
 for (const ats of ['greenhouse', 'lever', 'ashby']) {
   test(`${ats} form: critical fields classified`, () => {
-    const html = readFileSync(new URL(`../fixtures/apply/${ats}-form.html`, import.meta.url), 'utf8');
+    const html = readFileSync(
+      new URL(`../fixtures/apply/${ats}-form.html`, import.meta.url),
+      'utf8'
+    );
     const fields = parseFormFields(html);
     const classes = new Set(fields.map(classifyField));
     assert.ok(classes.has('email'), `missing email in ${[...classes].join(',')}`);
     assert.ok(classes.has('cv_upload'), `missing cv_upload in ${[...classes].join(',')}`);
     // Name handling: greenhouse splits first/last, lever/ashby use full name
-    const hasName = classes.has('first_name') || classes.has('last_name') || classes.has('full_name');
+    const hasName =
+      classes.has('first_name') || classes.has('last_name') || classes.has('full_name');
     assert.ok(hasName, `missing any name field in ${[...classes].join(',')}`);
   });
 }

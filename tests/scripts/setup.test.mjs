@@ -1,6 +1,14 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { mkdtempSync, rmSync, cpSync, mkdirSync, existsSync, writeFileSync, readFileSync } from 'node:fs';
+import {
+  mkdtempSync,
+  rmSync,
+  cpSync,
+  mkdirSync,
+  existsSync,
+  writeFileSync,
+  readFileSync,
+} from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
@@ -18,7 +26,7 @@ test('setup.sh: copies templates into config/ and does not touch real $HOME', ()
     mkdirSync(join(work, 'node_modules'), { recursive: true });
     writeFileSync(
       join(work, 'package.json'),
-      JSON.stringify({ name: 'setup-test', version: '0.0.0', type: 'module' }),
+      JSON.stringify({ name: 'setup-test', version: '0.0.0', type: 'module' })
     );
     writeFileSync(join(fakeHome, '.bashrc'), '# original\n');
 
@@ -35,7 +43,7 @@ test('setup.sh: copies templates into config/ and does not touch real $HOME', ()
 
     assert.ok(
       existsSync(join(work, 'config', 'candidate-profile.yml')),
-      'config/candidate-profile.yml should be created',
+      'config/candidate-profile.yml should be created'
     );
     assert.ok(existsSync(join(work, 'config', 'cv.md')));
     assert.ok(existsSync(join(work, 'config', 'portals.yml')));

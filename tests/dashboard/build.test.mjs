@@ -13,14 +13,17 @@ function setupFixtureTree() {
   mkdirSync(join(dir, 'data'), { recursive: true });
   mkdirSync(join(dir, 'reports'), { recursive: true });
 
-  writeFileSync(join(dir, 'data', 'applications.md'), [
-    '# Applications Tracker',
-    '',
-    HEADER_LINE,
-    SEPARATOR_LINE,
-    '| 1 | 2026-04-10 | Acme Corp | ML Engineer Intern | 4.5/5 | Applied |  |  | Good fit |',
-    '| 2 | 2026-04-05 | Widgets Inc | Data Scientist Intern | 3.8/5 | Interview |  |  |  |',
-  ].join('\n'));
+  writeFileSync(
+    join(dir, 'data', 'applications.md'),
+    [
+      '# Applications Tracker',
+      '',
+      HEADER_LINE,
+      SEPARATOR_LINE,
+      '| 1 | 2026-04-10 | Acme Corp | ML Engineer Intern | 4.5/5 | Applied |  |  | Good fit |',
+      '| 2 | 2026-04-05 | Widgets Inc | Data Scientist Intern | 3.8/5 | Interview |  |  |  |',
+    ].join('\n')
+  );
 
   writeFileSync(join(dir, 'data', 'evaluations.jsonl'), '');
   writeFileSync(join(dir, 'data', 'filtered-out.tsv'), '');
@@ -86,7 +89,7 @@ test('buildDashboard includes filtered-out entries when tsv has data', async () 
   writeFileSync(join(dir, 'data', 'evaluations.jsonl'), '');
   writeFileSync(
     join(dir, 'data', 'filtered-out.tsv'),
-    '2026-04-10\thttps://example.com/job/99\tSome Corp\tJunior Dev\ttoo junior\n',
+    '2026-04-10\thttps://example.com/job/99\tSome Corp\tJunior Dev\ttoo junior\n'
   );
   const outPath = join(dir, 'dashboard.html');
 

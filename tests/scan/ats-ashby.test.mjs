@@ -10,7 +10,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturePath = path.join(__dirname, '..', 'fixtures', 'ashby-photoroom.json');
 
 let restore;
-afterEach(() => { if (restore) restore(); });
+afterEach(() => {
+  if (restore) restore();
+});
 
 test('fetchAshby — mappe fixture Photoroom', async () => {
   const fixture = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));

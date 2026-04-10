@@ -72,8 +72,8 @@ async function extractFields(page) {
           el.tagName === 'TEXTAREA'
             ? 'textarea'
             : el.tagName === 'SELECT'
-            ? 'select'
-            : el.getAttribute('type') || 'text',
+              ? 'select'
+              : el.getAttribute('type') || 'text',
         required: el.hasAttribute('required'),
       });
     }
@@ -89,7 +89,11 @@ const CASES = [
     expected: ['first_name', 'last_name', 'email', 'cv_upload'],
   },
   { ats: 'ashby', fixture: 'ashby-form.html', expected: ['full_name', 'email', 'cv_upload'] },
-  { ats: 'wttj', fixture: 'wttj-form.html', expected: ['first_name', 'last_name', 'email', 'cv_upload'] },
+  {
+    ats: 'wttj',
+    fixture: 'wttj-form.html',
+    expected: ['first_name', 'last_name', 'email', 'cv_upload'],
+  },
 ];
 
 for (const { ats, fixture, expected } of CASES) {
@@ -122,17 +126,19 @@ for (const { ats, fixture, expected } of CASES) {
 
     // 3. Fill required text fields + tick consent
     await page.evaluate(() => {
-      for (const el of document.querySelectorAll('input[required], input:not([type]):not([type=file]):not([type=checkbox])')) {
+      for (const el of document.querySelectorAll(
+        'input[required], input:not([type]):not([type=file]):not([type=checkbox])'
+      )) {
         if (el.type === 'file' || el.type === 'checkbox') continue;
         if (!el.value) {
           el.value =
             el.type === 'email'
               ? 'alice@example.com'
               : el.type === 'tel'
-              ? '+33600000000'
-              : el.type === 'url'
-              ? 'https://example.com'
-              : 'Alice';
+                ? '+33600000000'
+                : el.type === 'url'
+                  ? 'https://example.com'
+                  : 'Alice';
         }
       }
       for (const cb of document.querySelectorAll('input[type=checkbox]')) cb.checked = true;
@@ -140,14 +146,20 @@ for (const { ats, fixture, expected } of CASES) {
 
     // 4. Submit and wait for DOM swap
     const beforeUrl = page.url();
-    await page.evaluate(() => document.querySelector('form').dispatchEvent(new Event('submit', { cancelable: true })));
+    await page.evaluate(() =>
+      document.querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }))
+    );
     await page.waitForSelector('h1', { timeout: 2000 });
 
     // 5. Detect confirmation
     const pageText = await page.evaluate(() => document.body.innerText);
     const afterUrl = page.url();
     const result = classifyConfirmation({ beforeUrl, afterUrl, pageText });
-    assert.equal(result.status, 'Applied', `${ats}: expected Applied, got ${result.status} (${result.reason})`);
+    assert.equal(
+      result.status,
+      'Applied',
+      `${ats}: expected Applied, got ${result.status} (${result.reason})`
+    );
 
     await page.close();
   });

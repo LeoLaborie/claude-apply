@@ -1,19 +1,37 @@
 export const REQUIRED_FIELDS = [
-  'first_name', 'last_name', 'email', 'phone',
-  'linkedin_url', 'github_url',
-  'city', 'country',
-  'school', 'degree', 'graduation_year',
-  'work_authorization', 'requires_sponsorship',
-  'availability_start', 'internship_duration_months',
-  'cv_fr_path', 'cv_en_path',
+  'first_name',
+  'last_name',
+  'email',
+  'phone',
+  'linkedin_url',
+  'github_url',
+  'city',
+  'country',
+  'school',
+  'degree',
+  'graduation_year',
+  'work_authorization',
+  'requires_sponsorship',
+  'availability_start',
+  'internship_duration_months',
+  'cv_fr_path',
+  'cv_en_path',
   'auto_apply_min_score',
 ];
 
 const OPTIONAL_FIELDS = [
-  'date_of_birth', 'nationality', 'website_url', 'postal_code',
-  'current_year', 'languages',
-  'education', 'experiences',
-  'gender', 'ethnicity', 'veteran_status', 'disability_status',
+  'date_of_birth',
+  'nationality',
+  'website_url',
+  'postal_code',
+  'current_year',
+  'languages',
+  'education',
+  'experiences',
+  'gender',
+  'ethnicity',
+  'veteran_status',
+  'disability_status',
 ];
 
 function validateEducationEntry(e, i) {
@@ -47,9 +65,12 @@ export function validateProfile(profile) {
   if (profile.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(profile.email)) {
     errors.push('email format invalid');
   }
-  if (profile.auto_apply_min_score !== undefined &&
-      (typeof profile.auto_apply_min_score !== 'number' ||
-       profile.auto_apply_min_score < 0 || profile.auto_apply_min_score > 10)) {
+  if (
+    profile.auto_apply_min_score !== undefined &&
+    (typeof profile.auto_apply_min_score !== 'number' ||
+      profile.auto_apply_min_score < 0 ||
+      profile.auto_apply_min_score > 10)
+  ) {
     errors.push('auto_apply_min_score must be a number between 0 and 10');
   }
   if (profile.education !== undefined) {

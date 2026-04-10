@@ -19,11 +19,13 @@ Focus: machine learning, distributed systems, applied research. Minor in philoso
 ## Experience
 
 **Example ML Lab — Research Intern** (Jun–Aug 2025)
+
 - Built a reproducible training pipeline for small language models
 - Improved evaluation throughput by 3× via batched inference
 - Shipped internal tool adopted by 10+ researchers
 
 **Example Startup — Software Engineering Intern** (Summer 2024)
+
 - Implemented a typed API client generator used across 4 services
 - Reduced CI time by 40% through selective test execution
 

@@ -18,7 +18,8 @@ export function loadSeenUrls(historyPath, applicationsPath) {
   if (fs.existsSync(historyPath)) {
     const raw = fs.readFileSync(historyPath, 'utf8');
     const lines = raw.split('\n');
-    for (const line of lines.slice(1)) { // skip header
+    for (const line of lines.slice(1)) {
+      // skip header
       if (!line.trim()) continue;
       const url = line.split('\t')[0];
       if (url) seen.add(url.trim());

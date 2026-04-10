@@ -1,42 +1,48 @@
-<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><title>WTTJ — Apply</title></head>
-<body>
-<form id="apply-form">
-  <label for="firstname">First name</label>
-  <input type="text" name="firstname" id="firstname" required>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>WTTJ — Apply</title>
+  </head>
+  <body>
+    <form id="apply-form">
+      <label for="firstname">First name</label>
+      <input type="text" name="firstname" id="firstname" required />
 
-  <label for="lastname">Last name</label>
-  <input type="text" name="lastname" id="lastname" required>
+      <label for="lastname">Last name</label>
+      <input type="text" name="lastname" id="lastname" required />
 
-  <label for="email">Email</label>
-  <input type="email" name="email" id="email" required>
+      <label for="email">Email</label>
+      <input type="email" name="email" id="email" required />
 
-  <label for="phone">Phone</label>
-  <input type="tel" name="phone" id="phone">
+      <label for="phone">Phone</label>
+      <input type="tel" name="phone" id="phone" />
 
-  <label for="linkedin_url">LinkedIn profile</label>
-  <input type="url" name="linkedin_url" id="linkedin_url">
+      <label for="linkedin_url">LinkedIn profile</label>
+      <input type="url" name="linkedin_url" id="linkedin_url" />
 
-  <label for="resume">Upload your resume</label>
-  <input type="file" name="resume" id="resume" accept=".pdf,.doc,.docx" required>
+      <label for="resume">Upload your resume</label>
+      <input type="file" name="resume" id="resume" accept=".pdf,.doc,.docx" required />
 
-  <label for="cover_letter">Cover letter (optional)</label>
-  <textarea name="cover_letter" id="cover_letter"></textarea>
+      <label for="cover_letter">Cover letter (optional)</label>
+      <textarea name="cover_letter" id="cover_letter"></textarea>
 
-  <label for="availability">Availability start date</label>
-  <input type="date" name="availability" id="availability">
+      <label for="availability">Availability start date</label>
+      <input type="date" name="availability" id="availability" />
 
-  <label>
-    <input type="checkbox" name="consent" id="consent" required>
-    I accept the terms and conditions
-  </label>
+      <label>
+        <input type="checkbox" name="consent" id="consent" required />
+        I accept the terms and conditions
+      </label>
 
-  <button type="submit">Submit my application</button>
-</form>
-<script>
-  document.querySelector('form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    document.body.innerHTML = '<h1>Merci pour votre candidature !</h1><p>We will be in touch soon.</p>';
-  });
-</script>
-</body></html>
+      <button type="submit">Submit my application</button>
+    </form>
+    <script>
+      document.querySelector('form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        document.body.innerHTML =
+          '<h1>Merci pour votre candidature !</h1><p>We will be in touch soon.</p>';
+      });
+    </script>
+  </body>
+</html>

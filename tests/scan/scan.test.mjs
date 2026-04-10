@@ -10,7 +10,9 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-'));
 
 afterEach(() => {
   for (const f of fs.readdirSync(tmp)) {
-    try { fs.unlinkSync(path.join(tmp, f)); } catch {}
+    try {
+      fs.unlinkSync(path.join(tmp, f));
+    } catch {}
   }
 });
 
@@ -21,8 +23,8 @@ test('runScan — e2e avec 2 companies mockées, écrit pipeline + history', asy
       negative: ['Senior'],
     },
     tracked_companies: [
-      { name: 'Mistral AI',  careers_url: 'https://jobs.lever.co/mistral',    enabled: true },
-      { name: 'Photoroom',   careers_url: 'https://jobs.ashbyhq.com/photoroom', enabled: true },
+      { name: 'Mistral AI', careers_url: 'https://jobs.lever.co/mistral', enabled: true },
+      { name: 'Photoroom', careers_url: 'https://jobs.ashbyhq.com/photoroom', enabled: true },
     ],
   };
   const profileConfig = {

@@ -27,10 +27,12 @@ const ERROR_TEXT = [
 
 export function classifyConfirmation({ beforeUrl, afterUrl, pageText }) {
   const text = pageText || '';
-  if (SUCCESS_TEXT.some((r) => r.test(text))) return { status: 'Applied', reason: 'success text matched' };
+  if (SUCCESS_TEXT.some((r) => r.test(text)))
+    return { status: 'Applied', reason: 'success text matched' };
   if (afterUrl && afterUrl !== beforeUrl && SUCCESS_URL.some((r) => r.test(afterUrl))) {
     return { status: 'Applied', reason: 'success url matched' };
   }
-  if (ERROR_TEXT.some((r) => r.test(text))) return { status: 'Failed', reason: 'error text matched' };
+  if (ERROR_TEXT.some((r) => r.test(text)))
+    return { status: 'Failed', reason: 'error text matched' };
   return { status: 'Submitted (unconfirmed)', reason: 'no pattern matched' };
 }

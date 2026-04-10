@@ -19,7 +19,7 @@ node src/score/index.mjs <url>
    - `--no-chrome`
    - `--strict-mcp-config`
    - `--setting-sources ""`
-   These flags strip all Claude Code overhead (no MCP servers, no history, no auto-context), cutting the per-call cost from ~$0.14 to ~$0.03.
+     These flags strip all Claude Code overhead (no MCP servers, no history, no auto-context), cutting the per-call cost from ~$0.14 to ~$0.03.
 6. Parse the returned JSON and append a line to `data/evaluations.jsonl`.
 
 ## Prerequisites

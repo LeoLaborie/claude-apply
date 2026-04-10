@@ -46,7 +46,8 @@ function deriveCompanyFromUrl(url) {
         .filter(Boolean)
         .map((w) => {
           const lower = w.toLowerCase();
-          if (lower === 'ai' || lower === 'ml' || lower === 'hr' || lower === 'bcg') return lower.toUpperCase();
+          if (lower === 'ai' || lower === 'ml' || lower === 'hr' || lower === 'bcg')
+            return lower.toUpperCase();
           return lower.charAt(0).toUpperCase() + lower.slice(1);
         })
         .join(' ');
@@ -196,7 +197,7 @@ export async function buildDashboard({
   writeFileSync(outputPath, html, 'utf8');
 
   console.log(
-    `Dashboard written to ${outputPath}: ${apps.length} applications, ${filteredOut.length} filtered out.`,
+    `Dashboard written to ${outputPath}: ${apps.length} applications, ${filteredOut.length} filtered out.`
   );
 }
 
@@ -220,7 +221,9 @@ function generateHtml(apps, filteredOut) {
   const filteredRows = filteredOut
     .map((f) => {
       const urlAttr = f.url ? ` href="${escapeHtml(f.url)}" target="_blank" rel="noopener"` : '';
-      const link = f.url ? `<a${urlAttr}>${escapeHtml(f.title || f.url)}</a>` : escapeHtml(f.title || '');
+      const link = f.url
+        ? `<a${urlAttr}>${escapeHtml(f.title || f.url)}</a>`
+        : escapeHtml(f.title || '');
       return `    <tr>
       <td>${escapeHtml(f.date || '')}</td>
       <td>${escapeHtml(f.company || '')}</td>
@@ -281,7 +284,9 @@ ${appRows || '    <tr><td colspan="4" style="color:#999;text-align:center">No ap
     </tbody>
   </table>
 
-${filteredOut.length > 0 ? `  <div class="filtered-section">
+${
+  filteredOut.length > 0
+    ? `  <div class="filtered-section">
     <h2>Filtered Out (${filteredOut.length})</h2>
     <table>
       <thead>
@@ -291,7 +296,9 @@ ${filteredOut.length > 0 ? `  <div class="filtered-section">
 ${filteredRows}
       </tbody>
     </table>
-  </div>` : ''}
+  </div>`
+    : ''
+}
 
   <p class="generated-at">Generated at ${new Date().toISOString()}</p>
 </body>
