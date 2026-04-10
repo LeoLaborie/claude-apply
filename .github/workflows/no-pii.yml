@@ -1,0 +1,15 @@
+name: No PII
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check-pii:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for PII leaks
+        run: bash scripts/check-no-pii.sh
