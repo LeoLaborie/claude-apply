@@ -6,15 +6,19 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 cd "$REPO_ROOT"
 
-# Hardcoded patterns. Each entry: "pattern|allow_in_package_json"
-# If allow_in_package_json=1, we skip package.json when scanning for this pattern.
+# Hardcoded patterns. Each entry: "pattern|exclude_path_regex"
+# exclude_path_regex is an ERE matched against the file path; files whose path
+# matches the regex are skipped for this pattern. Empty regex = no exclusion.
+# Public GitHub URL references (LeoLaborie/claude-apply) are allowed in docs
+# and community files; the email form (leo.laborie) remains blocked everywhere
+# except package.json (author field).
 HARDCODED=(
-  'leo\.laborie|1'
-  'leolaborie|1'
-  '06[[:space:]]*49[[:space:]]*71[[:space:]]*45[[:space:]]*17|0'
-  '0649714517|0'
-  '3[[:space:]]juillet[[:space:]]2005|0'
-  '2005-07-03|0'
+  'leo\.laborie|^package\.json$'
+  'leolaborie|^(package\.json|package-lock\.json|README\.md|CHANGELOG\.md|CLAUDE\.md|AGENTS\.md|\.github/.*)$'
+  '06[[:space:]]*49[[:space:]]*71[[:space:]]*45[[:space:]]*17|'
+  '0649714517|'
+  '3[[:space:]]juillet[[:space:]]2005|'
+  '2005-07-03|'
 )
 
 # Dynamic patterns from .pii-blocklist
@@ -56,10 +60,10 @@ FOUND=0
 
 scan_pattern() {
   local pattern="$1"
-  local exclude_pkg_json="$2"
+  local exclude_re="$2"
   local files_to_scan=()
   for f in "${FILTERED_FILES[@]}"; do
-    if [[ "$exclude_pkg_json" == "1" && "$f" == "package.json" ]]; then
+    if [[ -n "$exclude_re" && "$f" =~ $exclude_re ]]; then
       continue
     fi
     files_to_scan+=("$f")
@@ -76,12 +80,12 @@ scan_pattern() {
 
 for entry in "${HARDCODED[@]}"; do
   pattern="${entry%|*}"
-  exclude_pkg="${entry##*|}"
-  scan_pattern "$pattern" "$exclude_pkg"
+  exclude_re="${entry##*|}"
+  scan_pattern "$pattern" "$exclude_re"
 done
 
 for p in "${DYNAMIC_PATTERNS[@]}"; do
-  scan_pattern "$p" "0"
+  scan_pattern "$p" ""
 done
 
 if [[ $FOUND -eq 0 ]]; then
