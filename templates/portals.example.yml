@@ -1,0 +1,32 @@
+# Companies to scan for open positions.
+# Copy to config/portals.yml and customise.
+#
+# Group A (auto-detected ATS APIs): Lever, Greenhouse, Ashby URLs are scraped
+# directly by `node src/scan/index.mjs` — zero LLM cost.
+#
+# Group B (custom career pages): handled via an agentic scanner (not in v0.1).
+
+companies:
+  - name: Mistral AI
+    careers_url: https://jobs.lever.co/mistral
+  - name: Anthropic
+    careers_url: https://jobs.lever.co/Anthropic
+  - name: Photoroom
+    careers_url: https://jobs.lever.co/photoroom
+  - name: ElevenLabs
+    careers_url: https://jobs.lever.co/elevenlabs
+
+title_filter:
+  # Titles must contain at least one of these keywords (word-boundary regex).
+  required_any:
+    - Intern
+    - Interns
+    - Internship
+    - Internships
+    - Stage
+    - Stages
+    - Stagiaire
+    - Stagiaires
+
+  # Optional exclusion keywords — offers matching any of these are dropped.
+  excluded_any: []
