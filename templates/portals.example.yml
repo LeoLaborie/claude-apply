@@ -6,27 +6,32 @@
 #
 # Group B (custom career pages): handled via an agentic scanner (not in v0.1).
 
-companies:
+tracked_companies:
   - name: Mistral AI
     careers_url: https://jobs.lever.co/mistral
+    enabled: true
   - name: Anthropic
     careers_url: https://jobs.lever.co/Anthropic
+    enabled: true
   - name: Photoroom
     careers_url: https://jobs.lever.co/photoroom
+    enabled: true
   - name: ElevenLabs
     careers_url: https://jobs.lever.co/elevenlabs
+    enabled: true
 
 title_filter:
-  # Titles must contain at least one of these keywords (word-boundary regex).
-  required_any:
+  # Titles must contain at least one of these (case-insensitive substring).
+  positive:
     - Intern
-    - Interns
     - Internship
-    - Internships
     - Stage
-    - Stages
     - Stagiaire
-    - Stagiaires
 
   # Optional exclusion keywords — offers matching any of these are dropped.
-  excluded_any: []
+  negative: []
+
+  # Optional secondary filter applied *on top of* positive/negative:
+  # if set, the title must also contain at least one of these keywords.
+  # Leave empty or omit to skip this extra check.
+  required_any: []

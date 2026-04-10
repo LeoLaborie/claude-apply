@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Portal scanner for Group A companies (API-friendly ATS: Lever, Greenhouse,
-// Ashby). Zero LLM tokens, zero Playwright. Reads portals.yml + profile.yml,
+// Ashby). Zero LLM tokens, zero Playwright. Reads portals.yml (+ optional
+// profile.yml for blacklist / min_start_date overrides),
 // dispatches to src/scan/ats/{platform}.mjs, applies runPrefilter(), appends
 // results to pipeline.md + scan-history.tsv + filtered-out.tsv.
 //
@@ -45,6 +46,15 @@ function reasonToStatus(reason) {
 async function parseYaml(filePath) {
   const yaml = await import('js-yaml');
   return yaml.load(fs.readFileSync(filePath, 'utf8'));
+}
+
+async function parseYamlOptional(filePath) {
+  try {
+    return await parseYaml(filePath);
+  } catch (err) {
+    if (err.code === 'ENOENT') return {};
+    throw err;
+  }
 }
 
 async function fetchCompanyOffers(company) {
@@ -286,7 +296,7 @@ async function main() {
   const DATA_DIR = process.env.CLAUDE_APPLY_DATA_DIR || path.join(__dirname, '..', '..', 'data');
 
   const portalsConfig = await parseYaml(path.join(CONFIG_DIR, 'portals.yml'));
-  const profileConfig = await parseYaml(path.join(CONFIG_DIR, 'profile.yml'));
+  const profileConfig = await parseYamlOptional(path.join(CONFIG_DIR, 'profile.yml'));
 
   const result = await runScan({
     portalsConfig,

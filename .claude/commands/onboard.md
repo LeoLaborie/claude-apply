@@ -99,17 +99,17 @@ Assemble the YAML file from:
 
 Validate the file by importing `validateProfile` from `src/apply/candidate-profile.schema.mjs` and running it on the parsed YAML. If `ok: false`, show the errors to the user, ask the missing/invalid fields, and retry — do not write an invalid profile.
 
-Also build **`title_filter`** for `portals.yml` from the job type answer:
+Also build **`title_filter`** for `portals.yml` from the job type answer. The scanner expects three keys — `positive` (title must contain at least one), `negative` (title must not contain any), and the optional `required_any` (secondary filter, applied on top):
 
-| Job type       | `required_any` keywords                                                                        |
+| Job type       | `positive` keywords                                                                            |
 | -------------- | ---------------------------------------------------------------------------------------------- |
 | internship     | `Intern`, `Interns`, `Internship`, `Internships`, `Stage`, `Stages`, `Stagiaire`, `Stagiaires` |
 | apprenticeship | `Apprentice`, `Apprenticeship`, `Alternance`, `Alternant`, `Alternante`                        |
 | entry-level    | `Junior`, `Entry`, `Graduate`, `New Grad`                                                      |
-| mid-level      | (empty — let the domain filter out, or add role keywords from step 3)                          |
+| mid-level      | (leave empty — let the domain drive the filter via `required_any`)                             |
 | senior         | `Senior`, `Staff`, `Principal`, `Lead`                                                         |
 
-Always add the **role/domain keywords** from step 3 to `required_any` if the user gave specific ones (e.g. "Machine Learning", "Backend"). Keep `excluded_any: []` unless the user explicitly ruled something out.
+If the user gave specific role/domain keywords in step 3 (e.g. "Machine Learning", "Backend"), put them in `required_any` so offers must match both the job type _and_ the domain. Keep `negative: []` unless the user explicitly ruled something out (e.g. senior user excluding `Intern`).
 
 ## 6. Discover ~30 target companies
 
@@ -166,8 +166,8 @@ Then ask: **"Here are 30 companies I found. Should I write them to `config/porta
 
 Apply the user's edits (remove X, add Y with URL Z, etc.) and loop until they approve. Only then write `config/portals.yml` with:
 
-- `companies:` — the approved list
-- `title_filter:` — built in step 5
+- `tracked_companies:` — the approved list, each entry `{ name, careers_url, enabled: true }`
+- `title_filter:` — built in step 5 (`positive`, `negative`, optional `required_any`)
 
 ## 7. Final instructions to the user
 

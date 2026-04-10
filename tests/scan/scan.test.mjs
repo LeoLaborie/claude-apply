@@ -1,10 +1,15 @@
 import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { installMockFetch } from '../helpers.mjs';
 import { runScan } from '../../src/scan/index.mjs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.join(__dirname, '..', '..');
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-'));
 
@@ -102,4 +107,37 @@ test('runScan — e2e avec 2 companies mockées, écrit pipeline + history', asy
   // filtered-out.tsv should have the Senior Engineer row
   const filt = fs.readFileSync(filteredPath, 'utf8');
   assert.ok(filt.includes('Senior Engineer'));
+});
+
+test('scan CLI — missing profile.yml is treated as optional (ENOENT regression)', () => {
+  const cfgDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-cfg-'));
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-data-'));
+  try {
+    // Minimal portals.yml with zero companies — scanner should complete without
+    // reading profile.yml and without making any HTTP calls.
+    fs.writeFileSync(
+      path.join(cfgDir, 'portals.yml'),
+      'tracked_companies: []\ntitle_filter:\n  positive: []\n  negative: []\n',
+      'utf8'
+    );
+
+    const res = spawnSync(
+      process.execPath,
+      [path.join(REPO_ROOT, 'src', 'scan', 'index.mjs'), '--dry-run', '--json'],
+      {
+        env: {
+          ...process.env,
+          CLAUDE_APPLY_CONFIG_DIR: cfgDir,
+          CLAUDE_APPLY_DATA_DIR: dataDir,
+        },
+        encoding: 'utf8',
+      }
+    );
+
+    assert.equal(res.status, 0, `stderr: ${res.stderr}`);
+    assert.ok(!res.stderr.includes('ENOENT'), `unexpected ENOENT: ${res.stderr}`);
+  } finally {
+    fs.rmSync(cfgDir, { recursive: true, force: true });
+    fs.rmSync(dataDir, { recursive: true, force: true });
+  }
 });
