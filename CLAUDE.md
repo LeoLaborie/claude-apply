@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 Instructions for Claude Code (and other LLM agents) working in this repository.
 
 ## What this project is
@@ -14,6 +16,38 @@ Instructions for Claude Code (and other LLM agents) working in this repository.
 - **Never invent experience** in cover letters or free-text answers. Ground everything in `config/cv.md` and `config/candidate-profile.yml`.
 - **Default to `Submitted (unconfirmed)`** if confirmation detection is ambiguous. Writing `Applied` requires a matched success text or URL.
 - **Stop on ambiguity.** Login wall, captcha, unknown required field, unrecognized multi-step page → stop, surface what you see, ask.
+
+## Big picture
+
+The three stages are independent and communicate only via files in `data/`: `scan` writes `pipeline.md`, `score` reads a URL and appends to `evaluations.jsonl`, `apply` reads a URL and writes `applications.md` + `apply-log.jsonl`. No shared in-memory state, no DB — everything is resumable by re-reading the files. `/apply` additionally requires a running Chrome launched via the `chrome-apply` alias (CDP on port 9222) with the `claude-in-chrome` extension installed; without it, the browser tools will fail.
+
+## Common commands
+
+- `npm test` — full suite (`node --test tests/**/*.test.mjs`)
+- `node --test tests/path/to/file.test.mjs` — single test file
+- `node --test --test-name-pattern="<regex>" tests/**/*.test.mjs` — single test by name
+- `npm run test:watch` — watch mode
+- `npm run lint` / `npm run format` — Prettier check / write
+- `npm run check:pii` — PII gate (run locally before pushing)
+- `npm run scan` / `npm run score <url>` / `npm run dashboard` — module entry points
+
+## First-time setup (what the agent must do)
+
+If the user is running the project for the first time (no `config/candidate-profile.yml`, no `node_modules`, or `chrome-apply` alias missing), **do not silently run commands** — the setup writes to the shell rc file and can clone the user's Chrome profile. Walk through it explicitly:
+
+1. **Run `bash scripts/setup.sh`.** It is idempotent. It will, in order:
+   - Check prereqs via `scripts/check-prereqs.sh` (Node 20+, Chrome, etc.). If it fails, stop and report the missing tool — do not try to install it for the user.
+   - `npm ci` (or `npm install` if no lockfile) when `node_modules` is absent.
+   - Create a dedicated Chrome CDP profile at `~/.config/google-chrome-claude-apply` (Linux) or `~/Library/Application Support/Google/Chrome-claude-apply` (macOS). **This step is interactive** — it asks `y/N` whether to clone the user's default Chrome profile (cookies, extensions). Do not answer for the user; let them type it. If running non-interactively, warn them that the script will block.
+   - Append an `alias chrome-apply='…'` to `~/.zshrc` or `~/.bashrc` (with a timestamped backup). If neither rc exists, print the alias and ask the user to add it manually.
+   - Copy templates from `templates/` to `config/` and `data/` (only if the destination is missing) — `candidate-profile.yml`, `cv.md`, `portals.yml`, `applications.md`.
+2. **Tell the user to edit the four config files** before doing anything else: `config/candidate-profile.yml`, `config/cv.md`, `config/portals.yml`, and optionally `data/applications.md`. Do not guess or pre-fill values — especially not PII (see invariants). The only allowed example persona is "Alice Martin" and it belongs in `templates/`, not `config/`.
+3. **Have the user reload their shell** (`source ~/.zshrc` or `source ~/.bashrc`) — a new Claude Code session may not pick up the alias otherwise.
+4. **Have the user launch `chrome-apply` themselves** in their own terminal. It is a GUI process that must keep running; do not background it from an agent session. Remind them to install the [claude-in-chrome](https://chromewebstore.google.com/) extension in that Chrome window if they have not already.
+5. **Verify before `/apply`**: run `node src/scan/index.mjs --dry-run` to confirm scan works without network writes, and confirm `mcp__claude-in-chrome__tabs_context_mcp` returns tabs (meaning the extension is reachable). If either fails, stop and diagnose — do not jump to `/apply`.
+6. **Only then** run `/scan`, `/score <url>`, `/apply <url>` in that order.
+
+If any step above is already done (e.g., `node_modules` present, alias already in rc), `setup.sh` will skip it and say so — re-running is safe.
 
 ## Entry points
 
