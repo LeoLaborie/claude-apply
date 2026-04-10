@@ -17,8 +17,8 @@ You are guiding a **first-time user** through the end-to-end setup of `claude-ap
 ## 0. Detect existing state
 
 1. Check whether `config/candidate-profile.yml` already exists. If yes, ask the user: "An existing profile was found. Do you want to (a) **abort** and keep it, (b) **rerun onboarding and overwrite** it, or (c) **only regenerate portals.yml**?" Act accordingly.
-2. Check whether `node_modules/` exists (skippable in step 7 if present).
-3. Check whether the `chrome-apply` alias is already in `~/.zshrc` or `~/.bashrc` (skippable in step 7 if present).
+2. Check whether `node_modules/` exists (`setup.sh` in step 4 will skip the install if present).
+3. Check whether the `chrome-apply` alias is already in `~/.zshrc` or `~/.bashrc` (`setup.sh` in step 4 will skip the rc append if present).
 
 ## 1. Ask for the CV
 
@@ -53,7 +53,7 @@ Use **`AskUserQuestion`** once with all the fields you could not extract, groupe
 - **Job type**: internship / apprenticeship / entry-level / mid-level / senior / other
 - **Target start date**: (ISO date)
 - **Duration** (if internship/apprenticeship): months
-- **Target role / domain keywords**: free text — this drives both `title_filter` and company discovery in step 5. Example: "AI/ML engineering", "backend Python", "devtools", "data engineering".
+- **Target role / domain keywords**: free text — this drives both `title_filter` (step 5) and company discovery (step 6). Example: "AI/ML engineering", "backend Python", "devtools", "data engineering".
 
 **Location & remote**
 
@@ -74,7 +74,22 @@ Use **`AskUserQuestion`** once with all the fields you could not extract, groupe
 
 Leave anything the user declines to answer as `null`. Do **not** loop back with follow-up questions unless the user's answer is internally inconsistent (e.g. "internship" + "senior level").
 
-## 4. Build `config/candidate-profile.yml`
+## 4. Run `setup.sh` with the right flags
+
+**This step must happen before profile validation and company verification** — both rely on `node_modules` (for `js-yaml` in the profile schema, and for `node src/scan/index.mjs`). Running `setup.sh` here also sets up the Chrome CDP profile and shell alias while we already have the user's answers from step 3.
+
+Based on the user's Chrome-profile clone answer, run one of:
+
+```bash
+bash scripts/setup.sh --yes --clone-chrome-profile       # if user said yes
+bash scripts/setup.sh --yes --no-clone-chrome-profile    # if user said no
+```
+
+This will: install npm deps if missing (`npm ci` / `npm install`), create the CDP profile (empty or cloned), append the `chrome-apply` alias to the user's shell rc (timestamped backup), and copy any missing templates into `config/` (harmless — you will overwrite `candidate-profile.yml` and `portals.yml` in the next steps; `cv.md` already exists from step 2 so it is skipped).
+
+If the user is in an unusual shell setup, add `--no-rc` and print the alias to them manually.
+
+## 5. Build `config/candidate-profile.yml`
 
 Assemble the YAML file from:
 
@@ -96,7 +111,7 @@ Also build **`title_filter`** for `portals.yml` from the job type answer:
 
 Always add the **role/domain keywords** from step 3 to `required_any` if the user gave specific ones (e.g. "Machine Learning", "Backend"). Keep `excluded_any: []` unless the user explicitly ruled something out.
 
-## 5. Discover ~30 target companies
+## 6. Discover ~30 target companies
 
 This is the most fragile step. Read it twice before starting.
 
@@ -152,20 +167,7 @@ Then ask: **"Here are 30 companies I found. Should I write them to `config/porta
 Apply the user's edits (remove X, add Y with URL Z, etc.) and loop until they approve. Only then write `config/portals.yml` with:
 
 - `companies:` — the approved list
-- `title_filter:` — built in step 4
-
-## 6. Run `setup.sh` with the right flags
-
-Based on the user's answer about cloning the Chrome profile (step 3), run:
-
-```bash
-bash scripts/setup.sh --yes --clone-chrome-profile       # if user said yes
-bash scripts/setup.sh --yes --no-clone-chrome-profile    # if user said no
-```
-
-This will: install npm deps if missing, create the CDP profile (empty or cloned), append the `chrome-apply` alias to the user's shell rc (with a timestamped backup), and **skip** the template copy step (the templates are already superseded by the real configs you wrote in steps 2, 4, 5).
-
-If the user is in an unusual shell setup, add `--no-rc` and print the alias to them manually.
+- `title_filter:` — built in step 5
 
 ## 7. Final instructions to the user
 
