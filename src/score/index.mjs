@@ -14,6 +14,7 @@ import { writeTrackerTsv } from '../lib/tsv-writer.mjs';
 import { detectClosedPage } from '../lib/page-liveness.mjs';
 import { runPrefilter } from '../lib/prefilter-rules.mjs';
 import { loadProfile, ProfileMissingError } from '../lib/load-profile.mjs';
+import { readPipelineMd, findOfferByUrl } from '../lib/pipeline-md.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -202,9 +203,7 @@ export function parseScoreArgs(argv) {
   const hasAllMetadataFlags = flags.company && flags.role && flags.location;
 
   if (hasAnyMetadataFlag && !hasAllMetadataFlags) {
-    throw new Error(
-      '--company, --role, and --location must be provided together (all-or-nothing)'
-    );
+    throw new Error('--company, --role, and --location must be provided together (all-or-nothing)');
   }
   if (flags.fromPipeline && hasAnyMetadataFlag) {
     throw new Error('--from-pipeline is mutually exclusive with --company/--role/--location');
@@ -218,22 +217,56 @@ async function main() {
     process.env.CLAUDE_APPLY_CONFIG_DIR || path.join(__dirname, '..', '..', 'config');
   const DATA_DIR = process.env.CLAUDE_APPLY_DATA_DIR || path.join(__dirname, '..', '..', 'data');
 
-  const args = process.argv.slice(2);
-  let offer;
-  if (args.includes('--json-input')) {
-    const jsonPath = args[args.indexOf('--json-input') + 1];
-    offer = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-  } else {
-    const url = args[0];
-    if (!url) {
-      console.error('Usage: node src/score/index.mjs <url> | --json-input <path> [--id NNN]');
-      process.exit(2);
-    }
-    offer = await buildOffer(url, { source: 'scrape' });
+  let flags;
+  try {
+    flags = parseScoreArgs(process.argv.slice(2));
+  } catch (err) {
+    console.error(err.message);
+    process.exit(2);
   }
 
-  // Liveness check: closed/broken/listing pages → exit early, zero Claude tokens.
-  // Logged to data/filtered-out.tsv for audit.
+  let offer;
+  if (flags.jsonInput) {
+    offer = JSON.parse(fs.readFileSync(flags.jsonInput, 'utf8'));
+    if (!offer.metadata_source) offer.metadata_source = 'json-input';
+  } else {
+    if (!flags.url) {
+      console.error(
+        'Usage: node src/score/index.mjs <url> [--from-pipeline | --company X --role Y --location Z] [--id NNN]'
+      );
+      process.exit(2);
+    }
+
+    if (flags.fromPipeline) {
+      const pipelinePath = path.join(DATA_DIR, 'pipeline.md');
+      if (!fs.existsSync(pipelinePath)) {
+        console.error(`--from-pipeline: ${pipelinePath} does not exist`);
+        process.exit(2);
+      }
+      const doc = readPipelineMd(pipelinePath);
+      const hit = findOfferByUrl(doc, flags.url);
+      if (!hit) {
+        console.error(`--from-pipeline: url not found in pipeline.md: ${flags.url}`);
+        process.exit(2);
+      }
+      offer = await buildOffer(flags.url, {
+        source: 'pipeline',
+        company: hit.company,
+        title: hit.title,
+        location: hit.location,
+      });
+    } else if (flags.company) {
+      offer = await buildOffer(flags.url, {
+        source: 'flags',
+        company: flags.company,
+        title: flags.role,
+        location: flags.location,
+      });
+    } else {
+      offer = await buildOffer(flags.url, { source: 'scrape' });
+    }
+  }
+
   const liveness = detectClosedPage(offer);
   if (liveness.closed) {
     const date = new Date().toISOString().slice(0, 10);
@@ -264,7 +297,7 @@ async function main() {
   const scored = parseScoreJson(raw);
 
   const evalPath = path.join(DATA_DIR, 'evaluations.jsonl');
-  const id = args.includes('--id') ? args[args.indexOf('--id') + 1] : nextId(evalPath);
+  const id = flags.id || nextId(evalPath);
   const date = new Date().toISOString().slice(0, 10);
   const record = {
     id,
@@ -273,6 +306,7 @@ async function main() {
     role: offer.title || 'unknown',
     url: offer.url || '',
     location: offer.location || '',
+    metadata_source: offer.metadata_source || 'unknown',
     score: scored.score,
     verdict: scored.verdict,
     reason: scored.reason,
