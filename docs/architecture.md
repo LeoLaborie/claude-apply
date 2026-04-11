@@ -12,7 +12,8 @@ src/
 │   ├── scan-history.mjs      # dedup source-of-truth TSV
 │   ├── applications-md.mjs   # parse + update data/applications.md
 │   ├── prefilter-rules.mjs   # deterministic URL filter
-│   └── candidate-profile.schema.mjs  # shared profile schema (scan/score/apply)
+│   ├── candidate-profile.schema.mjs  # shared profile schema (scan/score/apply)
+│   └── load-profile.mjs      # loads + validates config/candidate-profile.yml + cv.md
 │
 ├── scan/                     # ATS scanner (Group A)
 │   ├── index.mjs             # CLI entry
