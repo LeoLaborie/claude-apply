@@ -89,3 +89,76 @@ test('fetchWorkday — single page, maps postings to Offer contract', async () =
   assert.equal(o.platform, 'workday');
   assert.equal(typeof o.body, 'string');
 });
+
+function installSequentialMockFetch(url, responses) {
+  const original = globalThis.fetch;
+  let i = 0;
+  globalThis.fetch = async (reqUrl) => {
+    const key = typeof reqUrl === 'string' ? reqUrl : reqUrl.toString();
+    if (key !== url) throw new Error(`sequentialMock: unexpected URL ${key}`);
+    if (i >= responses.length) throw new Error(`sequentialMock: exhausted (called ${i + 1} times)`);
+    const body = responses[i++];
+    return {
+      ok: true,
+      status: 200,
+      json: async () => body,
+      text: async () => JSON.stringify(body),
+    };
+  };
+  return () => {
+    globalThis.fetch = original;
+  };
+}
+
+test('fetchWorkday — paginates until a partial page is returned', async () => {
+  const page1 = JSON.parse(fs.readFileSync(fx1Path, 'utf8'));
+  const page2 = JSON.parse(fs.readFileSync(fx2Path, 'utf8'));
+  restore = installSequentialMockFetch(
+    'https://totalenergies.wd3.myworkdayjobs.com/wday/cxs/totalenergies/TotalEnergies_careers/jobs',
+    [page1, page2],
+  );
+
+  const offers = await fetchWorkday(
+    'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers',
+    'TotalEnergies',
+    { pageSize: 3 }, // page1 has 3 (full), page2 has 1 (partial → stop)
+  );
+
+  assert.equal(offers.length, 4);
+  assert.equal(offers[0].title, 'Data Engineer - Paris');
+  assert.equal(offers[3].title, 'Cloud Infrastructure Engineer');
+});
+
+test('fetchWorkday — stops on first empty page', async () => {
+  restore = installSequentialMockFetch(
+    'https://sanofi.wd3.myworkdayjobs.com/wday/cxs/sanofi/SanofiCareers/jobs',
+    [{ total: 0, jobPostings: [] }],
+  );
+
+  const offers = await fetchWorkday(
+    'https://sanofi.wd3.myworkdayjobs.com/SanofiCareers',
+    'Sanofi',
+    { pageSize: 20 },
+  );
+
+  assert.equal(offers.length, 0);
+});
+
+test('fetchWorkday — throws on HTTP error', async () => {
+  restore = installMockFetch({
+    'https://broken.wd3.myworkdayjobs.com/wday/cxs/broken/BrokenSite/jobs': {
+      status: 500,
+      body: { error: 'nope' },
+    },
+  });
+
+  await assert.rejects(
+    () =>
+      fetchWorkday(
+        'https://broken.wd3.myworkdayjobs.com/BrokenSite',
+        'Broken',
+        { pageSize: 20 },
+      ),
+    /HTTP 500/,
+  );
+});
