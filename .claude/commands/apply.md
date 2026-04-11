@@ -86,14 +86,19 @@ Many ATSes hide education / experience / language / link / skill subforms behind
 
 ### 4.2 Scan fields
 
-1. Via `javascript_tool`, extract every `input`, `select`, `textarea`, `button[type=submit]` with attributes `name`, `id`, `type`, `placeholder`, `required`, and the associated `<label>` (via `for` or DOM proximity).
+1. Import the browser-side DOM helpers from Node **once**, then inject them into every relevant page evaluation:
 
    ```javascript
+   // In the agent's Node context (before calling javascript_tool):
+   import { EXTRACT_LABEL_SRC } from './src/apply/dom-label.mjs';
+   ```
+
+2. Pass the following script to `mcp__claude-in-chrome__javascript_tool`. It injects `EXTRACT_LABEL_SRC` (which defines `extractLabel` and `clickInQuestion`) and then builds the `fields[]` array using the ATS-aware `extractLabel`:
+
+   ```javascript
+   // The agent constructs this string via: EXTRACT_LABEL_SRC + "\n" + <scan body>
+   ${EXTRACT_LABEL_SRC}
    const out = [];
-   const labelFor = (id) => {
-     const l = document.querySelector(`label[for="${id}"]`);
-     return l ? l.textContent.trim() : '';
-   };
    for (const el of document.querySelectorAll('input, select, textarea')) {
      out.push({
        tag: el.tagName.toLowerCase(),
@@ -102,17 +107,36 @@ Many ATSes hide education / experience / language / link / skill subforms behind
        type: el.type || '',
        placeholder: el.placeholder || '',
        required: el.required || el.hasAttribute('aria-required'),
-       label: labelFor(el.id) || el.closest('label')?.textContent?.trim() || '',
+       label: extractLabel(el),
      });
    }
    return out;
    ```
 
-2. For each field, call `classifyField` from `src/apply/field-classifier.mjs` to get its canonical key (`email`, `first_name`, `cv_upload`, `cover_letter_upload`, `education_school`, `experience_company`, `free_text`, `unknown`, …).
+   `extractLabel` resolves Lever `cards[uuid][fieldN]` inputs via `.application-question .text`, Greenhouse via `.field label`, Ashby via `[data-qa="question"] [data-qa="label"]`, and falls back to `<label for>`, wrapping `<label>`, and `aria-label[ledby]`. See `src/apply/dom-label.browser.js` for the full chain.
 
-3. Build `fields = [{ descriptor, classKey, value, sectionIndex }]`. For repeatable sections (education/experience), associate each field with an index based on DOM order. Use `mapProfileValue(classKey, profile, { educationIndex, experienceIndex })` to resolve values.
+3. For each field, call `classifyField` from `src/apply/field-classifier.mjs` to get its canonical key (`email`, `first_name`, `cv_upload`, `cover_letter_upload`, `education_school`, `experience_company`, `free_text`, `unknown`, …).
+
+4. Build `fields = [{ descriptor, classKey, value, sectionIndex }]`. For repeatable sections (education/experience), associate each field with an index based on DOM order. Use `mapProfileValue(classKey, profile, { educationIndex, experienceIndex })` to resolve values.
 
 ## 5. Structured filling
+
+### 5.0 Scoped clicks for per-question radios and checkboxes
+
+Lever, Greenhouse and Ashby all render custom questions inside a container that holds both the question text **and** the choice `<label>`s. Clicking a `<label>` by matching its text against the whole document is **unsafe**: a question like "Yes / No / Prefer not to say" can appear multiple times on the same page (end-of-study, work authorization, visa sponsorship, …) and the first match is rarely the right one.
+
+**Rule:** **never** click a radio or checkbox by doing `document.querySelector('label')` + substring match, and **never** write an ad-hoc `clickByLabel` inside a `javascript_tool` call. Always use `clickInQuestion(questionText, choiceLabel)` from `src/apply/dom-label.browser.js`, which scopes the search to the `.application-question` (Lever) / `[data-qa="question"]` (Ashby) / `.field` (Greenhouse) that contains the matching question text.
+
+Invocation pattern, via `javascript_tool` (the agent prepends `EXTRACT_LABEL_SRC` read from `src/apply/dom-label.mjs`):
+
+```javascript
+${EXTRACT_LABEL_SRC}
+return clickInQuestion('final year of study', 'No');
+```
+
+Pass a **distinctive unique substring** of the question (e.g. `'final year of study'`, not the full sentence), because the helper does a case-insensitive `includes()` — accents and punctuation are brittle, substrings are not. The helper returns `{ question, choice }` so you can log what was actually clicked and cross-check it against the intended question. After any click, re-read `element.checked` / `aria-checked` on the target input to confirm the framework state updated.
+
+If `clickInQuestion` throws `question not found` or `choice not found`, **STOP** and ask the user — do not fall back to an unscoped search.
 
 **Filling methods differ by field type and framework**:
 
