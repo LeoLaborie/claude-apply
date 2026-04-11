@@ -93,25 +93,46 @@ export function checkStartDate(offer, minStartDateIso) {
 function compileMatcher(term) {
   const s = String(term);
   const m = s.match(/^\/(.+)\/([gimsuy]*)$/);
-  if (m) {
-    const flags = m[2].includes('i') ? m[2] : m[2] + 'i';
-    return new RegExp(m[1], flags);
+  try {
+    if (m) {
+      const flags = m[2].includes('i') ? m[2] : m[2] + 'i';
+      return new RegExp(m[1], flags);
+    }
+    const escaped = s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${escaped}\\b`, 'i');
+  } catch (err) {
+    const e = new Error(`invalid title_filter term "${s}": ${err.message}`);
+    e.code = 'INVALID_TITLE_FILTER_TERM';
+    e.term = s;
+    throw e;
   }
-  const escaped = s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return new RegExp(`\\b${escaped}\\b`, 'i');
+}
+
+function findMatch(terms, title) {
+  for (const t of terms || []) {
+    if (compileMatcher(t).test(title)) return t;
+  }
+  return null;
 }
 
 export function checkTitle(offer, whitelist) {
   const title = offer.title || '';
-  const neg = (whitelist.negative || []).find((n) => compileMatcher(n).test(title));
-  if (neg) return { pass: false, reason: `title: negative match "${neg}"` };
-  const pos = (whitelist.positive || []).some((p) => compileMatcher(p).test(title));
-  if (!pos) return { pass: false, reason: 'title: no positive match' };
-  if (Array.isArray(whitelist.required_any) && whitelist.required_any.length > 0) {
-    const req = whitelist.required_any.some((r) => compileMatcher(r).test(title));
-    if (!req) return { pass: false, reason: 'title: missing required_any keyword' };
+  try {
+    const neg = findMatch(whitelist.negative, title);
+    if (neg) return { pass: false, reason: `title: negative match "${neg}"` };
+    const pos = findMatch(whitelist.positive, title);
+    if (!pos) return { pass: false, reason: 'title: no positive match' };
+    if (Array.isArray(whitelist.required_any) && whitelist.required_any.length > 0) {
+      const req = findMatch(whitelist.required_any, title);
+      if (!req) return { pass: false, reason: 'title: missing required_any keyword' };
+    }
+    return { pass: true };
+  } catch (err) {
+    if (err.code === 'INVALID_TITLE_FILTER_TERM') {
+      return { pass: false, reason: `title: ${err.message}` };
+    }
+    throw err;
   }
-  return { pass: true };
 }
 
 export function checkBlacklist(offer, blacklist) {

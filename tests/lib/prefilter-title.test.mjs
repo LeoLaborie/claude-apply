@@ -83,3 +83,11 @@ test('checkTitle: required_any accepts regex escape hatch', () => {
   const wl = { positive: ['engineer'], negative: [], required_any: ['/^ml\\b/i'] };
   assert.deepEqual(checkTitle({ title: 'ML Engineer' }, wl), { pass: true });
 });
+
+test('checkTitle: invalid regex escape hatch rejects cleanly without crashing', () => {
+  const wl = { positive: ['/[unclosed/'], negative: [] };
+  const r = checkTitle({ title: 'Anything' }, wl);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /invalid title_filter term/);
+  assert.match(r.reason, /\[unclosed/);
+});

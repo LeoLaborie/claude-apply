@@ -5,7 +5,7 @@
 // Usage:
 //   node src/scan/explain.mjs "Some Job Title" [--company "Foo"]
 //
-// Reads config/portals.yml and (optionally) config/profile.yml from
+// Reads config/portals.yml and (optionally) config/candidate-profile.yml from
 // CLAUDE_APPLY_CONFIG_DIR or the repo's ./config dir. Inlines a tiny YAML
 // loader so this file is independent of any shared profile-loading helper.
 
@@ -54,8 +54,10 @@ function runTrace(offer, config) {
     { name: 'title', fn: () => checkTitle(offer, config.whitelist) },
     { name: 'blacklist', fn: () => checkBlacklist(offer, config.blacklist) },
     { name: 'location', fn: () => checkLocation(offer) },
-    { name: 'start_date', fn: () => checkStartDate(offer, config.minStartDate) },
   ];
+  if (config.minStartDate) {
+    steps.push({ name: 'start_date', fn: () => checkStartDate(offer, config.minStartDate) });
+  }
   for (const s of steps) {
     const r = s.fn();
     trace.push({ name: s.name, result: r });
@@ -107,13 +109,13 @@ function main() {
     process.env.CLAUDE_APPLY_CONFIG_DIR || path.join(__dirname, '..', '..', 'config');
 
   const portals = loadYamlRequired(path.join(CONFIG_DIR, 'portals.yml'));
-  const profile = loadYamlOptional(path.join(CONFIG_DIR, 'profile.yml'));
+  const profile = loadYamlOptional(path.join(CONFIG_DIR, 'candidate-profile.yml'));
 
   const whitelist = portals.title_filter || { positive: [], negative: [] };
   const config = {
     whitelist,
-    blacklist: profile.evaluation?.blacklist_companies || [],
-    minStartDate: profile.evaluation?.min_start_date || '2026-08-24',
+    blacklist: profile.blacklist_companies || [],
+    minStartDate: profile.min_start_date || null,
   };
 
   const offer = { title: parsed.title, company: parsed.company, body: '' };

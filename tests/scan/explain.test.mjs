@@ -14,7 +14,7 @@ function makeFixtureConfig(portalsYml, profileYml) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'claude-apply-explain-'));
   fs.writeFileSync(path.join(dir, 'portals.yml'), portalsYml);
   if (profileYml !== null) {
-    fs.writeFileSync(path.join(dir, 'profile.yml'), profileYml);
+    fs.writeFileSync(path.join(dir, 'candidate-profile.yml'), profileYml);
   }
   return dir;
 }
@@ -62,7 +62,7 @@ test('explain: negative match is reported with the matched term', () => {
 test('explain: --company flag is honored for blacklist check', () => {
   const dir = makeFixtureConfig(
     'tracked_companies: []\ntitle_filter:\n  positive:\n    - intern\n  negative: []\n',
-    'evaluation:\n  blacklist_companies:\n    - Foo\n  min_start_date: "2026-08-24"\n'
+    'blacklist_companies:\n  - Foo\nmin_start_date: "2026-08-24"\n'
   );
   const res = runExplain(['ML Intern', '--company', 'Foo'], dir);
   assert.equal(res.status, 1);
