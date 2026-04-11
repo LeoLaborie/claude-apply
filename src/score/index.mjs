@@ -165,6 +165,53 @@ function nextId(evaluationsPath) {
   return String(max + 1).padStart(3, '0');
 }
 
+export function parseScoreArgs(argv) {
+  const args = argv.slice();
+  const flags = {
+    url: null,
+    jsonInput: null,
+    id: null,
+    company: null,
+    role: null,
+    location: null,
+    fromPipeline: false,
+  };
+
+  function take(name) {
+    const i = args.indexOf(name);
+    if (i === -1) return null;
+    const v = args[i + 1];
+    args.splice(i, 2);
+    return v;
+  }
+
+  flags.jsonInput = take('--json-input');
+  flags.id = take('--id');
+  flags.company = take('--company');
+  flags.role = take('--role');
+  flags.location = take('--location');
+  const fpIdx = args.indexOf('--from-pipeline');
+  if (fpIdx !== -1) {
+    flags.fromPipeline = true;
+    args.splice(fpIdx, 1);
+  }
+  flags.url = args.find((a) => !a.startsWith('--')) || null;
+
+  const hasAnyMetadataFlag = flags.company || flags.role || flags.location;
+  const hasAllMetadataFlags = flags.company && flags.role && flags.location;
+
+  if (hasAnyMetadataFlag && !hasAllMetadataFlags) {
+    throw new Error(
+      '--company, --role, and --location must be provided together (all-or-nothing)'
+    );
+  }
+  if (flags.fromPipeline && hasAnyMetadataFlag) {
+    throw new Error('--from-pipeline is mutually exclusive with --company/--role/--location');
+  }
+
+  return flags;
+}
+
 async function main() {
   const CONFIG_DIR =
     process.env.CLAUDE_APPLY_CONFIG_DIR || path.join(__dirname, '..', '..', 'config');
@@ -245,7 +292,9 @@ async function main() {
   console.log(JSON.stringify(record));
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(3);
-});
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(3);
+  });
+}
