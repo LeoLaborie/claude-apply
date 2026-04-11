@@ -32,6 +32,8 @@ const OPTIONAL_FIELDS = [
   'ethnicity',
   'veteran_status',
   'disability_status',
+  'blacklist_companies',
+  'min_start_date',
 ];
 
 function validateEducationEntry(e, i) {
@@ -85,6 +87,25 @@ export function validateProfile(profile) {
       errors.push('experiences must be an array');
     } else {
       profile.experiences.forEach((e, i) => errors.push(...validateExperienceEntry(e, i)));
+    }
+  }
+  if (profile.blacklist_companies !== undefined) {
+    if (!Array.isArray(profile.blacklist_companies)) {
+      errors.push('blacklist_companies must be an array of strings');
+    } else {
+      profile.blacklist_companies.forEach((c, i) => {
+        if (typeof c !== 'string' || c.trim() === '') {
+          errors.push(`blacklist_companies[${i}] must be a non-empty string`);
+        }
+      });
+    }
+  }
+  if (profile.min_start_date !== undefined) {
+    if (
+      typeof profile.min_start_date !== 'string' ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(profile.min_start_date)
+    ) {
+      errors.push('min_start_date must be a YYYY-MM-DD string');
     }
   }
   const known = new Set([...REQUIRED_FIELDS, ...OPTIONAL_FIELDS]);
