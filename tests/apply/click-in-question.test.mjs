@@ -43,6 +43,16 @@ test('clickInQuestion: unknown choice throws', () => {
   );
 });
 
+test('clickInQuestion: ambiguous substring matching multiple questions throws', () => {
+  const dom = loadLever();
+  assert.throws(
+    () => clickInQuestion('you', 'No', dom.window.document.body),
+    /ambiguous questionText/
+  );
+  assert.equal(dom.window.document.querySelector('#q1-no').checked, false);
+  assert.equal(dom.window.document.querySelector('#q2-no').checked, false);
+});
+
 test('clickInQuestion: case-insensitive substring match on question text', () => {
   const dom = loadLever();
   const doc = dom.window.document;

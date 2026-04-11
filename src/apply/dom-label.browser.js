@@ -81,12 +81,24 @@ function clickInQuestion(questionText, choiceLabel, root) {
   var containers = Array.prototype.slice.call(
     scope.querySelectorAll('.application-question, [data-qa="question"], .field')
   );
-  var q = containers.find(function (el) {
+  var matches = containers.filter(function (el) {
     var header = el.querySelector('.text, .application-question-text, [data-qa="label"], label');
     var text = (header && header.textContent) || '';
     return text.trim().toLowerCase().indexOf(needle) !== -1;
   });
-  if (!q) throw new Error('clickInQuestion: question not found: ' + questionText);
+  if (matches.length === 0) {
+    throw new Error('clickInQuestion: question not found: ' + questionText);
+  }
+  if (matches.length > 1) {
+    throw new Error(
+      'clickInQuestion: ambiguous questionText "' +
+        questionText +
+        '" matched ' +
+        matches.length +
+        ' questions; pass a more distinctive substring'
+    );
+  }
+  var q = matches[0];
 
   var labels = Array.prototype.slice.call(q.querySelectorAll('label'));
   var target = labels.find(function (l) {
