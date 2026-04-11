@@ -109,3 +109,50 @@ export function readPipelineMd(filePath) {
   }
   return parsePipelineMd(fs.readFileSync(filePath, 'utf8'));
 }
+
+const OFFER_LINE_RE = /^\s*-\s*\[[ xX]\]\s*(.+)$/;
+
+export function parseOfferLine(line) {
+  if (typeof line !== 'string') return null;
+  const m = line.match(OFFER_LINE_RE);
+  if (!m) return null;
+  const parts = m[1].split('|').map((s) => s.trim());
+  if (parts.length < 3) return null;
+  const [url, company, title] = parts;
+  if (!url || !company || !title) return null;
+  return { url, company, title };
+}
+
+function normalizeUrl(raw) {
+  if (typeof raw !== 'string' || !raw) return '';
+  try {
+    const u = new URL(raw);
+    u.hash = '';
+    u.hostname = u.hostname.toLowerCase();
+    let s = u.toString();
+    if (s.endsWith('/') && u.pathname !== '/') s = s.slice(0, -1);
+    return s;
+  } catch {
+    return raw.trim();
+  }
+}
+
+export function findOfferByUrl(doc, url) {
+  if (!doc || !Array.isArray(doc.sections)) return null;
+  const target = normalizeUrl(url);
+  if (!target) return null;
+  for (const section of doc.sections) {
+    for (const line of section.lines || []) {
+      const row = parseOfferLine(line);
+      if (!row) continue;
+      if (normalizeUrl(row.url) === target) {
+        return {
+          company: row.company,
+          title: row.title,
+          location: section.location || '',
+        };
+      }
+    }
+  }
+  return null;
+}

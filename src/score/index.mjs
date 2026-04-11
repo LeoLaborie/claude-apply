@@ -1,5 +1,10 @@
 #!/usr/bin/env node
-// Usage: node src/score/index.mjs <url> [--json-input path/to/offer.json] [--id NNN]
+// Usage: node src/score/index.mjs <url> [flags]
+//   <url>             Offer URL (omit when --json-input is set)
+//   --from-pipeline   Look up {company, role, location} in data/pipeline.md by URL
+//   --company X --role Y --location Z   Authoritative metadata overrides (all-or-nothing)
+//   --json-input <path>   Read pre-built offer JSON instead of fetching
+//   --id NNN          Force evaluation id (default: auto-increment)
 // Builds prompt, calls `claude -p` CLI, parses JSON response,
 // appends to data/evaluations.jsonl + data/tracker-additions/<id>-<slug>.tsv.
 
@@ -14,26 +19,23 @@ import { writeTrackerTsv } from '../lib/tsv-writer.mjs';
 import { detectClosedPage } from '../lib/page-liveness.mjs';
 import { runPrefilter } from '../lib/prefilter-rules.mjs';
 import { loadProfile, ProfileMissingError } from '../lib/load-profile.mjs';
+import { readPipelineMd, findOfferByUrl } from '../lib/pipeline-md.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-async function fetchOffer(url) {
+async function fetchOfferBody(url) {
   const { chromium } = await import('playwright');
   const browser = await chromium.launch({ headless: true });
   try {
     const ctx = await browser.newContext({
-      // Realistic browser UA to reduce anti-bot detection.
       userAgent:
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       viewport: { width: 1366, height: 900 },
       locale: 'fr-FR',
-      extraHTTPHeaders: {
-        'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-      },
+      extraHTTPHeaders: { 'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8' },
     });
     const page = await ctx.newPage();
 
-    // 1. Try networkidle (lets SPA hydrate fully), fallback to domcontentloaded.
     let response;
     try {
       response = await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 });
@@ -45,29 +47,59 @@ async function fetchOffer(url) {
       }
     }
     const status = response?.status() ?? null;
-
-    // 2. Post-load pause for SPAs that do lazy rendering after first paint.
     await page.waitForTimeout(1500).catch(() => {});
-
-    // 3. Final URL (may differ from input if server redirected to a homepage).
     const finalUrl = page.url();
 
-    const title = await page.title();
+    const pageTitle = await page.title();
     const body = await page.evaluate(() => document.body?.innerText || '');
-    const company =
+    const scrapedCompany =
       (await page.evaluate(() => {
         const og = document.querySelector('meta[property="og:site_name"]')?.getAttribute('content');
         if (og) return og;
         return document.querySelector('h1')?.innerText || '';
       })) || '';
-    const location = await page.evaluate(() => {
+    const scrapedLocation = await page.evaluate(() => {
       const el = document.querySelector('[class*="location" i], [data-testid*="location" i]');
       return el?.innerText || '';
     });
-    return { url, finalUrl, title, body, company, location, status };
+    return {
+      finalUrl,
+      status,
+      body,
+      scrapedTitle: pageTitle,
+      scrapedCompany,
+      scrapedLocation,
+    };
   } finally {
     await browser.close();
   }
+}
+
+async function buildOffer(url, overrides = {}) {
+  const { company, title, location, source } = overrides;
+  const fetched = await fetchOfferBody(url);
+  if (source === 'scrape') {
+    return {
+      url,
+      finalUrl: fetched.finalUrl,
+      status: fetched.status,
+      body: fetched.body,
+      title: fetched.scrapedTitle || '',
+      company: fetched.scrapedCompany || '',
+      location: fetched.scrapedLocation || '',
+      metadata_source: 'scrape',
+    };
+  }
+  return {
+    url,
+    finalUrl: fetched.finalUrl,
+    status: fetched.status,
+    body: fetched.body,
+    title: title ?? '',
+    company: company ?? '',
+    location: location ?? '',
+    metadata_source: source,
+  };
 }
 
 function callClaude(system, user) {
@@ -139,27 +171,107 @@ function nextId(evaluationsPath) {
   return String(max + 1).padStart(3, '0');
 }
 
+export function parseScoreArgs(argv) {
+  const args = argv.slice();
+  const flags = {
+    url: null,
+    jsonInput: null,
+    id: null,
+    company: null,
+    role: null,
+    location: null,
+    fromPipeline: false,
+  };
+
+  function take(name) {
+    const i = args.indexOf(name);
+    if (i === -1) return null;
+    const v = args[i + 1];
+    if (v === undefined || v.startsWith('--')) return null;
+    args.splice(i, 2);
+    return v;
+  }
+
+  flags.jsonInput = take('--json-input');
+  flags.id = take('--id');
+  flags.company = take('--company');
+  flags.role = take('--role');
+  flags.location = take('--location');
+  const fpIdx = args.indexOf('--from-pipeline');
+  if (fpIdx !== -1) {
+    flags.fromPipeline = true;
+    args.splice(fpIdx, 1);
+  }
+  flags.url = args.find((a) => !a.startsWith('--')) || null;
+
+  const hasAnyMetadataFlag = flags.company || flags.role || flags.location;
+  const hasAllMetadataFlags = flags.company && flags.role && flags.location;
+
+  if (hasAnyMetadataFlag && !hasAllMetadataFlags) {
+    throw new Error('--company, --role, and --location must be provided together (all-or-nothing)');
+  }
+  if (flags.fromPipeline && hasAnyMetadataFlag) {
+    throw new Error('--from-pipeline is mutually exclusive with --company/--role/--location');
+  }
+
+  return flags;
+}
+
 async function main() {
   const CONFIG_DIR =
     process.env.CLAUDE_APPLY_CONFIG_DIR || path.join(__dirname, '..', '..', 'config');
   const DATA_DIR = process.env.CLAUDE_APPLY_DATA_DIR || path.join(__dirname, '..', '..', 'data');
 
-  const args = process.argv.slice(2);
-  let offer;
-  if (args.includes('--json-input')) {
-    const jsonPath = args[args.indexOf('--json-input') + 1];
-    offer = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
-  } else {
-    const url = args[0];
-    if (!url) {
-      console.error('Usage: node src/score/index.mjs <url> | --json-input <path> [--id NNN]');
-      process.exit(2);
-    }
-    offer = await fetchOffer(url);
+  let flags;
+  try {
+    flags = parseScoreArgs(process.argv.slice(2));
+  } catch (err) {
+    console.error(err.message);
+    process.exit(2);
   }
 
-  // Liveness check: closed/broken/listing pages → exit early, zero Claude tokens.
-  // Logged to data/filtered-out.tsv for audit.
+  let offer;
+  if (flags.jsonInput) {
+    offer = JSON.parse(fs.readFileSync(flags.jsonInput, 'utf8'));
+    if (!offer.metadata_source) offer.metadata_source = 'json-input';
+  } else {
+    if (!flags.url) {
+      console.error(
+        'Usage: node src/score/index.mjs <url> [--from-pipeline | --company X --role Y --location Z] [--id NNN]'
+      );
+      process.exit(2);
+    }
+
+    if (flags.fromPipeline) {
+      const pipelinePath = path.join(DATA_DIR, 'pipeline.md');
+      if (!fs.existsSync(pipelinePath)) {
+        console.error(`--from-pipeline: ${pipelinePath} does not exist`);
+        process.exit(2);
+      }
+      const doc = readPipelineMd(pipelinePath);
+      const hit = findOfferByUrl(doc, flags.url);
+      if (!hit) {
+        console.error(`--from-pipeline: url not found in pipeline.md: ${flags.url}`);
+        process.exit(2);
+      }
+      offer = await buildOffer(flags.url, {
+        source: 'pipeline',
+        company: hit.company,
+        title: hit.title,
+        location: hit.location,
+      });
+    } else if (flags.company) {
+      offer = await buildOffer(flags.url, {
+        source: 'flags',
+        company: flags.company,
+        title: flags.role,
+        location: flags.location,
+      });
+    } else {
+      offer = await buildOffer(flags.url, { source: 'scrape' });
+    }
+  }
+
   const liveness = detectClosedPage(offer);
   if (liveness.closed) {
     const date = new Date().toISOString().slice(0, 10);
@@ -190,7 +302,7 @@ async function main() {
   const scored = parseScoreJson(raw);
 
   const evalPath = path.join(DATA_DIR, 'evaluations.jsonl');
-  const id = args.includes('--id') ? args[args.indexOf('--id') + 1] : nextId(evalPath);
+  const id = flags.id || nextId(evalPath);
   const date = new Date().toISOString().slice(0, 10);
   const record = {
     id,
@@ -199,6 +311,7 @@ async function main() {
     role: offer.title || 'unknown',
     url: offer.url || '',
     location: offer.location || '',
+    metadata_source: offer.metadata_source || 'unknown',
     score: scored.score,
     verdict: scored.verdict,
     reason: scored.reason,
@@ -219,7 +332,9 @@ async function main() {
   console.log(JSON.stringify(record));
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(3);
-});
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(3);
+  });
+}
