@@ -1,0 +1,29 @@
+{
+  "total": 23,
+  "jobPostings": [
+    {
+      "title": "Data Engineer - Paris",
+      "externalPath": "/job/Paris/Data-Engineer---Paris_R12345",
+      "locationsText": "Paris, France",
+      "postedOn": "Posted 2 Days Ago",
+      "bulletFields": ["R12345", "2 Days Ago"],
+      "jobRequisitionId": "R12345"
+    },
+    {
+      "title": "Senior Software Engineer - Platform",
+      "externalPath": "/job/Courbevoie/Senior-Software-Engineer---Platform_R12346",
+      "locationsText": "Courbevoie, France",
+      "postedOn": "Posted 5 Days Ago",
+      "bulletFields": ["R12346", "5 Days Ago"],
+      "jobRequisitionId": "R12346"
+    },
+    {
+      "title": "Staff Data Scientist",
+      "externalPath": "/job/Remote/Staff-Data-Scientist_R12347",
+      "locationsText": "Remote - France",
+      "postedOn": "Posted Yesterday",
+      "bulletFields": ["R12347", "Yesterday"],
+      "jobRequisitionId": "R12347"
+    }
+  ]
+}
