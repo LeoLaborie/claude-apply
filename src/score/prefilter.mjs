@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Usage: node src/score/prefilter.mjs <url> [--json-input path/to/offer.json]
-// Reads profile.yml + portals.yml, fetches JD via Playwright if URL given,
+// Reads candidate-profile.yml + portals.yml, fetches JD via Playwright if URL given,
 // runs runPrefilter(), writes to data/filtered-out.tsv if rejected,
 // prints {pass, reason?} to stdout.
 
@@ -9,26 +9,21 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runPrefilter } from '../lib/prefilter-rules.mjs';
 import { appendFilteredOut } from '../lib/jsonl-writer.mjs';
+import { loadProfile } from '../lib/load-profile.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-async function parseYaml(filePath) {
-  const raw = fs.readFileSync(filePath, 'utf8');
-  const yaml = await import('js-yaml');
-  return yaml.load(raw);
-}
 
 async function loadConfig() {
   const CONFIG_DIR =
     process.env.CLAUDE_APPLY_CONFIG_DIR || path.join(__dirname, '..', '..', 'config');
   const DATA_DIR = process.env.CLAUDE_APPLY_DATA_DIR || path.join(__dirname, '..', '..', 'data');
-  const profilePath = path.join(CONFIG_DIR, 'profile.yml');
+  const { profile } = await loadProfile(CONFIG_DIR);
+  const yaml = await import('js-yaml');
   const portalsPath = path.join(CONFIG_DIR, 'portals.yml');
-  const profile = await parseYaml(profilePath);
-  const portals = await parseYaml(portalsPath);
+  const portals = yaml.load(fs.readFileSync(portalsPath, 'utf8'));
   return {
-    minStartDate: profile.evaluation?.min_start_date || '2026-08-24',
-    blacklist: profile.evaluation?.blacklist_companies || [],
+    minStartDate: profile.min_start_date || '2026-08-24',
+    blacklist: profile.blacklist_companies || [],
     whitelist: portals.title_filter || { positive: [], negative: [] },
     dataDir: DATA_DIR,
   };
