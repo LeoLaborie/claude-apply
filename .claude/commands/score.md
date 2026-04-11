@@ -21,9 +21,29 @@ Before running the scorer, check that `config/candidate-profile.yml` **and** `co
 
 ## Run
 
+**Preferred:** if the URL is already in `data/pipeline.md` (i.e. it came from a recent `/scan`), use `--from-pipeline` so the scorer reuses the authoritative `{company, role, location}` that the ATS fetchers already extracted:
+
 ```bash
-node src/score/index.mjs $ARGUMENTS
+node src/score/index.mjs $ARGUMENTS --from-pipeline
 ```
+
+**Fallback:** if the URL is not in `data/pipeline.md`, you can either (a) let the scorer scrape the page (best-effort, sometimes mis-extracts the company/role — see `metadata_source: "scrape"` in the output), or (b) pass the metadata explicitly:
+
+```bash
+node src/score/index.mjs $ARGUMENTS \
+  --company "Mistral AI" \
+  --role "Research Intern - Inference" \
+  --location "Paris, France"
+```
+
+The three metadata flags are **all-or-nothing**: pass all three or none. Mixing with scraped fields is disallowed to keep `metadata_source` honest.
+
+## Flags
+
+- `--from-pipeline` — look up `{company, role, location}` in `data/pipeline.md` by URL; exit 2 if not found. Mutually exclusive with the explicit metadata flags below.
+- `--company "..."` `--role "..."` `--location "..."` — authoritative metadata overrides. Must be passed together.
+- `--id NNN` — force the evaluation id (default: auto-increment from the last line of `evaluations.jsonl`).
+- `--json-input <path>` — bypass URL fetch; read a pre-built offer JSON blob (used by tests and agent pipelines).
 
 ## Output
 
@@ -31,19 +51,21 @@ Appends one JSON line to `data/evaluations.jsonl`:
 
 ```json
 {
+  "id": "042",
+  "date": "2026-04-11",
+  "company": "Mistral AI",
+  "role": "Research Intern",
   "url": "...",
-  "company": "...",
-  "role": "...",
+  "location": "Paris, France",
+  "metadata_source": "pipeline",
   "score": 0.78,
-  "verdict": "apply | skip | maybe",
-  "reasoning": "...",
-  "timestamp": "2026-04-10T13:00:00.000Z"
+  "verdict": "apply",
+  "reason": "...",
+  "status": "Evaluated"
 }
 ```
 
-## Flags
-
-- The script inherits the upstream flags from `career-ops` — check `node src/score/index.mjs --help` if more are needed.
+`metadata_source` is one of `pipeline` (from `data/pipeline.md` via `--from-pipeline`), `flags` (from `--company/--role/--location`), `scrape` (from Playwright DOM extraction), or `json-input` (from `--json-input`). Use it to audit whether a surprising `company` value came from the ATS or from a best-effort scrape.
 
 ## Cost
 
