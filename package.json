@@ -34,6 +34,7 @@
   },
   "homepage": "https://github.com/LeoLaborie/claude-apply#readme",
   "devDependencies": {
+    "jsdom": "^29.0.2",
     "playwright": "^1.47.0",
     "prettier": "^3.3.0"
   },
