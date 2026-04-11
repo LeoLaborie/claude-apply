@@ -2,6 +2,7 @@ import { test, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { installMockFetch } from '../helpers.mjs';
 import { verifySlug as verifyLever } from '../../src/scan/ats/lever.mjs';
+import { verifySlug as verifyGreenhouse } from '../../src/scan/ats/greenhouse.mjs';
 
 let restore;
 afterEach(() => {
@@ -34,4 +35,36 @@ test('verifySlug (lever) — slug invalide renvoie ok:false + status', async () 
   assert.equal(r.ok, false);
   assert.equal(r.status, 404);
   assert.match(r.reason, /HTTP 404/);
+});
+
+test('verifySlug (greenhouse) — slug valide avec postings', async () => {
+  restore = installMockFetch({
+    'https://boards-api.greenhouse.io/v1/boards/anthropic/jobs?content=true': {
+      jobs: [{ id: 1 }, { id: 2 }, { id: 3 }],
+    },
+  });
+  const r = await verifyGreenhouse('anthropic');
+  assert.equal(r.ok, true);
+  assert.equal(r.count, 3);
+});
+
+test('verifySlug (greenhouse) — board vide', async () => {
+  restore = installMockFetch({
+    'https://boards-api.greenhouse.io/v1/boards/quiet-co/jobs?content=true': { jobs: [] },
+  });
+  const r = await verifyGreenhouse('quiet-co');
+  assert.equal(r.ok, true);
+  assert.equal(r.count, 0);
+});
+
+test('verifySlug (greenhouse) — slug invalide 404', async () => {
+  restore = installMockFetch({
+    'https://boards-api.greenhouse.io/v1/boards/nope/jobs?content=true': {
+      status: 404,
+      body: {},
+    },
+  });
+  const r = await verifyGreenhouse('nope');
+  assert.equal(r.ok, false);
+  assert.equal(r.status, 404);
 });
