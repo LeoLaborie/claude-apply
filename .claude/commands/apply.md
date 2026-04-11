@@ -31,6 +31,30 @@ Do not try to apply with the example templates.
 
 5. **Check the CDP port for CV upload.** Run `curl -sf http://127.0.0.1:9222/json/version` via Bash. If it responds: OK, CV upload will work in step 5. If not: warn the user that Chrome was not launched with `--remote-debugging-port=9222` (the `chrome-apply` alias installs this). Continue without CDP — you will ask for a manual CV drop later.
 
+6. **Pre-flight: extension host permission.** Before the first `find` / `read_page` on the target host, probe via `javascript_tool`:
+
+   ```js
+   // Returns "ok" if the extension has access, throws a permission error
+   // otherwise (which the extension surfaces as a rejected tool call).
+   typeof document !== 'undefined' ? 'ok' : 'no document';
+   ```
+
+   If the probe call itself fails with `"Extension manifest must request permission to access the respective host"`, **stop** and print this block verbatim (substitute `<host>` with the URL's hostname):
+
+   ```
+   ❌ The claude-in-chrome extension does not have permission to access <host>.
+
+   Fix:
+     1. Click the puzzle-piece icon in Chrome's toolbar.
+     2. Open claude-in-chrome → Site access → On specific sites.
+     3. Add https://<host>/*.
+     4. Refresh the tab and re-run /apply.
+
+   See /onboard step 7.4 for the full list of hosts.
+   ```
+
+   Do not attempt to work around this — stopping on ambiguity is the invariant.
+
 ## 1. Open the tab and start GIF recording
 
 1. Open `$ARGUMENTS` in a new tab with `mcp__claude-in-chrome__tabs_create_mcp`.
