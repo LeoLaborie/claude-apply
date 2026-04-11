@@ -17,23 +17,19 @@ import { loadProfile, ProfileMissingError } from '../lib/load-profile.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-async function fetchOffer(url) {
+async function fetchOfferBody(url) {
   const { chromium } = await import('playwright');
   const browser = await chromium.launch({ headless: true });
   try {
     const ctx = await browser.newContext({
-      // Realistic browser UA to reduce anti-bot detection.
       userAgent:
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
       viewport: { width: 1366, height: 900 },
       locale: 'fr-FR',
-      extraHTTPHeaders: {
-        'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-      },
+      extraHTTPHeaders: { 'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8' },
     });
     const page = await ctx.newPage();
 
-    // 1. Try networkidle (lets SPA hydrate fully), fallback to domcontentloaded.
     let response;
     try {
       response = await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 });
@@ -45,29 +41,59 @@ async function fetchOffer(url) {
       }
     }
     const status = response?.status() ?? null;
-
-    // 2. Post-load pause for SPAs that do lazy rendering after first paint.
     await page.waitForTimeout(1500).catch(() => {});
-
-    // 3. Final URL (may differ from input if server redirected to a homepage).
     const finalUrl = page.url();
 
-    const title = await page.title();
+    const pageTitle = await page.title();
     const body = await page.evaluate(() => document.body?.innerText || '');
-    const company =
+    const scrapedCompany =
       (await page.evaluate(() => {
         const og = document.querySelector('meta[property="og:site_name"]')?.getAttribute('content');
         if (og) return og;
         return document.querySelector('h1')?.innerText || '';
       })) || '';
-    const location = await page.evaluate(() => {
+    const scrapedLocation = await page.evaluate(() => {
       const el = document.querySelector('[class*="location" i], [data-testid*="location" i]');
       return el?.innerText || '';
     });
-    return { url, finalUrl, title, body, company, location, status };
+    return {
+      finalUrl,
+      status,
+      body,
+      scrapedTitle: pageTitle,
+      scrapedCompany,
+      scrapedLocation,
+    };
   } finally {
     await browser.close();
   }
+}
+
+async function buildOffer(url, overrides = {}) {
+  const { company, title, location, source } = overrides;
+  const fetched = await fetchOfferBody(url);
+  if (source === 'scrape') {
+    return {
+      url,
+      finalUrl: fetched.finalUrl,
+      status: fetched.status,
+      body: fetched.body,
+      title: fetched.scrapedTitle || '',
+      company: fetched.scrapedCompany || '',
+      location: fetched.scrapedLocation || '',
+      metadata_source: 'scrape',
+    };
+  }
+  return {
+    url,
+    finalUrl: fetched.finalUrl,
+    status: fetched.status,
+    body: fetched.body,
+    title: title ?? '',
+    company: company ?? '',
+    location: location ?? '',
+    metadata_source: source,
+  };
 }
 
 function callClaude(system, user) {
@@ -155,7 +181,7 @@ async function main() {
       console.error('Usage: node src/score/index.mjs <url> | --json-input <path> [--id NNN]');
       process.exit(2);
     }
-    offer = await fetchOffer(url);
+    offer = await buildOffer(url, { source: 'scrape' });
   }
 
   // Liveness check: closed/broken/listing pages → exit early, zero Claude tokens.
