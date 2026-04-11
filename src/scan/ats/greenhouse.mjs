@@ -41,3 +41,16 @@ export async function fetchGreenhouse(slug, companyName) {
     platform: 'greenhouse',
   }));
 }
+
+export async function verifySlug(slug) {
+  const url = `https://boards-api.greenhouse.io/v1/boards/${slug}/jobs?content=true`;
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json', 'User-Agent': 'claude-apply-verify/1.0' },
+  });
+  if (res.ok) {
+    const data = await res.json();
+    const count = Array.isArray(data?.jobs) ? data.jobs.length : 0;
+    return { ok: true, count };
+  }
+  return { ok: false, status: res.status, reason: `HTTP ${res.status}` };
+}

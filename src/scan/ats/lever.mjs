@@ -23,3 +23,15 @@ export async function fetchLever(slug, companyName) {
     platform: 'lever',
   }));
 }
+
+export async function verifySlug(slug) {
+  const url = `https://api.lever.co/v0/postings/${slug}?mode=json`;
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json', 'User-Agent': 'claude-apply-verify/1.0' },
+  });
+  if (res.ok) {
+    const data = await res.json();
+    return { ok: true, count: Array.isArray(data) ? data.length : 0 };
+  }
+  return { ok: false, status: res.status, reason: `HTTP ${res.status}` };
+}
