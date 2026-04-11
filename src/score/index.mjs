@@ -1,5 +1,10 @@
 #!/usr/bin/env node
-// Usage: node src/score/index.mjs <url> [--json-input path/to/offer.json] [--id NNN]
+// Usage: node src/score/index.mjs <url> [flags]
+//   <url>             Offer URL (omit when --json-input is set)
+//   --from-pipeline   Look up {company, role, location} in data/pipeline.md by URL
+//   --company X --role Y --location Z   Authoritative metadata overrides (all-or-nothing)
+//   --json-input <path>   Read pre-built offer JSON instead of fetching
+//   --id NNN          Force evaluation id (default: auto-increment)
 // Builds prompt, calls `claude -p` CLI, parses JSON response,
 // appends to data/evaluations.jsonl + data/tracker-additions/<id>-<slug>.tsv.
 

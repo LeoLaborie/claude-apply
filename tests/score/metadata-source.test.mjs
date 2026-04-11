@@ -1,6 +1,23 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseScoreArgs } from '../../src/score/index.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(__dirname, '../..');
+const scoreBin = path.join(repoRoot, 'src/score/index.mjs');
+
+function mkTmp() {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'score-meta-'));
+  fs.mkdirSync(path.join(d, 'config'), { recursive: true });
+  fs.mkdirSync(path.join(d, 'data'), { recursive: true });
+  fs.writeFileSync(path.join(d, 'config', 'cv.md'), '# CV\nDummy CV body.\n');
+  return d;
+}
 
 test('parseScoreArgs — bare URL (scrape path)', () => {
   const f = parseScoreArgs(['https://jobs.example.com/a']);
@@ -85,24 +102,6 @@ test('parseScoreArgs — --company followed by another flag is treated as missin
   );
 });
 
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
-import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, '../..');
-const scoreBin = path.join(repoRoot, 'src/score/index.mjs');
-
-function mkTmp() {
-  const d = fs.mkdtempSync(path.join(os.tmpdir(), 'score-meta-'));
-  fs.mkdirSync(path.join(d, 'config'), { recursive: true });
-  fs.mkdirSync(path.join(d, 'data'), { recursive: true });
-  fs.writeFileSync(path.join(d, 'config', 'cv.md'), '# CV\nDummy CV body.\n');
-  return d;
-}
-
 test('--from-pipeline: exits 2 when url is absent from pipeline.md', () => {
   const tmp = mkTmp();
   fs.writeFileSync(
@@ -123,6 +122,21 @@ test('--from-pipeline: exits 2 when url is absent from pipeline.md', () => {
   );
   assert.equal(proc.status, 2);
   assert.match(proc.stderr, /not found in pipeline\.md/);
+});
+
+test('--from-pipeline: exits 2 when pipeline.md does not exist', () => {
+  const tmp = mkTmp();
+  // No pipeline.md created in tmp/data
+  const proc = spawnSync('node', [scoreBin, 'https://jobs.example.com/a', '--from-pipeline'], {
+    env: {
+      ...process.env,
+      CLAUDE_APPLY_CONFIG_DIR: path.join(tmp, 'config'),
+      CLAUDE_APPLY_DATA_DIR: path.join(tmp, 'data'),
+    },
+    encoding: 'utf8',
+  });
+  assert.equal(proc.status, 2);
+  assert.match(proc.stderr, /does not exist/);
 });
 
 test('--company without --role/--location exits 2 with clear message', () => {
