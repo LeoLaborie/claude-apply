@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Portal scanner for Group A companies (API-friendly ATS: Lever, Greenhouse,
-// Ashby). Zero LLM tokens, zero Playwright. Reads portals.yml (+ optional
-// profile.yml for blacklist / min_start_date overrides),
+// Ashby). Zero LLM tokens, zero Playwright. Reads portals.yml +
+// candidate-profile.yml for blacklist / min_start_date overrides,
 // dispatches to src/scan/ats/{platform}.mjs, applies runPrefilter(), appends
 // results to pipeline.md + scan-history.tsv + filtered-out.tsv.
 //
@@ -25,6 +25,7 @@ import { runPrefilter } from '../lib/prefilter-rules.mjs';
 import { appendFilteredOut } from '../lib/jsonl-writer.mjs';
 import { readPipelineMd, appendOffer, writePipelineMd } from '../lib/pipeline-md.mjs';
 import { loadSeenUrls, appendHistoryRow } from '../lib/scan-history.mjs';
+import { loadProfile } from '../lib/load-profile.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -41,20 +42,6 @@ function reasonToStatus(reason) {
   if (reason.startsWith('location:')) return 'skipped_location';
   if (reason.startsWith('start_date:')) return 'skipped_date';
   return 'skipped_other';
-}
-
-async function parseYaml(filePath) {
-  const yaml = await import('js-yaml');
-  return yaml.load(fs.readFileSync(filePath, 'utf8'));
-}
-
-async function parseYamlOptional(filePath) {
-  try {
-    return await parseYaml(filePath);
-  } catch (err) {
-    if (err.code === 'ENOENT') return {};
-    throw err;
-  }
 }
 
 async function fetchCompanyOffers(company) {
@@ -77,7 +64,7 @@ async function fetchCompanyOffers(company) {
 export async function runScan(opts) {
   const {
     portalsConfig,
-    profileConfig,
+    profile,
     pipelinePath,
     historyPath,
     filteredPath,
@@ -89,8 +76,8 @@ export async function runScan(opts) {
   const whitelist = portalsConfig.title_filter || { positive: [], negative: [] };
   const prefilterConfig = {
     whitelist,
-    blacklist: profileConfig.evaluation?.blacklist_companies || [],
-    minStartDate: profileConfig.evaluation?.min_start_date || '2026-08-24',
+    blacklist: profile.blacklist_companies || [],
+    minStartDate: profile.min_start_date || '2026-08-24',
   };
 
   let companies = (portalsConfig.tracked_companies || [])
@@ -295,12 +282,13 @@ async function main() {
     process.env.CLAUDE_APPLY_CONFIG_DIR || path.join(__dirname, '..', '..', 'config');
   const DATA_DIR = process.env.CLAUDE_APPLY_DATA_DIR || path.join(__dirname, '..', '..', 'data');
 
-  const portalsConfig = await parseYaml(path.join(CONFIG_DIR, 'portals.yml'));
-  const profileConfig = await parseYamlOptional(path.join(CONFIG_DIR, 'profile.yml'));
+  const yaml = await import('js-yaml');
+  const portalsConfig = yaml.load(fs.readFileSync(path.join(CONFIG_DIR, 'portals.yml'), 'utf8'));
+  const { profile } = await loadProfile(CONFIG_DIR);
 
   const result = await runScan({
     portalsConfig,
-    profileConfig,
+    profile,
     pipelinePath: path.join(DATA_DIR, 'pipeline.md'),
     historyPath: path.join(DATA_DIR, 'scan-history.tsv'),
     filteredPath: path.join(DATA_DIR, 'filtered-out.tsv'),

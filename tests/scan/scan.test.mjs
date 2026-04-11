@@ -32,11 +32,9 @@ test('runScan — e2e avec 2 companies mockées, écrit pipeline + history', asy
       { name: 'Photoroom', careers_url: 'https://jobs.ashbyhq.com/photoroom', enabled: true },
     ],
   };
-  const profileConfig = {
-    evaluation: {
-      min_start_date: '2026-08-24',
-      blacklist_companies: [],
-    },
+  const profile = {
+    min_start_date: '2026-08-24',
+    blacklist_companies: [],
   };
 
   const leverJson = [
@@ -77,7 +75,7 @@ test('runScan — e2e avec 2 companies mockées, écrit pipeline + history', asy
 
   const result = await runScan({
     portalsConfig,
-    profileConfig,
+    profile,
     pipelinePath,
     historyPath,
     filteredPath,
@@ -109,12 +107,10 @@ test('runScan — e2e avec 2 companies mockées, écrit pipeline + history', asy
   assert.ok(filt.includes('Senior Engineer'));
 });
 
-test('scan CLI — missing profile.yml is treated as optional (ENOENT regression)', () => {
+test('scan CLI — missing candidate-profile.yml fails with ProfileMissingError', () => {
   const cfgDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-cfg-'));
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-data-'));
   try {
-    // Minimal portals.yml with zero companies — scanner should complete without
-    // reading profile.yml and without making any HTTP calls.
     fs.writeFileSync(
       path.join(cfgDir, 'portals.yml'),
       'tracked_companies: []\ntitle_filter:\n  positive: []\n  negative: []\n',
@@ -134,8 +130,13 @@ test('scan CLI — missing profile.yml is treated as optional (ENOENT regression
       }
     );
 
-    assert.equal(res.status, 0, `stderr: ${res.stderr}`);
-    assert.ok(!res.stderr.includes('ENOENT'), `unexpected ENOENT: ${res.stderr}`);
+    assert.notEqual(res.status, 0, 'expected non-zero exit when profile missing');
+    assert.match(
+      res.stderr,
+      /candidate-profile\.yml/,
+      `expected stderr to mention candidate-profile.yml, got: ${res.stderr}`
+    );
+    assert.match(res.stderr, /\/onboard/, `expected stderr to mention /onboard`);
   } finally {
     fs.rmSync(cfgDir, { recursive: true, force: true });
     fs.rmSync(dataDir, { recursive: true, force: true });
