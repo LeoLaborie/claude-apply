@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `npm run explain -- "<title>" [--company "<co>"]` CLI traces why a title is accepted or filtered by the current `portals.yml` + `candidate-profile.yml`.
+- `verifySlug(slug)` primitive on each ATS fetcher (`lever`, `greenhouse`, `ashby`), returning `{ ok, count }` or `{ ok: false, status, reason }`.
+- `verifyCompany(careersUrl)` dispatcher and `getSupportedHosts()` helper in `src/scan/ats-detect.mjs`.
+- `/onboard` step 7.4 documents the four `claude-in-chrome` host permissions the user must grant after installing the extension, with the host list derived from `getSupportedHosts()` (single source of truth).
+- `/apply` step 0 now pre-flights the extension host permission and surfaces a clear remediation block on failure.
+
+### Changed (continued)
+
+- `/onboard` step 5.2 now verifies candidate companies via the JSON API endpoint (`verifyCompany`) instead of `curl -sfI` on the public careers page. Fixes a silent-drop bug where Ashby returned `200` on the careers HTML but `404` on the JSON board (e.g. `dust-tt`).
 
 ## [0.1.0-alpha.0] — 2026-04-10
 
