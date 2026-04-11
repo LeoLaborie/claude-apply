@@ -83,23 +83,32 @@ export function checkStartDate(offer, minStartDateIso) {
   return { pass: false, reason: `start_date: all parsed dates before ${minStartDateIso}` };
 }
 
+// Compile a title-filter term into a RegExp.
+//
+// Escape hatch: a term of the form "/pattern/flags" is parsed as a real regex.
+// Case-insensitivity is enforced — if the user omits "i", we add it.
+//
+// Plain string: case-insensitive, word-boundary match with special chars
+// escaped. "stage" → /\bstage\b/i, matches "Stage Data" but NOT "Backstage".
+function compileMatcher(term) {
+  const s = String(term);
+  const m = s.match(/^\/(.+)\/([gimsuy]*)$/);
+  if (m) {
+    const flags = m[2].includes('i') ? m[2] : m[2] + 'i';
+    return new RegExp(m[1], flags);
+  }
+  const escaped = s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\b${escaped}\\b`, 'i');
+}
+
 export function checkTitle(offer, whitelist) {
-  const title = (offer.title || '').toLowerCase();
-  const neg = (whitelist.negative || []).find((n) => title.includes(n.toLowerCase()));
+  const title = offer.title || '';
+  const neg = (whitelist.negative || []).find((n) => compileMatcher(n).test(title));
   if (neg) return { pass: false, reason: `title: negative match "${neg}"` };
-  const pos = (whitelist.positive || []).some((p) => title.includes(p.toLowerCase()));
+  const pos = (whitelist.positive || []).some((p) => compileMatcher(p).test(title));
   if (!pos) return { pass: false, reason: 'title: no positive match' };
-  // Optional: if required_any is defined, the title must contain at least one
-  // of these keywords as a WHOLE WORD (word-boundary match on both sides).
-  // This prevents "Intern" from matching "International" / "Internal" while
-  // still catching "Intern", "Interns", "Internship" (explicit variants).
   if (Array.isArray(whitelist.required_any) && whitelist.required_any.length > 0) {
-    const req = whitelist.required_any.some((r) => {
-      const escaped = String(r)
-        .toLowerCase()
-        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      return new RegExp(`\\b${escaped}\\b`).test(title);
-    });
+    const req = whitelist.required_any.some((r) => compileMatcher(r).test(title));
     if (!req) return { pass: false, reason: 'title: missing required_any keyword' };
   }
   return { pass: true };
