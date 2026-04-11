@@ -69,7 +69,7 @@ test('verifyCompany — dispatches Workday URL to workday.verifySlug', async () 
   });
   try {
     const r = await verifyCompany(
-      'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers',
+      'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers'
     );
     assert.equal(r.ok, true);
     assert.equal(r.count, 1);
