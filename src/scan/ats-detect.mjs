@@ -16,3 +16,27 @@ export function detectPlatform(careersUrl) {
   }
   return null;
 }
+
+const VERIFIABLE_PLATFORMS = new Set(['lever', 'greenhouse', 'ashby']);
+
+const SUPPORTED_HOSTS = [
+  'https://jobs.lever.co/*',
+  'https://boards.greenhouse.io/*',
+  'https://job-boards.greenhouse.io/*',
+  'https://jobs.ashbyhq.com/*',
+];
+
+export function getSupportedHosts() {
+  return [...SUPPORTED_HOSTS];
+}
+
+export async function verifyCompany(careersUrl) {
+  const det = detectPlatform(careersUrl);
+  if (!det) return { ok: false, reason: 'unknown platform' };
+  const { platform, slug } = det;
+  if (!VERIFIABLE_PLATFORMS.has(platform)) {
+    return { ok: false, reason: `platform ${platform} not supported by verifySlug` };
+  }
+  const mod = await import(`./ats/${platform}.mjs`);
+  return mod.verifySlug(slug);
+}
