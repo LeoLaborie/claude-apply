@@ -83,26 +83,56 @@ export function checkStartDate(offer, minStartDateIso) {
   return { pass: false, reason: `start_date: all parsed dates before ${minStartDateIso}` };
 }
 
-export function checkTitle(offer, whitelist) {
-  const title = (offer.title || '').toLowerCase();
-  const neg = (whitelist.negative || []).find((n) => title.includes(n.toLowerCase()));
-  if (neg) return { pass: false, reason: `title: negative match "${neg}"` };
-  const pos = (whitelist.positive || []).some((p) => title.includes(p.toLowerCase()));
-  if (!pos) return { pass: false, reason: 'title: no positive match' };
-  // Optional: if required_any is defined, the title must contain at least one
-  // of these keywords as a WHOLE WORD (word-boundary match on both sides).
-  // This prevents "Intern" from matching "International" / "Internal" while
-  // still catching "Intern", "Interns", "Internship" (explicit variants).
-  if (Array.isArray(whitelist.required_any) && whitelist.required_any.length > 0) {
-    const req = whitelist.required_any.some((r) => {
-      const escaped = String(r)
-        .toLowerCase()
-        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      return new RegExp(`\\b${escaped}\\b`).test(title);
-    });
-    if (!req) return { pass: false, reason: 'title: missing required_any keyword' };
+// Compile a title-filter term into a RegExp.
+//
+// Escape hatch: a term of the form "/pattern/flags" is parsed as a real regex.
+// Case-insensitivity is enforced — if the user omits "i", we add it.
+//
+// Plain string: case-insensitive, word-boundary match with special chars
+// escaped. "stage" → /\bstage\b/i, matches "Stage Data" but NOT "Backstage".
+function compileMatcher(term) {
+  const s = String(term);
+  const m = s.match(/^\/(.+)\/([gimsuy]*)$/);
+  try {
+    if (m) {
+      const flags = m[2].includes('i') ? m[2] : m[2] + 'i';
+      return new RegExp(m[1], flags);
+    }
+    const escaped = s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`\\b${escaped}\\b`, 'i');
+  } catch (err) {
+    const e = new Error(`invalid title_filter term "${s}": ${err.message}`);
+    e.code = 'INVALID_TITLE_FILTER_TERM';
+    e.term = s;
+    throw e;
   }
-  return { pass: true };
+}
+
+function findMatch(terms, title) {
+  for (const t of terms || []) {
+    if (compileMatcher(t).test(title)) return t;
+  }
+  return null;
+}
+
+export function checkTitle(offer, whitelist) {
+  const title = offer.title || '';
+  try {
+    const neg = findMatch(whitelist.negative, title);
+    if (neg) return { pass: false, reason: `title: negative match "${neg}"` };
+    const pos = findMatch(whitelist.positive, title);
+    if (!pos) return { pass: false, reason: 'title: no positive match' };
+    if (Array.isArray(whitelist.required_any) && whitelist.required_any.length > 0) {
+      const req = findMatch(whitelist.required_any, title);
+      if (!req) return { pass: false, reason: 'title: missing required_any keyword' };
+    }
+    return { pass: true };
+  } catch (err) {
+    if (err.code === 'INVALID_TITLE_FILTER_TERM') {
+      return { pass: false, reason: `title: ${err.message}` };
+    }
+    throw err;
+  }
 }
 
 export function checkBlacklist(offer, blacklist) {

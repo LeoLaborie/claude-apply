@@ -21,7 +21,17 @@ tracked_companies:
     enabled: true
 
 title_filter:
-  # Titles must contain at least one of these (case-insensitive substring).
+  # positive and negative terms match WHOLE WORDS, case-insensitive.
+  # Examples:
+  #   - "stage"    matches "Stage Data", does NOT match "Backstage"
+  #   - "intern"   matches "Intern", does NOT match "International"
+  #     (add "interns", "internship" explicitly if you want those)
+  #
+  # Escape hatch — wrap a real regex in slashes for power cases:
+  #   - "/^stage\\b/i"        anchor to start of title
+  #   - "/ml\\s*engineer/i"   allow optional whitespace
+  #
+  # Titles must contain at least one of these.
   positive:
     - Intern
     - Internship
@@ -32,6 +42,6 @@ title_filter:
   negative: []
 
   # Optional secondary filter applied *on top of* positive/negative:
-  # if set, the title must also contain at least one of these keywords.
-  # Leave empty or omit to skip this extra check.
+  # if set, the title must also match at least one of these (same whole-word
+  # semantics and regex escape hatch as above). Leave empty or omit to skip.
   required_any: []

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING**: `portals.yml` `title_filter` terms now match whole words, case-insensitive (was: case-insensitive substring). `intern` no longer rejects `International`, but also no longer matches `Interns`/`Internship` — add explicit plural variants, or use the new `/regex/flags` escape hatch for full control.
+
+### Added
+
+- `npm run explain -- "<title>" [--company "<co>"]` CLI traces why a title is accepted or filtered by the current `portals.yml` + `candidate-profile.yml`.
+
 ## [0.1.0-alpha.0] — 2026-04-10
 
 ### Added

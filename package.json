@@ -14,7 +14,8 @@
     "check:pii": "bash scripts/check-no-pii.sh",
     "scan": "node src/scan/index.mjs",
     "score": "node src/score/index.mjs",
-    "dashboard": "node src/dashboard/build.mjs"
+    "dashboard": "node src/dashboard/build.mjs",
+    "explain": "node src/scan/explain.mjs"
   },
   "keywords": [
     "claude-code",
