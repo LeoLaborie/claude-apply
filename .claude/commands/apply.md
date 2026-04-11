@@ -23,7 +23,7 @@ Do not try to apply with the example templates.
    select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__read_page,mcp__claude-in-chrome__form_input,mcp__claude-in-chrome__find,mcp__claude-in-chrome__gif_creator,mcp__claude-in-chrome__javascript_tool,mcp__claude-in-chrome__get_page_text,mcp__claude-in-chrome__navigate
    ```
 
-2. Read `config/candidate-profile.yml` with js-yaml and validate it via `validateProfile` from `src/apply/candidate-profile.schema.mjs`. If `ok: false`, print errors and stop.
+2. Read `config/candidate-profile.yml` with js-yaml and validate it via `validateProfile` from `src/lib/candidate-profile.schema.mjs`. If `ok: false`, print errors and stop.
 
 3. Read `data/applications.md`. If an entry already matches `$ARGUMENTS` with status `Applied`, `Submitted (unconfirmed)`, or `Failed`, ask the user before re-applying.
 

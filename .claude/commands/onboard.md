@@ -97,7 +97,7 @@ Assemble the YAML file from:
 - Answers from the question block (step 3)
 - Defaults for genuinely optional fields (`salary_expectation: null`, `website: null`, `cover_letter.generate: false` unless the user said yes)
 
-Validate the file by importing `validateProfile` from `src/apply/candidate-profile.schema.mjs` and running it on the parsed YAML. If `ok: false`, show the errors to the user, ask the missing/invalid fields, and retry — do not write an invalid profile.
+Validate the file by importing `validateProfile` from `src/lib/candidate-profile.schema.mjs` and running it on the parsed YAML. If `ok: false`, show the errors to the user, ask the missing/invalid fields, and retry — do not write an invalid profile.
 
 Also build **`title_filter`** for `portals.yml` from the job type answer. The scanner expects three keys — `positive` (title must contain at least one), `negative` (title must not contain any), and the optional `required_any` (secondary filter, applied on top):
 

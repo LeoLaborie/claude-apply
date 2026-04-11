@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { validateProfile, REQUIRED_FIELDS } from '../../src/apply/candidate-profile.schema.mjs';
+import { validateProfile, REQUIRED_FIELDS } from '../../src/lib/candidate-profile.schema.mjs';
 
 test('candidate-profile.example.yml parses and passes validation', async () => {
   const yaml = await import('js-yaml');

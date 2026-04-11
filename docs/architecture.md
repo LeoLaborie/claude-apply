@@ -12,8 +12,7 @@ src/
 │   ├── scan-history.mjs      # dedup source-of-truth TSV
 │   ├── applications-md.mjs   # parse + update data/applications.md
 │   ├── prefilter-rules.mjs   # deterministic URL filter
-│   ├── prompt-builder.mjs    # build the /score LLM prompt
-│   └── jd-truncate.mjs       # token budget control
+│   └── candidate-profile.schema.mjs  # shared profile schema (scan/score/apply)
 │
 ├── scan/                     # ATS scanner (Group A)
 │   ├── index.mjs             # CLI entry
@@ -25,10 +24,11 @@ src/
 │
 ├── score/                    # lightweight LLM evaluator
 │   ├── index.mjs             # CLI entry
-│   └── prefilter.mjs         # cheap deterministic gate
+│   ├── prefilter.mjs         # cheap deterministic gate
+│   ├── prompt-builder.mjs    # build the /score LLM prompt
+│   └── jd-truncate.mjs       # token budget control
 │
 ├── apply/                    # automated form filling
-│   ├── candidate-profile.schema.mjs
 │   ├── field-classifier.mjs
 │   ├── language-detect.mjs
 │   ├── confirmation-detector.mjs
