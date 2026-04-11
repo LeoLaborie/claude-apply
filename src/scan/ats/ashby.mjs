@@ -20,3 +20,16 @@ export async function fetchAshby(slug, companyName) {
     platform: 'ashby',
   }));
 }
+
+export async function verifySlug(slug) {
+  const url = `https://api.ashbyhq.com/posting-api/job-board/${slug}?includeCompensation=false`;
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json', 'User-Agent': 'claude-apply-verify/1.0' },
+  });
+  if (res.ok) {
+    const data = await res.json();
+    const count = Array.isArray(data?.jobs) ? data.jobs.length : 0;
+    return { ok: true, count };
+  }
+  return { ok: false, status: res.status, reason: `HTTP ${res.status}` };
+}

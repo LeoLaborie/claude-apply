@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { installMockFetch } from '../helpers.mjs';
 import { verifySlug as verifyLever } from '../../src/scan/ats/lever.mjs';
 import { verifySlug as verifyGreenhouse } from '../../src/scan/ats/greenhouse.mjs';
+import { verifySlug as verifyAshby } from '../../src/scan/ats/ashby.mjs';
 
 let restore;
 afterEach(() => {
@@ -65,6 +66,40 @@ test('verifySlug (greenhouse) — slug invalide 404', async () => {
     },
   });
   const r = await verifyGreenhouse('nope');
+  assert.equal(r.ok, false);
+  assert.equal(r.status, 404);
+});
+
+test('verifySlug (ashby) — slug valide avec postings', async () => {
+  restore = installMockFetch({
+    'https://api.ashbyhq.com/posting-api/job-board/hex?includeCompensation=false': {
+      jobs: [{ id: 'a' }],
+    },
+  });
+  const r = await verifyAshby('hex');
+  assert.equal(r.ok, true);
+  assert.equal(r.count, 1);
+});
+
+test('verifySlug (ashby) — board vide', async () => {
+  restore = installMockFetch({
+    'https://api.ashbyhq.com/posting-api/job-board/quiet?includeCompensation=false': {
+      jobs: [],
+    },
+  });
+  const r = await verifyAshby('quiet');
+  assert.equal(r.ok, true);
+  assert.equal(r.count, 0);
+});
+
+test('verifySlug (ashby) — slug invalide 404 (cas Dust)', async () => {
+  restore = installMockFetch({
+    'https://api.ashbyhq.com/posting-api/job-board/dust-tt?includeCompensation=false': {
+      status: 404,
+      body: {},
+    },
+  });
+  const r = await verifyAshby('dust-tt');
   assert.equal(r.ok, false);
   assert.equal(r.status, 404);
 });
