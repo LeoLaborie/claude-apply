@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `verifyCompany(careersUrl)` dispatcher and `getSupportedHosts()` helper in `src/scan/ats-detect.mjs`.
 - `/onboard` step 7.4 documents the four `claude-in-chrome` host permissions the user must grant after installing the extension, with the host list derived from `getSupportedHosts()` (single source of truth).
 - `/apply` step 0 now pre-flights the extension host permission and surfaces a clear remediation block on failure.
+- Workday ATS support for `/scan` — new fetcher `src/scan/ats/workday.mjs` with `parseWorkdayUrl`, `fetchWorkday` (paginated), and `verifySlug`. Portals in `config/portals.yml` can now use `platform: workday` with the full career page URL (e.g. `https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers`). Unlocks scanning ~60% of CAC40 and a large share of Fortune 500 hiring. `/apply` support for Workday is not yet implemented.
 
 ### Changed (continued)
 
