@@ -6,6 +6,10 @@ const PATTERNS = [
   { platform: 'greenhouse', re: /^https?:\/\/(?:job-boards|boards)\.greenhouse\.io\/([^\/?#]+)/i },
   { platform: 'ashby', re: /^https?:\/\/jobs\.ashbyhq\.com\/([^\/?#]+)/i },
   { platform: 'workable', re: /^https?:\/\/apply\.workable\.com\/([^\/?#]+)/i },
+  {
+    platform: 'workday',
+    re: /^(https?:\/\/[^.]+\.wd\d+\.myworkdayjobs\.com\/[^\/?#]+)/i,
+  },
 ];
 
 export function detectPlatform(careersUrl) {
@@ -17,13 +21,14 @@ export function detectPlatform(careersUrl) {
   return null;
 }
 
-const VERIFIABLE_PLATFORMS = new Set(['lever', 'greenhouse', 'ashby']);
+const VERIFIABLE_PLATFORMS = new Set(['lever', 'greenhouse', 'ashby', 'workday']);
 
 const SUPPORTED_HOSTS = [
   'https://jobs.lever.co/*',
   'https://boards.greenhouse.io/*',
   'https://job-boards.greenhouse.io/*',
   'https://jobs.ashbyhq.com/*',
+  'https://*.myworkdayjobs.com/*',
 ];
 
 export function getSupportedHosts() {

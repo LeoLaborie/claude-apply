@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { detectPlatform } from '../../src/scan/ats-detect.mjs';
+import { detectPlatform, getSupportedHosts } from '../../src/scan/ats-detect.mjs';
 
 test('detectPlatform — Lever URL → {lever, slug}', () => {
   assert.deepEqual(detectPlatform('https://jobs.lever.co/mistral'), {
@@ -46,4 +46,20 @@ test('detectPlatform — URL inconnue retourne null', () => {
   assert.equal(detectPlatform('https://careers.datadoghq.com'), null);
   assert.equal(detectPlatform('https://openai.com/careers'), null);
   assert.equal(detectPlatform(''), null);
+});
+
+test('detectPlatform — recognises Workday URL and returns full URL as slug', () => {
+  const r = detectPlatform('https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers');
+  assert.equal(r.platform, 'workday');
+  assert.equal(r.slug, 'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers');
+});
+
+test('detectPlatform — recognises Workday URL on pod wd5', () => {
+  const r = detectPlatform('https://capgemini.wd5.myworkdayjobs.com/CapgeminiCareers');
+  assert.equal(r.platform, 'workday');
+});
+
+test('getSupportedHosts — includes myworkdayjobs wildcard', () => {
+  const hosts = getSupportedHosts();
+  assert.ok(hosts.some((h) => h.includes('myworkdayjobs.com')));
 });
