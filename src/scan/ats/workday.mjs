@@ -39,6 +39,31 @@ async function postJobs({ tenant, pod, site }, { limit, offset }) {
   return res.json();
 }
 
+export async function verifySlug(url) {
+  let parts;
+  try {
+    parts = parseWorkdayUrl(url);
+  } catch (err) {
+    return { ok: false, reason: err.message };
+  }
+  const endpoint = `https://${parts.tenant}.${parts.pod}.myworkdayjobs.com/wday/cxs/${parts.tenant}/${parts.site}/jobs`;
+  const res = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'User-Agent': 'claude-apply-verify/1.0',
+    },
+    body: JSON.stringify({ appliedFacets: {}, limit: 1, offset: 0, searchText: '' }),
+  });
+  if (!res.ok) {
+    return { ok: false, status: res.status, reason: `HTTP ${res.status}` };
+  }
+  const data = await res.json();
+  const count = Array.isArray(data?.jobPostings) ? data.jobPostings.length : 0;
+  return { ok: true, count };
+}
+
 export async function fetchWorkday(url, companyName, opts = {}) {
   const parts = parseWorkdayUrl(url);
   const pageSize = opts.pageSize ?? DEFAULT_PAGE_SIZE;

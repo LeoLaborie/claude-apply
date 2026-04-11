@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach } from 'node:test';
 import { installMockFetch } from '../helpers.mjs';
-import { parseWorkdayUrl, fetchWorkday } from '../../src/scan/ats/workday.mjs';
+import { parseWorkdayUrl, fetchWorkday, verifySlug } from '../../src/scan/ats/workday.mjs';
 
 test('parseWorkdayUrl — extracts tenant, pod, site from valid URL', () => {
   const { tenant, pod, site } = parseWorkdayUrl(
@@ -161,4 +161,51 @@ test('fetchWorkday — throws on HTTP error', async () => {
       ),
     /HTTP 500/,
   );
+});
+
+test('verifySlug — returns ok with count on valid response', async () => {
+  const page1 = JSON.parse(fs.readFileSync(fx1Path, 'utf8'));
+  restore = installMockFetch({
+    'https://totalenergies.wd3.myworkdayjobs.com/wday/cxs/totalenergies/TotalEnergies_careers/jobs':
+      page1,
+  });
+
+  const r = await verifySlug(
+    'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers',
+  );
+  assert.equal(r.ok, true);
+  assert.equal(r.count, 3);
+});
+
+test('verifySlug — returns ok with count 0 on empty response', async () => {
+  restore = installMockFetch({
+    'https://sanofi.wd3.myworkdayjobs.com/wday/cxs/sanofi/SanofiCareers/jobs': {
+      total: 0,
+      jobPostings: [],
+    },
+  });
+
+  const r = await verifySlug('https://sanofi.wd3.myworkdayjobs.com/SanofiCareers');
+  assert.equal(r.ok, true);
+  assert.equal(r.count, 0);
+});
+
+test('verifySlug — returns ko on HTTP 404', async () => {
+  restore = installMockFetch({
+    'https://missing.wd3.myworkdayjobs.com/wday/cxs/missing/Nope/jobs': {
+      status: 404,
+      body: {},
+    },
+  });
+
+  const r = await verifySlug('https://missing.wd3.myworkdayjobs.com/Nope');
+  assert.equal(r.ok, false);
+  assert.equal(r.status, 404);
+  assert.match(r.reason, /HTTP 404/);
+});
+
+test('verifySlug — returns ko on non-Workday URL', async () => {
+  const r = await verifySlug('https://jobs.lever.co/stripe');
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /not a Workday URL/);
 });
