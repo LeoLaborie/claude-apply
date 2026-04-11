@@ -50,6 +50,20 @@ test('parseWorkdayUrl — throws on Workday URL missing site', () => {
   );
 });
 
+test('parseWorkdayUrl — strips en-US locale prefix from URL', () => {
+  const { tenant, pod, site } = parseWorkdayUrl(
+    'https://totalenergies.wd3.myworkdayjobs.com/en-US/TotalEnergies_careers'
+  );
+  assert.equal(tenant, 'totalenergies');
+  assert.equal(pod, 'wd3');
+  assert.equal(site, 'TotalEnergies_careers');
+});
+
+test('parseWorkdayUrl — strips fr-FR locale prefix', () => {
+  const { site } = parseWorkdayUrl('https://sanofi.wd3.myworkdayjobs.com/fr-FR/SanofiCareers');
+  assert.equal(site, 'SanofiCareers');
+});
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fx1Path = path.join(__dirname, '..', 'fixtures', 'workday-totalenergies-page1.json');
 const fx2Path = path.join(__dirname, '..', 'fixtures', 'workday-totalenergies-page2.json');
