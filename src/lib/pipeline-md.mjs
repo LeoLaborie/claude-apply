@@ -122,3 +122,37 @@ export function parseOfferLine(line) {
   if (!url || !company || !title) return null;
   return { url, company, title };
 }
+
+function normalizeUrl(raw) {
+  if (typeof raw !== 'string' || !raw) return '';
+  try {
+    const u = new URL(raw);
+    u.hash = '';
+    u.hostname = u.hostname.toLowerCase();
+    let s = u.toString();
+    if (s.endsWith('/') && u.pathname !== '/') s = s.slice(0, -1);
+    return s;
+  } catch {
+    return raw.trim();
+  }
+}
+
+export function findOfferByUrl(doc, url) {
+  if (!doc || !Array.isArray(doc.sections)) return null;
+  const target = normalizeUrl(url);
+  if (!target) return null;
+  for (const section of doc.sections) {
+    for (const line of section.lines || []) {
+      const row = parseOfferLine(line);
+      if (!row) continue;
+      if (normalizeUrl(row.url) === target) {
+        return {
+          company: row.company,
+          title: row.title,
+          location: section.location || '',
+        };
+      }
+    }
+  }
+  return null;
+}
