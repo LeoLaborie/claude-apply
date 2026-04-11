@@ -64,3 +64,28 @@ test('parseScoreArgs — preserves --id and --json-input', () => {
   assert.equal(f.jsonInput, '/tmp/offer.json');
   assert.equal(f.id, '042');
 });
+
+test('parseScoreArgs — --company without a value is treated as missing', () => {
+  // No value for --company → flags.company stays null → validation passes
+  // (no metadata flags at all). The trailing positional remains the URL.
+  const f = parseScoreArgs(['https://jobs.example.com/a', '--company']);
+  assert.equal(f.company, null);
+  assert.equal(f.url, 'https://jobs.example.com/a');
+});
+
+test('parseScoreArgs — --company followed by another flag is treated as missing', () => {
+  // --company has no real value (the next token is another flag) → throws
+  // because --role and --location ARE provided, so company is the only missing one.
+  assert.throws(
+    () =>
+      parseScoreArgs([
+        'https://jobs.example.com/a',
+        '--company',
+        '--role',
+        'Software Engineer',
+        '--location',
+        'Paris',
+      ]),
+    /all-or-nothing/
+  );
+});

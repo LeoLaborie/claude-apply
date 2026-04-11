@@ -181,6 +181,7 @@ export function parseScoreArgs(argv) {
     const i = args.indexOf(name);
     if (i === -1) return null;
     const v = args[i + 1];
+    if (v === undefined || v.startsWith('--')) return null;
     args.splice(i, 2);
     return v;
   }
