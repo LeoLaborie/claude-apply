@@ -13,13 +13,9 @@ import { appendJsonl, appendFilteredOut } from '../lib/jsonl-writer.mjs';
 import { writeTrackerTsv } from '../lib/tsv-writer.mjs';
 import { detectClosedPage } from '../lib/page-liveness.mjs';
 import { runPrefilter } from '../lib/prefilter-rules.mjs';
+import { loadProfile, ProfileMissingError } from '../lib/load-profile.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-async function parseYaml(filePath) {
-  const yaml = await import('js-yaml');
-  return yaml.load(fs.readFileSync(filePath, 'utf8'));
-}
 
 async function fetchOffer(url) {
   const { chromium } = await import('playwright');
@@ -179,15 +175,13 @@ async function main() {
     return;
   }
 
-  const profile = await parseYaml(path.join(CONFIG_DIR, 'profile.yml'));
-  const condensedPath = path.join(
-    CONFIG_DIR,
-    profile.evaluation?.profile_condensed_path || 'profile-condensed.md'
-  );
-  const profileCondensed = fs.readFileSync(condensedPath, 'utf8');
+  const { cvMarkdown } = await loadProfile(CONFIG_DIR);
+  if (!cvMarkdown) {
+    throw new ProfileMissingError(`config/cv.md not found in ${CONFIG_DIR} — run /onboard`);
+  }
 
   const { system, user } = buildPrompt({
-    profileCondensed,
+    cvMarkdown,
     offer,
     jdMaxTokens: 1500,
   });
