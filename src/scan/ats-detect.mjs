@@ -8,7 +8,7 @@ const PATTERNS = [
   { platform: 'workable', re: /^https?:\/\/apply\.workable\.com\/([^\/?#]+)/i },
   {
     platform: 'workday',
-    re: /^(https?:\/\/[^.]+\.wd\d+\.myworkdayjobs\.com\/[^\/?#]+)/i,
+    re: /^(https?:\/\/[^.]+\.wd\d+\.myworkdayjobs\.com(?:\/[a-z]{2}-[A-Z]{2})?\/[^\/?#]+)/i,
   },
 ];
 

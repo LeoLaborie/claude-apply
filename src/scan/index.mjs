@@ -21,6 +21,7 @@ import { detectPlatform } from './ats-detect.mjs';
 import { fetchLever } from './ats/lever.mjs';
 import { fetchGreenhouse } from './ats/greenhouse.mjs';
 import { fetchAshby } from './ats/ashby.mjs';
+import { fetchWorkday } from './ats/workday.mjs';
 import { runPrefilter } from '../lib/prefilter-rules.mjs';
 import { appendFilteredOut } from '../lib/jsonl-writer.mjs';
 import { readPipelineMd, appendOffer, writePipelineMd } from '../lib/pipeline-md.mjs';
@@ -33,6 +34,7 @@ const DISPATCH = {
   lever: fetchLever,
   greenhouse: fetchGreenhouse,
   ashby: fetchAshby,
+  workday: fetchWorkday,
 };
 
 function reasonToStatus(reason) {

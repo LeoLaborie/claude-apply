@@ -63,3 +63,24 @@ test('getSupportedHosts — includes myworkdayjobs wildcard', () => {
   const hosts = getSupportedHosts();
   assert.ok(hosts.some((h) => h.includes('myworkdayjobs.com')));
 });
+
+test('detectPlatform — Workday URL avec préfixe locale (en-US, fr-FR) reste valide', () => {
+  // Workday surfaces locale-prefixed URLs in the browser address bar.
+  // The captured slug must contain the real site segment so that
+  // parseWorkdayUrl downstream can resolve {tenant, pod, site} correctly.
+  const enUS = detectPlatform(
+    'https://totalenergies.wd3.myworkdayjobs.com/en-US/TotalEnergies_careers'
+  );
+  assert.equal(enUS.platform, 'workday');
+  assert.ok(
+    enUS.slug.includes('TotalEnergies_careers'),
+    `expected slug to retain site segment, got: ${enUS.slug}`
+  );
+
+  const frFR = detectPlatform('https://capgemini.wd5.myworkdayjobs.com/fr-FR/CapgeminiCareers');
+  assert.equal(frFR.platform, 'workday');
+  assert.ok(
+    frFR.slug.includes('CapgeminiCareers'),
+    `expected slug to retain site segment, got: ${frFR.slug}`
+  );
+});
