@@ -109,3 +109,16 @@ export function readPipelineMd(filePath) {
   }
   return parsePipelineMd(fs.readFileSync(filePath, 'utf8'));
 }
+
+const OFFER_LINE_RE = /^\s*-\s*\[[ xX]\]\s*(.+)$/;
+
+export function parseOfferLine(line) {
+  if (typeof line !== 'string') return null;
+  const m = line.match(OFFER_LINE_RE);
+  if (!m) return null;
+  const parts = m[1].split('|').map((s) => s.trim());
+  if (parts.length < 3) return null;
+  const [url, company, title] = parts;
+  if (!url || !company || !title) return null;
+  return { url, company, title };
+}
