@@ -66,3 +66,6 @@ cv_fr_path: candidate-cv-fr.pdf
 cv_en_path: candidate-cv-en.pdf
 
 auto_apply_min_score: 8
+
+blacklist_companies: []
+min_start_date: '2026-08-24'

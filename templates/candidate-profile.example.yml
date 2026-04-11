@@ -1,35 +1,29 @@
-# Candidate profile — used by /apply to fill forms.
+# Candidate profile — used by /scan, /score, and /apply.
 # Copy this file to config/candidate-profile.yml and fill in your details.
-# NEVER commit config/candidate-profile.yml (it's in .gitignore).
+# NEVER commit config/candidate-profile.yml (it is in .gitignore).
 
-identity:
-  first_name: Alice
-  last_name: Martin
-  email: alice.martin@example.com
-  phone: '+33 6 00 00 00 00'
-  date_of_birth: '2003-05-15'
-  nationality: French
-  linkedin: https://www.linkedin.com/in/alice-martin-example/
-  github: https://github.com/alice-martin-example
-  website: https://alice-martin.example.com
+# --- Identity ---
+first_name: Alice
+last_name: Martin
+email: alice.martin@example.com
+phone: '+33600000000'
+date_of_birth: '2003-05-15'
+nationality: French
 
-address:
-  city: Paris
-  country: France
+linkedin_url: https://www.linkedin.com/in/alice-martin-example/
+github_url: https://github.com/alice-martin-example
+website_url: https://alice-martin.example.com
 
-availability:
-  start_date: '2026-09-01'
-  duration_months: 6
-  type: internship # internship | apprenticeship | full-time
+# --- Address ---
+city: Paris
+country: France
+postal_code: '75001'
 
-preferences:
-  locations: [Paris, Remote EU]
-  remote: hybrid # onsite | hybrid | remote
-  languages: [fr, en]
-  salary_expectation: null
-  requires_sponsorship: false
-
-work_authorization: 'EU citizen — no sponsorship needed'
+# --- Education ---
+school: Example University of Technology
+degree: MSc Computer Science
+graduation_year: 2028
+current_year: 2
 
 education:
   - school: Example University of Technology
@@ -37,9 +31,9 @@ education:
     field: Machine Learning
     start: '2023-09-01'
     end: '2028-06-30'
-    graduation_year: 2028
     description: Focus on ML systems, distributed computing, and applied research.
 
+# --- Experience ---
 experiences:
   - company: Example ML Lab
     title: Research Intern
@@ -49,15 +43,34 @@ experiences:
       Built a reproducible training pipeline for small language models,
       improved eval throughput by 3x, shipped internal tool used by 10+ researchers.
 
+# --- Work authorization ---
+work_authorization: EU citizen — no sponsorship needed
+requires_sponsorship: false
+
+# --- Availability ---
+availability_start: '2026-09-01'
+internship_duration_months: 6
+
+# --- Languages ---
 languages:
   - { code: fr, level: native }
   - { code: en, level: C1 }
   - { code: es, level: A2 }
 
-cv:
-  fr: /absolute/path/to/your/cv-fr.pdf
-  en: /absolute/path/to/your/cv-en.pdf
+# --- CV paths (absolute) ---
+cv_fr_path: /absolute/path/to/your/cv-fr.pdf
+cv_en_path: /absolute/path/to/your/cv-en.pdf
 
-cover_letter:
-  generate: false # set true to enable LaTeX letter generation
-  template_dir: ./templates/letters
+# --- Auto-apply threshold (0..10) ---
+auto_apply_min_score: 8
+
+# --- EEO (optional; leave null to answer "Prefer not to say") ---
+gender: null
+ethnicity: null
+veteran_status: null
+disability_status: null
+
+# --- Scoring hints (optional) ---
+# Used by /scan and /score to filter out unwanted companies / too-early start dates.
+blacklist_companies: []
+min_start_date: '2026-08-24'
