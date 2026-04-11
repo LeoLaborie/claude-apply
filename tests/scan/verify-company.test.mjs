@@ -51,12 +51,29 @@ test('verifyCompany — plateforme sans verifySlug (workable) renvoie ok:false',
   assert.match(r.reason, /not supported/i);
 });
 
-test('getSupportedHosts — retourne les 4 hôtes ATS avec fetcher vérifiable', () => {
+test('getSupportedHosts — retourne les 5 hôtes ATS avec fetcher vérifiable', () => {
   const hosts = getSupportedHosts();
   assert.deepEqual(hosts.sort(), [
+    'https://*.myworkdayjobs.com/*',
     'https://boards.greenhouse.io/*',
     'https://job-boards.greenhouse.io/*',
     'https://jobs.ashbyhq.com/*',
     'https://jobs.lever.co/*',
   ]);
+});
+
+test('verifyCompany — dispatches Workday URL to workday.verifySlug', async () => {
+  const restore = installMockFetch({
+    'https://totalenergies.wd3.myworkdayjobs.com/wday/cxs/totalenergies/TotalEnergies_careers/jobs':
+      { total: 5, jobPostings: [{ title: 'Test', externalPath: '/job/x' }] },
+  });
+  try {
+    const r = await verifyCompany(
+      'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers'
+    );
+    assert.equal(r.ok, true);
+    assert.equal(r.count, 1);
+  } finally {
+    restore();
+  }
 });

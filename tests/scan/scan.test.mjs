@@ -107,6 +107,73 @@ test('runScan — e2e avec 2 companies mockées, écrit pipeline + history', asy
   assert.ok(filt.includes('Senior Engineer'));
 });
 
+test('runScan — Workday end-to-end (URL nue + URL avec locale)', async () => {
+  // Reuse the existing terminating-page fixture so we don't need pagination mocks.
+  const fxPath = path.join(REPO_ROOT, 'tests', 'fixtures', 'workday-totalenergies-page2.json');
+  const workdayBody = JSON.parse(fs.readFileSync(fxPath, 'utf8'));
+
+  const portalsConfig = {
+    title_filter: { positive: ['Engineer', 'Ingénieur'], negative: [] },
+    tracked_companies: [
+      {
+        name: 'TotalEnergies (bare)',
+        careers_url: 'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers',
+        enabled: true,
+      },
+      {
+        name: 'TotalEnergies (locale)',
+        careers_url: 'https://totalenergies.wd3.myworkdayjobs.com/en-US/TotalEnergies_careers',
+        enabled: true,
+      },
+    ],
+  };
+  const profile = { min_start_date: '2020-01-01', blacklist_companies: [] };
+
+  // Both companies hit the same Workday API endpoint (locale is stripped
+  // by parseWorkdayUrl). The fixture is a short page so fetchWorkday's
+  // pagination loop terminates after a single call per company.
+  const workdayEndpoint =
+    'https://totalenergies.wd3.myworkdayjobs.com/wday/cxs/totalenergies/TotalEnergies_careers/jobs';
+  const restore = installMockFetch({ [workdayEndpoint]: workdayBody });
+
+  const pipelinePath = path.join(tmp, 'pipeline.md');
+  const historyPath = path.join(tmp, 'scan-history.tsv');
+  const filteredPath = path.join(tmp, 'filtered-out.tsv');
+  const applicationsPath = path.join(tmp, 'applications.md');
+  fs.writeFileSync(applicationsPath, '# Apps\n');
+
+  const result = await runScan({
+    portalsConfig,
+    profile,
+    pipelinePath,
+    historyPath,
+    filteredPath,
+    applicationsPath,
+    dryRun: false,
+  });
+
+  restore();
+
+  // 2 companies × 1 job each (fixture has 1 jobPosting)
+  assert.equal(
+    result.raw,
+    2 * 1,
+    `expected raw = 2 (two companies × 1 job each), got ${result.raw}`
+  );
+
+  const errs = (result.errors || []).filter((e) =>
+    String(e.company || '').startsWith('TotalEnergies')
+  );
+  assert.equal(errs.length, 0, `expected no Workday errors, got: ${JSON.stringify(errs)}`);
+
+  // pipeline.md should mention TotalEnergies (proves offers were written).
+  const md = fs.readFileSync(pipelinePath, 'utf8');
+  assert.ok(
+    md.includes('TotalEnergies'),
+    'expected pipeline.md to contain at least one TotalEnergies offer'
+  );
+});
+
 test('scan CLI — missing candidate-profile.yml fails with ProfileMissingError', () => {
   const cfgDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-cfg-'));
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-data-'));
