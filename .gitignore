@@ -13,6 +13,9 @@ data/
 *.pdf
 !tests/fixtures/fake-cv.pdf
 
+# Brainstorming specs (personal, not project docs)
+docs/superpowers/
+
 # Generated files
 dashboard.html
 *.log

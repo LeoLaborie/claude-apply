@@ -14,7 +14,7 @@ URL ──► pre-check ──► open tab ──► blocker detect ──► AT
 
 Validates:
 
-1. The profile (`config/candidate-profile.yml`) parses and matches the schema in `src/apply/candidate-profile.schema.mjs`.
+1. The profile (`config/candidate-profile.yml`) parses and matches the schema in `src/lib/candidate-profile.schema.mjs`.
 2. The URL is not already in `data/applications.md` with a terminal status.
 3. The CDP port (`http://127.0.0.1:9222`) is reachable — if not, the file upload step will fall back to asking for a manual drop.
 

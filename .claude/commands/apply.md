@@ -23,7 +23,7 @@ Do not try to apply with the example templates.
    select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__read_page,mcp__claude-in-chrome__form_input,mcp__claude-in-chrome__find,mcp__claude-in-chrome__gif_creator,mcp__claude-in-chrome__javascript_tool,mcp__claude-in-chrome__get_page_text,mcp__claude-in-chrome__navigate
    ```
 
-2. Read `config/candidate-profile.yml` with js-yaml and validate it via `validateProfile` from `src/apply/candidate-profile.schema.mjs`. If `ok: false`, print errors and stop.
+2. Read `config/candidate-profile.yml` with js-yaml and validate it via `validateProfile` from `src/lib/candidate-profile.schema.mjs`. If `ok: false`, print errors and stop.
 
 3. Read `data/applications.md`. If an entry already matches `$ARGUMENTS` with status `Applied`, `Submitted (unconfirmed)`, or `Failed`, ask the user before re-applying.
 
@@ -133,7 +133,7 @@ For each field, in DOM order:
 
 - **Known structured class** (`email`, `first_name`, `phone`, …): resolve via `mapProfileValue(classKey, profile)` and fill using the appropriate method. Verify the final value matches.
 
-- **`cv_upload`**: resolve the CV path from the profile (`profile.cv.fr` or `profile.cv.en` depending on the detected language).
+- **`cv_upload`**: resolve the CV path from the profile (`profile.cv_fr_path` or `profile.cv_en_path` depending on the detected language).
 
   **Never use `form_input` or `javascript_tool` for file inputs** — HTTPS pages block `input.value` writes for `type=file`. Some ATSes even appear to accept a JS-injected `DataTransfer` ("Success! <filename>" in the UI) but the backend silently rejects the file at submit. **CDP is mandatory**. Call the helper:
 
@@ -156,9 +156,9 @@ For each field, in DOM order:
 
   After success, re-verify from `claude-in-chrome`: `document.querySelector('<selector>').files[0]?.name`.
 
-- **`cover_letter_upload` or `cover_letter_text`**: see step 6 before filling.
+- **`cover_letter_upload` or `cover_letter_text`**: leave blank and report as skipped. Cover letter generation is not currently supported.
 
-- **`free_text`**: see step 7.
+- **`free_text`**: see step 6.
 
 - **`unknown` AND `required: true`**: **STOP**. Display `{label, type, placeholder}` and ask the user for the value. Suggest adding the mapping to `candidate-profile.yml`.
 
@@ -166,19 +166,7 @@ For each field, in DOM order:
 
 - **EEO field**: use the profile value (null → "Prefer not to say"). Never guess.
 
-## 6. Cover letter generation (if requested)
-
-If a `cover_letter_upload` or `cover_letter_text` field exists AND `profile.cover_letter.generate === true`:
-
-1. Import `buildLetterPrompt` from `src/apply/letter-generator.mjs`.
-2. Build `candidateSummary` from `config/cv.md` (pull the 5–6 most role-relevant lines).
-3. Call `buildLetterPrompt({ company, role, language, jdText, candidateSummary })`.
-4. **Run the prompt yourself** (you are Claude) — produce the letter body, ~250 words, 3 paragraphs, formal register, no invented experience.
-5. If the field is a file upload and a LaTeX template exists in `profile.cover_letter.template_dir`, compile the letter to PDF and upload via the CDP helper. Otherwise, paste the plain-text body into the textarea via `form_input`.
-
-If `profile.cover_letter.generate !== true`, leave the field blank and report it as skipped.
-
-## 7. Free text questions
+## 6. Free text questions
 
 For each `free_text` field:
 
@@ -186,14 +174,14 @@ For each `free_text` field:
 2. Produce an 80–150 word answer that addresses the question specifically, grounded in `config/cv.md` and `jdText`. **Never invent experience**.
 3. Fill via `form_input`.
 
-## 8. Submit
+## 7. Submit
 
 1. Capture `beforeUrl = window.location.href`.
 2. Note `startTime = Date.now()`.
 3. Use `find` to locate the final submit button (`Submit`, `Submit Application`, `Apply`, `Envoyer`, `Postuler`, `Send application`). On multi-step forms, click `Next` first and re-run step 4 on the next page.
 4. Click the submit button.
 
-## 9. Confirmation detection (15 s max)
+## 8. Confirmation detection (15 s max)
 
 Poll every 2 s, up to 15 s:
 
@@ -212,7 +200,7 @@ Poll every 2 s, up to 15 s:
 
 After 15 s with no match → status `Submitted (unconfirmed)`, screenshot, notify the user.
 
-## 10. State update
+## 9. State update
 
 1. **Update `data/applications.md`**:
    - Find an existing row matching company + role.
@@ -240,7 +228,7 @@ After 15 s with no match → status `Submitted (unconfirmed)`, screenshot, notif
 
 4. Stop the GIF.
 
-## 11. Final report
+## 10. Final report
 
 Print a clear summary:
 
