@@ -140,20 +140,29 @@ Run **at least 6 queries** (2 per ATS, varying the keyword/location). Collect un
 
 If the domain is very niche and WebSearch returns fewer than 15 candidates total, ask the user for hints ("Any companies you already have in mind?") and add them.
 
-### 5.2 Verify each URL
+### 5.2 Verify each URL via the ATS API
 
-For each candidate, verify the careers URL actually returns offers via the public ATS API. Use `curl -sfI` for a quick HEAD check, then trust `src/scan/ats-detect.mjs` behavior. You may run a dry-run scan on a single company:
+`curl -sfI` on the public careers page is **not** authoritative — Ashby for example returns `200` on the careers HTML even when the JSON board does not exist (e.g. `dust-tt`). The only honest check is to call the same JSON endpoint `/scan` will use.
+
+For each candidate company, call `verifyCompany(careers_url)` from `src/scan/ats-detect.mjs`. Run it inline via `node -e`:
 
 ```bash
-# Write a minimal temp portals.yml with one company and run:
-node src/scan/index.mjs --dry-run --only <slug>
+node -e "
+  import('./src/scan/ats-detect.mjs').then(async m => {
+    const r = await m.verifyCompany('https://jobs.lever.co/mistral');
+    console.log(JSON.stringify(r));
+  });
+"
 ```
 
-Drop any candidate where:
+Response shape:
 
-- The URL 404s or 301s to a non-ATS host
-- The company has zero current offers matching `title_filter` (not a hard drop — keep if at least 3 total offers exist on the board, the filter may match next week)
-- The company is a clear duplicate (same org, multiple slugs)
+- `{ ok: true, count: N }` → slug is live, `N` offers currently on the board. Keep the company. If `count` is 0, flag it for the user to sanity-check ("board exists but empty — check slug spelling").
+- `{ ok: false, status, reason }` → drop the company. If you get a transient failure (5xx, network error), retry **once** with a 2 s backoff before dropping.
+
+Add a 100 ms delay between verifications to be polite to the APIs (30 companies × 100 ms ≈ 3 s extra).
+
+Also drop any candidate that is a clear duplicate (same org, multiple slugs).
 
 ### 5.3 Trim to ~30 and present for approval
 
