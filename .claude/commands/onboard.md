@@ -230,6 +230,36 @@ exit 1
 - **If CDP comes up**: great, continue to 7.3.
 - **If not** (8s elapsed): Chrome may have failed to start. Check the background task output for errors. Fall back to telling the user to run `chrome-apply` manually and print the summary from 7.3 anyway.
 
+### 7.4 Grant extension host permissions
+
+The `claude-in-chrome` extension requires per-host permission for every ATS domain it touches. Chrome does **not** expose a programmatic grant — the user must click. Without this, `/apply` fails on the first `find` call with "Extension manifest must request permission to access the respective host".
+
+Derive the list of hosts from the single source of truth — don't hard-code it:
+
+```bash
+node -e "
+  import('./src/scan/ats-detect.mjs').then(m => {
+    for (const h of m.getSupportedHosts()) console.log('  - ' + h);
+  });
+"
+```
+
+Print this exact instruction block to the user, substituting the host list from the command above:
+
+```
+After you click "Add to Chrome" and approve the install:
+
+  1. Click the puzzle-piece icon in Chrome's toolbar.
+  2. Find "claude-in-chrome" → three-dot menu → "This can read and
+     change site data" → "On specific sites".
+  3. Add each of these hosts (one by one):
+       <host list from getSupportedHosts() above>
+  4. If prompted during install, also allow
+     https://chromewebstore.google.com/*.
+```
+
+Do **not** continue past 7.3 until the user confirms the permissions are granted. If you skip this, `/apply` will fail the first time it is run.
+
 ### 7.3 Final summary
 
 Print a clean summary. The only manual step left is clicking "Add to Chrome" on the extension page that should now be open:
