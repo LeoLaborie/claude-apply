@@ -39,11 +39,12 @@ Two independent subsystems, linked only by `platform: workday` in `config/portal
 
 ### Scan subsystem
 
-Single new fetcher: `src/scan/ats/workday.mjs`.
+Single new fetcher file: `src/scan/ats/workday.mjs`, following the same structure as `lever.mjs` / `greenhouse.mjs` / `ashby.mjs` (one file holding both `fetchWorkday` and `verifySlug`, matching the convention established in PR #7).
 
 ```
+parseWorkdayUrl(url) → { tenant, pod, site }   // pure helper, exported for tests + apply side
 fetchWorkday(url, companyName) → Offer[]
-verifyWorkdaySlug(url) → { ok: boolean, reason?: string }
+verifySlug(url) → { ok: boolean, reason?: string }
 ```
 
 Workday exposes a public JSON API for job listings at:
@@ -56,33 +57,32 @@ Body: { "appliedFacets": {}, "limit": 20, "offset": 0, "searchText": "" }
 
 The response contains `jobPostings[]` with `title`, `externalPath`, `locationsText`, `postedOn`, `bulletFields`. The fetcher paginates by incrementing `offset` until `jobPostings.length < limit`. Each posting maps to the existing `Offer` contract, with `url = https://{tenant}.wd{pod}.myworkdayjobs.com{externalPath}`, `platform: 'workday'`.
 
-The URL parser in `workday.mjs` extracts `tenant`, `pod`, and `site` from the `portals.yml` URL field and is reused by both `fetchWorkday` and `verifyWorkdaySlug`. `verifyWorkdaySlug` sends a single-page jobs request and returns `ok: true` if the response has a valid body and any `jobPostings` (or zero postings without a 404), `ok: false` otherwise.
+`parseWorkdayUrl` is shared by `fetchWorkday` and `verifySlug`. `verifySlug` sends a single-page jobs request and returns `ok: true` on HTTP 200 with a valid JSON body containing a `jobPostings` array (even if empty), `ok: false` otherwise.
 
-`src/scan/verify-company.mjs` (the dispatcher added in PR #7) gains a `workday` branch routing to `verifyWorkdaySlug`. `getSupportedHosts()` gains `*.myworkdayjobs.com`.
+`src/scan/ats-detect.mjs` gains three edits: a `workday` entry in `PATTERNS` (regex `^https?:\/\/([^.]+)\.wd\d+\.myworkdayjobs\.com\/`), `workday` added to `VERIFIABLE_PLATFORMS`, and one new host in `SUPPORTED_HOSTS` (`https://*.myworkdayjobs.com/*`). Because Workday URLs need full parsing (tenant + pod + site), `detectPlatform` returns the full URL as the `slug` field for Workday, and `verifyCompany` passes that URL straight to `workday.verifySlug(slug)` without any branch rewrite — the existing `mod.verifySlug(slug)` call just works.
 
 ### Apply subsystem
 
-New module `src/apply/workday/`:
+`/apply` is a Claude Code slash command implemented as a markdown playbook at `.claude/commands/apply.md`, not a Node CLI. The agent executes the playbook step by step, calling testable Node helpers (`field-classifier`, `confirmation-detector`, `upload-file`, `dom-label`) along the way. Workday support follows the same pattern: **orchestration lives in markdown, logic lives in pure helpers**.
+
+**New slash command** `.claude/commands/apply-workday.md`. A separate file rather than inlining into `apply.md`, because the Workday flow (account creation + email verification pause + multi-step navigation + signup captcha handling) is long enough that merging it would roughly double `apply.md`. `apply.md` gains a short early dispatch: if the URL host matches `*.myworkdayjobs.com`, stop and tell the user to run `/apply-workday <url>` instead.
+
+**New helpers** under `src/apply/workday/` — all pure, all unit-testable, no browser or network side effects:
 
 ```
 src/apply/workday/
-  index.mjs          - entry point, called from src/apply/index.mjs when platform === 'workday'
-  state-machine.mjs  - main loop, step detection, handler dispatch
-  account.mjs        - signup/login flow, credential generation
-  session.mjs        - login-wall detection, captcha detection, resume-from-state
-  steps/
-    my-information.mjs
-    my-experience.mjs
-    application-questions.mjs
-    voluntary-disclosures.mjs
-    self-identify.mjs
-    review.mjs
-    generic.mjs      - fallback, delegates to existing classifier
+  url-parse.mjs         - re-exports parseWorkdayUrl from src/scan/ats/workday.mjs
+  accounts.mjs          - readAccounts(path), findAccount(accounts, tenant),
+                          writeAccount(path, entry), markVerified(path, tenant),
+                          generateEmail(profileEmail, tenant),
+                          generatePassword() — crypto.randomBytes(24).toString('base64url')
+  step-detect.mjs       - detectStep({url, domMarkers}) → stepName | 'generic', pure function
+  step-signatures.mjs   - const STEP_SIGNATURES: URL regexes + DOM marker lists per known step
 ```
 
-New shared utility: `src/lib/workday-accounts.mjs` (YAML I/O for credential file).
+No `state-machine.mjs`, no `session.mjs`, no error classes — the state machine lives inside the `apply-workday.md` playbook as a "Repeat until Review" loop, and error handling is the playbook telling the agent "STOP and say X" (same pattern `apply.md` currently uses for login walls and captchas). Typed error classes would only be useful if a Node-side caller caught them, which there isn't.
 
-`src/apply/index.mjs` gains an early dispatch at the top: if the detected platform is `workday`, call `src/apply/workday/index.mjs` and return. All other platforms continue through the existing single-page classifier path.
+`parseWorkdayUrl` is defined once in `src/scan/ats/workday.mjs` (where the scan fetcher needs it) and re-exported from `src/apply/workday/url-parse.mjs` so the apply side has a stable import path without crossing the scan/apply module boundary in application code.
 
 ## Data flow
 
@@ -97,49 +97,52 @@ No change to `pipeline.md` format or downstream consumers.
 
 ### Apply
 
+The agent follows `.claude/commands/apply-workday.md` which encodes this flow:
+
 ```
-/apply <workday-url>
+/apply-workday <workday-url>
   │
-  ├─ detect platform = workday → delegate to workday/index.mjs
+  ├─ First-run guard (config/candidate-profile.yml exists), tool load, CDP probe
+  │  (copied from apply.md steps 0.1–0.5)
   │
-  ├─ parse tenant from URL
-  ├─ load config/workday-accounts.yml
+  ├─ Parse URL via parseWorkdayUrl → {tenant, pod, site}
+  ├─ readAccounts('config/workday-accounts.yml') → find entry for tenant
   │
-  ├─ navigate to URL, click "Apply" button
+  ├─ Open tab, start GIF, navigate to URL, click "Apply" button
   │
-  ├─ if login wall:
-  │    ├─ no account stored → signup:
-  │    │    ├─ generate email = {user.local}+{tenant}@{user.domain}
-  │    │    ├─ generate password = crypto.randomBytes(24).toString('base64url')
-  │    │    ├─ write account entry immediately (email_verified: false)
-  │    │    ├─ fill signup form, submit
-  │    │    ├─ if captcha → throw WorkdayCaptchaError (STOP)
-  │    │    └─ throw WorkdayEmailVerificationPendingError (STOP)
-  │    │       "Check your inbox and click the Workday verification link, then rerun /apply"
+  ├─ Branch: login wall detection
   │    │
-  │    └─ account stored → login:
-  │         ├─ fill email + password, submit
-  │         ├─ if captcha → throw WorkdayCaptchaError
-  │         ├─ if "email not verified" → throw WorkdayEmailVerificationPendingError
-  │         └─ if invalid creds → throw WorkdayLoginError
+  │    ├─ No stored account → signup sub-flow:
+  │    │    1. generateEmail(profile.email, tenant), generatePassword()
+  │    │    2. writeAccount(...) with email_verified: false   ← persisted BEFORE filling the form
+  │    │    3. Fill signup form (email, password, confirm, first name, last name)
+  │    │    4. Submit
+  │    │    5. If captcha → STOP: "Captcha on signup. Solve manually in Chrome, rerun /apply-workday <url>."
+  │    │    6. STOP: "Check your inbox for the Workday verification email for {tenant}, click the link, rerun /apply-workday <url>."
+  │    │
+  │    └─ Stored account → login sub-flow:
+  │         1. Fill email + password, submit
+  │         2. If captcha → STOP (same message pattern)
+  │         3. If "email not verified" banner → STOP: "Verification still pending for {tenant}, click the email link, rerun /apply-workday <url>."
+  │         4. If invalid creds error → STOP: "Stored password rejected for {tenant}. Delete the entry from config/workday-accounts.yml and rerun /apply-workday <url>."
+  │         5. On success, markVerified('config/workday-accounts.yml', tenant) if entry was not yet verified
   │
-  ├─ on first successful login, set email_verified: true in yaml
+  ├─ State machine loop (repeat until step === 'review'):
+  │    1. read_page → capture URL + DOM
+  │    2. detectStep({url, domMarkers}) → stepName
+  │    3. Fill this page using the existing field-classifier + mapProfileValue (playbook step 4–5 from apply.md, reused verbatim)
+  │    4. If any required field is 'unknown' → STOP and ask the user (same invariant as apply.md)
+  │    5. Click "Next" / "Save and Continue"
+  │    6. Re-run captcha + unknown-step checks:
+  │       - captcha detected → STOP
+  │       - detectStep returns 'generic' AND classifier finds zero fillable fields → STOP: "Unknown Workday step at {url}. Paste the DOM to the user for diagnostics."
   │
-  ├─ state machine loop:
-  │    while currentStep !== 'review':
-  │      step = detectStep(page.url, page.dom)
-  │      handler = steps[step] ?? steps.generic
-  │      await handler(page, profile, cv)
-  │      await clickNext(page)
-  │      if captchaDetected(page) → throw WorkdayCaptchaError
-  │      if unknownBlocker(page) → throw WorkdayUnknownStepError
+  ├─ Review page: human summary → click Submit
   │
-  ├─ review page: extract summary, clickSubmit
-  │
-  └─ existing confirmation detector → applications.md + apply-log.jsonl
+  └─ Existing confirmation-detector → applications.md + apply-log.jsonl
 ```
 
-Each thrown error carries a `resumeHint` string. The `/apply` CLI catches these errors, prints the hint, and exits non-zero. Re-running `/apply <url>` resumes from current state because the Chrome session persists cookies and Workday preserves the draft server-side.
+All STOPs are markdown instructions to the agent, not thrown exceptions. Re-running `/apply-workday <url>` resumes from the current state because the Chrome session persists cookies and Workday preserves the draft server-side.
 
 ## Credential storage
 
@@ -159,43 +162,48 @@ accounts:
     email_verified: false
 ```
 
-Plaintext, gitignored, same directory as the rest of `config/` (which already holds PII). Upgrade path to an encrypted file or OS keyring is preserved behind `src/lib/workday-accounts.mjs`.
+Plaintext, gitignored, same directory as the rest of `config/` (which already holds PII). Upgrade path to an encrypted file or OS keyring stays behind the `src/apply/workday/accounts.mjs` interface.
 
-Email generation: take `email` from `config/candidate-profile.yml`, split on `@`, inject `+{tenant}` before the `@`. Relies on sub-addressing (works on Gmail, Fastmail, ProtonMail). Password generation: `crypto.randomBytes(24).toString('base64url')` → 32 chars, URL-safe.
+Email generation: take `email` from `config/candidate-profile.yml`, split on `@`, inject `+{tenant}` before the `@`. Relies on sub-addressing (works on Gmail, Fastmail, ProtonMail with plus-addressing enabled). Password generation: `crypto.randomBytes(24).toString('base64url')` → 32 URL-safe characters.
 
-Atomic writes: write to `workday-accounts.yml.tmp`, `fs.rename` into place. A single-process lock file guards concurrent `/apply` runs.
+Atomic writes: write to `workday-accounts.yml.tmp`, `fs.rename` into place. Concurrent `/apply-workday` runs are not expected (the agent runs one at a time), so no lock file.
 
 ## Step detection
 
-`detectStep(url, dom)` uses a two-layer approach:
+`detectStep({url, domMarkers})` is a pure function that receives the current URL string and an array of DOM markers the agent already captured (via a `read_page` call). It returns a step name or `'generic'`.
 
-1. **URL regex** — Workday URLs contain step markers like `/myInformation`, `/myExperience`, `/voluntaryDisclosures`, `/review`. A lookup table maps these to step names.
-2. **DOM marker fallback** — if URL is ambiguous (some tenants use generic URLs), check for known H1 text or data-automation-id attributes (`data-automation-id="myExperience-SectionTitle"`).
+Two-layer matching driven by `STEP_SIGNATURES`:
 
-If neither layer matches, return `generic`. If the generic handler cannot find any fillable field either, throw `WorkdayUnknownStepError` with the current URL and a DOM dump path.
+1. **URL regex** — Workday URLs contain step markers like `/myInformation`, `/myExperience`, `/voluntaryDisclosures`, `/selfIdentify`, `/review`. Each known step has a regex tested against the URL.
+2. **DOM marker fallback** — if URL is ambiguous (some tenants use generic URLs), check for known `data-automation-id` attributes (`myInformation-SectionTitle`, `myExperience-SectionTitle`, etc.). The playbook extracts these via `javascript_tool` and passes them into `detectStep` as an array.
 
-## Error handling
+If neither layer matches, return `'generic'`. The playbook handles that case explicitly: if the classifier then finds zero fillable fields, STOP and ask the user.
 
-Typed error classes in `src/apply/workday/errors.mjs`, following the `UploadError` pattern:
+The agent does not call `detectStep` directly from the browser — it runs the Node helper with the captured URL and markers as arguments. Same pattern as `classifyField` today.
 
-| Error | When | Resume hint |
-|---|---|---|
-| `WorkdayLoginError` | Invalid creds | "Stored password rejected. Delete `config/workday-accounts.yml` entry for {tenant} and rerun." |
-| `WorkdayCaptchaError` | Captcha DOM detected | "Captcha on {tenant}. Solve it manually in Chrome, then rerun /apply {url}." |
-| `WorkdayEmailVerificationPendingError` | New signup or unverified login | "Check your inbox for the Workday verification email, click the link, then rerun /apply {url}." |
-| `WorkdayUnknownStepError` | No handler matched, generic failed | "Unknown step at {url}. DOM dumped to {path}. Open an issue or add a handler." |
-| `WorkdaySignupBlockedError` | Signup form explicitly refuses | "Signup refused (likely domain rejection). Manually create the account in Chrome, then rerun." |
+## Handling of STOP conditions
+
+There are no typed error classes. The `apply-workday.md` playbook enumerates each STOP condition inline with the exact user-facing message, matching the style of `apply.md`:
+
+| Condition | User-facing message |
+|---|---|
+| Captcha detected on signup/login/any step | "Captcha on {tenant}. Solve it manually in Chrome, then rerun /apply-workday {url}." |
+| New account created | "Check your inbox for the Workday verification email for {tenant}, click the link, then rerun /apply-workday {url}." |
+| Login succeeds but shows "verify your email" banner | "Verification still pending for {tenant}. Click the link in your inbox, then rerun /apply-workday {url}." |
+| Stored creds rejected | "Stored password rejected for {tenant}. Delete the entry from config/workday-accounts.yml and rerun /apply-workday {url}." |
+| Unknown step (generic + zero fields) | "Unknown Workday step at {url}. DOM dumped. Ask Leo for help, or add the step signature to step-signatures.mjs." |
+| Signup explicitly refused (domain banned, etc.) | "Signup refused for {tenant} (likely domain rejection). Create the account manually in Chrome, add it to config/workday-accounts.yml, then rerun." |
 
 ## Testing
 
 | Test file | What it covers |
 |---|---|
-| `tests/scan/ats/workday.test.mjs` | URL parser, `fetchWorkday` mapping against captured JSON fixtures from 2-3 real tenants, pagination |
-| `tests/scan/verify-company.test.mjs` (extended) | Workday dispatch branch |
-| `tests/apply/workday/state-machine.test.mjs` | `detectStep()` against captured HTML fixtures for each known step |
-| `tests/apply/workday/account.test.mjs` | Email/password generation, deterministic with seeded RNG |
-| `tests/lib/workday-accounts.test.mjs` | YAML read/write roundtrip, atomic write, lock file |
-| `tests/apply/workday/errors.test.mjs` | Error class hierarchy, resumeHint format |
+| `tests/scan/ats-workday.test.mjs` | `parseWorkdayUrl` (valid, invalid, missing pod/site), `fetchWorkday` against captured JSON fixtures (single page + multi-page pagination), `verifySlug` ok/ko against mocked fetch |
+| `tests/scan/ats-detect.test.mjs` (extended) | Workday pattern matching, `VERIFIABLE_PLATFORMS` + `SUPPORTED_HOSTS` include workday |
+| `tests/scan/verify-company.test.mjs` (extended) | Workday dispatch path end-to-end with mocked fetch |
+| `tests/apply/workday-url-parse.test.mjs` | `parseWorkdayUrl` re-export from url-parse.mjs |
+| `tests/apply/workday-accounts.test.mjs` | YAML read/write roundtrip, atomic write, `findAccount`, `markVerified`, `generateEmail`, `generatePassword` determinism with seeded RNG |
+| `tests/apply/workday-step-detect.test.mjs` | `detectStep` over URL-only, DOM-only, both, and neither cases, one test per step in `STEP_SIGNATURES` |
 
 No E2E Workday test runs in CI — no public test tenant exists. Manual smoke test procedure documented in `docs/testing.md` under a new "Workday manual checks" section.
 
