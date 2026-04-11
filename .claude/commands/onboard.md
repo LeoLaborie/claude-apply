@@ -91,11 +91,16 @@ If the user is in an unusual shell setup, add `--no-rc` and print the alias to t
 
 ## 5. Build `config/candidate-profile.yml`
 
-Assemble the YAML file from:
+Assemble one **flat** YAML file — no nested `identity:` / `address:` / `availability:` subtrees. Every field must appear at the top level. The schema is defined in `src/lib/candidate-profile.schema.mjs` — read it to see the exact required and optional keys.
 
-- Fields extracted from the CV (step 1)
-- Answers from the question block (step 3)
-- Defaults for genuinely optional fields (`salary_expectation: null`, `website: null`, `cover_letter.generate: false` unless the user said yes)
+Sources:
+
+- Fields extracted from the CV (step 1): `first_name`, `last_name`, `email`, `phone`, `linkedin_url`, `github_url`, `city`, `country`, `school`, `degree`, `graduation_year`, `education[]`, `experiences[]`, `languages[]`.
+- Answers from the question block (step 3): `availability_start`, `internship_duration_months`, `work_authorization`, `requires_sponsorship`, `auto_apply_min_score`, optionally `blacklist_companies` and `min_start_date`.
+- CV PDF paths from step 2: `cv_fr_path` and `cv_en_path` (absolute paths inside `config/`).
+- EEO fields default to `null` unless the user explicitly provided a value: `gender`, `ethnicity`, `veteran_status`, `disability_status`.
+
+Do NOT generate `config/profile.yml` or `config/profile-condensed.md`. Those files are no longer read by any command — `/score` reads `config/cv.md` directly.
 
 Validate the file by importing `validateProfile` from `src/lib/candidate-profile.schema.mjs` and running it on the parsed YAML. If `ok: false`, show the errors to the user, ask the missing/invalid fields, and retry — do not write an invalid profile.
 
