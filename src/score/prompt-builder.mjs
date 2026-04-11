@@ -10,10 +10,10 @@ const CRITERIA = `# Critères de scoring
 - Prestige/apprentissage (20%): taille entreprise, notoriété tech, mentorship
 - Red flags (10%): durée hors 6 mois, formation requise absente, stack exclue`;
 
-export function buildPrompt({ profileCondensed, offer, jdMaxTokens = 1500 }) {
+export function buildPrompt({ cvMarkdown, offer, jdMaxTokens = 1500 }) {
   const jd = truncateJd(offer.body || '', jdMaxTokens);
-  const user = `# Profil condensé
-${profileCondensed}
+  const user = `# Profil candidat
+${cvMarkdown}
 
 ${CRITERIA}
 
