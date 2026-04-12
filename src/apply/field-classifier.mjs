@@ -19,13 +19,17 @@ const RULES = [
     key: 'transcript_upload',
     when: (f) =>
       f.type === 'file' &&
-      test_norm(/transcript|releve de notes|academic record|grade report|bulletin/, f.label, f.name),
+      test_norm(
+        /transcript|releve de notes|academic record|grade report|bulletin.*notes|bulletin scolaire/,
+        f.label,
+        f.name
+      ),
   },
   {
     key: 'portfolio_upload',
     when: (f) =>
       f.type === 'file' &&
-      test_norm(/portfolio|work sample|travaux|book|writing sample|echantillon/, f.label, f.name),
+      test_norm(/portfolio|work sample|travaux|\bbook\b|writing sample|echantillon/, f.label, f.name),
   },
   {
     key: 'other_upload',
