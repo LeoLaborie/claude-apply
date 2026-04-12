@@ -22,6 +22,12 @@ const RULES = [
       test_norm(/transcript|releve de notes|academic record|grade report|bulletin/, f.label, f.name),
   },
   {
+    key: 'portfolio_upload',
+    when: (f) =>
+      f.type === 'file' &&
+      test_norm(/portfolio|work sample|travaux|book|writing sample|echantillon/, f.label, f.name),
+  },
+  {
     key: 'cv_upload',
     when: (f) => f.type === 'file' && test_norm(/(resume|curriculum|cv|cv.file)/, f.label, f.name),
   },
