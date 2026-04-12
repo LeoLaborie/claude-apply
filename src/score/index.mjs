@@ -20,6 +20,7 @@ import { detectClosedPage } from '../lib/page-liveness.mjs';
 import { runPrefilter } from '../lib/prefilter-rules.mjs';
 import { loadProfile, ProfileMissingError } from '../lib/load-profile.mjs';
 import { readPipelineMd, findOfferByUrl, parseOfferLine } from '../lib/pipeline-md.mjs';
+import { pLimit } from '../lib/p-limit.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -295,6 +296,18 @@ export function parseScoreArgs(argv) {
   return flags;
 }
 
+function formatProgress(index, total, offer, result) {
+  const num = `[${index}/${total}]`;
+  const label = `${offer.company} — ${offer.title}`;
+  if (result.skipped) {
+    return `[batch]  ${num} ✗ ${label.padEnd(45)} ${result.reason}`;
+  }
+  if (result.error) {
+    return `[batch]  ${num} ✗ ${label.padEnd(45)} error: ${result.error}`;
+  }
+  return `[batch]  ${num} ✓ ${label.padEnd(45)} ${result.score} ${result.verdict}`;
+}
+
 async function main() {
   const CONFIG_DIR =
     process.env.CLAUDE_APPLY_CONFIG_DIR || path.join(__dirname, '..', '..', 'config');
@@ -306,6 +319,131 @@ async function main() {
   } catch (err) {
     console.error(err.message);
     process.exit(2);
+  }
+
+  if (flags.batch) {
+    const pipelinePath = path.join(DATA_DIR, 'pipeline.md');
+    const evalPath = path.join(DATA_DIR, 'evaluations.jsonl');
+
+    const allOffers = getAllPipelineOffers(pipelinePath);
+    const scored = getScoredUrls(evalPath);
+    const pending = allOffers.filter((o) => !scored.has(o.url));
+
+    if (pending.length === 0) {
+      console.error('[batch] Nothing to score — all offers already evaluated.');
+      return;
+    }
+
+    const { cvMarkdown } = await loadProfile(CONFIG_DIR);
+    if (!cvMarkdown) {
+      throw new ProfileMissingError(`config/cv.md not found in ${CONFIG_DIR} — run /onboard`);
+    }
+
+    const startId = parseInt(nextId(evalPath), 10);
+    const limit = pLimit(flags.parallel);
+    const startTime = Date.now();
+
+    let completed = 0;
+    let countScored = 0;
+    let countFiltered = 0;
+    let countError = 0;
+    let countApply = 0;
+    let countSkip = 0;
+
+    console.error(
+      `[batch] Scoring ${pending.length} offers (${flags.parallel} parallel workers)...`
+    );
+
+    const tasks = pending.map((offer, idx) => {
+      const id = String(startId + idx).padStart(3, '0');
+
+      return limit(async () => {
+        try {
+          const fetched = await fetchOfferBody(offer.url);
+          const fullOffer = {
+            ...offer,
+            finalUrl: fetched.finalUrl,
+            status: fetched.status,
+            body: fetched.body,
+            metadata_source: 'pipeline',
+          };
+
+          const liveness = detectClosedPage(fullOffer);
+          if (liveness.closed) {
+            const date = new Date().toISOString().slice(0, 10);
+            appendFilteredOut(path.join(DATA_DIR, 'filtered-out.tsv'), {
+              date,
+              url: offer.url,
+              company: offer.company || 'unknown',
+              title: offer.title || '',
+              reason: `liveness: ${liveness.reason}`,
+            });
+            const result = { skipped: true, reason: liveness.reason };
+            completed++;
+            countFiltered++;
+            console.error(formatProgress(completed, pending.length, offer, result));
+            return null;
+          }
+
+          const { system, user } = buildPrompt({
+            cvMarkdown,
+            offer: fullOffer,
+            jdMaxTokens: 1500,
+          });
+          const raw = await callClaudeAsync(system, user);
+          const scoredResult = parseScoreJson(raw);
+
+          const date = new Date().toISOString().slice(0, 10);
+          const record = {
+            id,
+            date,
+            company: fullOffer.company || 'unknown',
+            role: fullOffer.title || 'unknown',
+            url: fullOffer.url || '',
+            location: fullOffer.location || '',
+            metadata_source: 'pipeline',
+            score: scoredResult.score,
+            verdict: scoredResult.verdict,
+            reason: scoredResult.reason,
+            status: 'Evaluated',
+          };
+
+          appendJsonl(evalPath, record);
+          const tsvDir = path.join(DATA_DIR, 'tracker-additions');
+          writeTrackerTsv(tsvDir, {
+            num: id,
+            date,
+            company: record.company,
+            role: record.role,
+            score: scoredResult.score,
+            notes: scoredResult.reason,
+          });
+
+          completed++;
+          countScored++;
+          if (scoredResult.verdict === 'apply') countApply++;
+          else countSkip++;
+          console.error(formatProgress(completed, pending.length, offer, scoredResult));
+          console.log(JSON.stringify(record));
+          return record;
+        } catch (err) {
+          completed++;
+          countError++;
+          console.error(formatProgress(completed, pending.length, offer, { error: err.message }));
+          return null;
+        }
+      });
+    });
+
+    await Promise.allSettled(tasks);
+
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+    console.error(
+      `[batch] Done: ${countScored} scored, ${countFiltered} filtered, ${countError} error (${pending.length} total)`
+    );
+    console.error(`[batch] Results: ${countApply} apply, ${countSkip} skip`);
+    console.error(`[batch] Time: ${elapsed}s (${flags.parallel} parallel workers)`);
+    return;
   }
 
   let offer;
