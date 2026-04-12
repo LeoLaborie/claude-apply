@@ -174,6 +174,78 @@ test('runScan — Workday end-to-end (URL nue + URL avec locale)', async () => {
   );
 });
 
+test('runScan — skip_required_any bypasses required_any for flagged company', async () => {
+  const portalsConfig = {
+    title_filter: {
+      positive: ['Intern', 'Internship'],
+      negative: [],
+      required_any: ['ML', 'AI', 'Data'],
+    },
+    tracked_companies: [
+      {
+        name: 'Mistral AI',
+        careers_url: 'https://jobs.lever.co/mistral',
+        enabled: true,
+        skip_required_any: true,
+      },
+      {
+        name: 'Photoroom',
+        careers_url: 'https://jobs.ashbyhq.com/photoroom',
+        enabled: true,
+      },
+    ],
+  };
+  const profile = { min_start_date: '2026-08-24', blacklist_companies: [] };
+
+  const leverJson = [
+    {
+      hostedUrl: 'https://jobs.lever.co/mistral/job-a',
+      text: 'Research Engineer Intern',
+      categories: { location: 'Paris' },
+      descriptionPlain: 'Paris, France, September 2026.',
+    },
+  ];
+  const ashbyJson = {
+    jobs: [
+      {
+        jobUrl: 'https://jobs.ashbyhq.com/photoroom/job-b',
+        title: 'Research Engineer Intern',
+        location: 'Paris, France',
+        descriptionPlain: 'Paris France septembre 2026.',
+      },
+    ],
+  };
+
+  const restore = installMockFetch({
+    'https://api.lever.co/v0/postings/mistral?mode=json': leverJson,
+    'https://api.ashbyhq.com/posting-api/job-board/photoroom?includeCompensation=false': ashbyJson,
+  });
+
+  const pipelinePath = path.join(tmp, 'pipeline.md');
+  const historyPath = path.join(tmp, 'scan-history.tsv');
+  const filteredPath = path.join(tmp, 'filtered-out.tsv');
+  const applicationsPath = path.join(tmp, 'applications.md');
+  fs.writeFileSync(applicationsPath, '# Apps\n');
+
+  const result = await runScan({
+    portalsConfig,
+    profile,
+    pipelinePath,
+    historyPath,
+    filteredPath,
+    applicationsPath,
+    dryRun: false,
+  });
+
+  restore();
+
+  // Mistral offer passes (skip_required_any bypasses "ML/AI/Data" check)
+  // Photoroom offer fails (title has no ML/AI/Data keyword)
+  assert.equal(result.added.length, 1, `expected 1 added, got ${result.added.length}`);
+  assert.equal(result.added[0].company, 'Mistral AI');
+  assert.equal(result.filtered.skipped_title, 1, 'Photoroom offer should be filtered by required_any');
+});
+
 test('scan CLI — missing candidate-profile.yml fails with ProfileMissingError', () => {
   const cfgDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-cfg-'));
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-data-'));
