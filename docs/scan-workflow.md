@@ -48,6 +48,19 @@ title_filter:
     - Manager
 ```
 
+### Per-company override: `skip_required_any`
+
+For companies where the domain is implicit in the name (e.g. Mistral AI, DeepMind), the `required_any` filter can be bypassed per-company:
+
+```yaml
+tracked_companies:
+  - name: Mistral AI
+    careers_url: https://jobs.lever.co/mistral
+    skip_required_any: true
+```
+
+When set, `positive` and `negative` filters still apply — only `required_any` is skipped.
+
 ## Deduplication
 
 `data/scan-history.tsv` is the source of truth. Every offer ever seen is recorded with its URL, title, company, and `first_seen` timestamp. On subsequent scans, known URLs are dropped before writing anything. `data/applications.md` is also consulted — if you already tracked an offer (manually or via `/apply`), it won't be re-added to the pipeline.

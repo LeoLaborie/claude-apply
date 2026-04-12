@@ -243,7 +243,11 @@ test('runScan — skip_required_any bypasses required_any for flagged company', 
   // Photoroom offer fails (title has no ML/AI/Data keyword)
   assert.equal(result.added.length, 1, `expected 1 added, got ${result.added.length}`);
   assert.equal(result.added[0].company, 'Mistral AI');
-  assert.equal(result.filtered.skipped_title, 1, 'Photoroom offer should be filtered by required_any');
+  assert.equal(
+    result.filtered.skipped_title,
+    1,
+    'Photoroom offer should be filtered by required_any'
+  );
 });
 
 test('scan CLI — missing candidate-profile.yml fails with ProfileMissingError', () => {
