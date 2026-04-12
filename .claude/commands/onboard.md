@@ -120,11 +120,12 @@ If the user gave specific role/domain keywords in step 3 (e.g. "Machine Learning
 
 This is the most fragile step. Read it twice before starting.
 
-**Constraint**: `src/scan/` only supports **Lever**, **Greenhouse**, and **Ashby** as of v0.1. Every company you add to `portals.yml` must have a `careers_url` matching one of these hosts:
+**Constraint**: `src/scan/` supports **Lever**, **Greenhouse**, **Ashby**, and **Workday**. Every company you add to `portals.yml` must have a `careers_url` matching one of these hosts:
 
 - `https://jobs.lever.co/<slug>`
 - `https://boards.greenhouse.io/<slug>` or `https://job-boards.greenhouse.io/<slug>`
 - `https://jobs.ashbyhq.com/<slug>`
+- `https://<tenant>.wd<N>.myworkdayjobs.com/<site>` (see Workday registry below)
 
 ### 5.1 Build a candidate list via WebSearch
 
@@ -134,11 +135,29 @@ Use the `WebSearch` tool (load it via `ToolSearch` if not already loaded). Run q
 site:jobs.lever.co "<domain keyword>" <location>
 site:boards.greenhouse.io "<domain keyword>" <location>
 site:jobs.ashbyhq.com "<domain keyword>" <location>
+site:myworkdayjobs.com "<domain keyword>" <location>
 ```
 
-Run **at least 6 queries** (2 per ATS, varying the keyword/location). Collect unique `{company, careers_url}` pairs from the results. Target ~50 candidates at this stage to leave room for verification dropouts.
+Run **at least 8 queries** (2 per ATS, varying the keyword/location). Collect unique `{company, careers_url}` pairs from the results. Target ~50 candidates at this stage to leave room for verification dropouts.
 
 If the domain is very niche and WebSearch returns fewer than 15 candidates total, ask the user for hints ("Any companies you already have in mind?") and add them.
+
+### 5.1b Workday companies from registry
+
+Before running WebSearch queries, check the Workday slug registry for known companies:
+
+```bash
+node -e "
+  import('./src/scan/ats-detect.mjs').then(m => {
+    for (const e of m.listWorkdayRegistry()) {
+      const url = 'https://' + e.tenant + '.' + e.pod + '.myworkdayjobs.com/' + e.site;
+      console.log(e.company.padEnd(20) + url);
+    }
+  });
+"
+```
+
+Add any registry entries that match the user's domain directly to the candidate list — no verification needed for these (the slugs are pre-verified). They still go through the approval step in 5.3.
 
 ### 5.2 Verify each URL via the ATS API
 
