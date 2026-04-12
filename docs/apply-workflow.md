@@ -39,7 +39,7 @@ Rules are ordered — earlier rules win. `cover_letter_upload` comes before `cv_
 
 - Identity: `full_name`, `first_name`, `last_name`, `email`, `phone`
 - Links: `linkedin`, `github`, `website`
-- Uploads: `cv_upload`, `cover_letter_upload`, `cover_letter_text`
+- Uploads: `cv_upload`, `cover_letter_upload`, `cover_letter_text`, `transcript_upload`, `portfolio_upload`, `other_upload`
 - Education: `education_school`, `education_degree`, `education_field`, `education_start`, `education_end`, `graduation_year`
 - Experience: `experience_company`, `experience_title`, `experience_start`, `experience_end`, `experience_summary`
 - Legal: `work_auth`, `sponsorship`, `availability`

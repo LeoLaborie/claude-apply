@@ -25,6 +25,12 @@ const cases = [
     { name: 'lettreMotivation', type: 'textarea', label: 'Lettre de motivation' },
     'cover_letter_text',
   ],
+  [{ name: 'transcript', type: 'file', label: 'Transcripts' }, 'transcript_upload'],
+  [{ name: 'releve', type: 'file', label: 'Relevé de notes' }, 'transcript_upload'],
+  [{ name: 'portfolio', type: 'file', label: 'Portfolio' }, 'portfolio_upload'],
+  [{ name: 'samples', type: 'file', label: 'Writing Sample' }, 'portfolio_upload'],
+  [{ name: 'additional', type: 'file', label: 'Additional Documents' }, 'other_upload'],
+  [{ name: 'other', type: 'file', label: 'Other Document' }, 'other_upload'],
   [{ name: 'gender', type: 'select', label: 'Gender Identity' }, 'eeo_gender'],
   [{ name: 'veteran', type: 'select', label: 'Veteran Status' }, 'eeo_veteran'],
   [{ name: 'disability', type: 'select', label: 'Disability Status' }, 'eeo_disability'],
@@ -147,4 +153,29 @@ test('countEntriesForSection', () => {
   assert.equal(countEntriesForSection('experience', profile), 4);
   assert.equal(countEntriesForSection('language', profile), 3);
   assert.equal(countEntriesForSection('skill', profile), 0);
+});
+
+test('mapProfileValue: transcript/portfolio/other with dedicated paths', () => {
+  const profile = {
+    first_name: 'Alice',
+    last_name: 'Martin',
+    cv_en_path: '/path/to/cv.pdf',
+    transcript_path: '/path/to/transcript.pdf',
+    portfolio_path: '/path/to/portfolio.pdf',
+    other_document_path: '/path/to/other.pdf',
+  };
+  assert.equal(mapProfileValue('transcript_upload', profile), '/path/to/transcript.pdf');
+  assert.equal(mapProfileValue('portfolio_upload', profile), '/path/to/portfolio.pdf');
+  assert.equal(mapProfileValue('other_upload', profile), '/path/to/other.pdf');
+});
+
+test('mapProfileValue: transcript/portfolio/other fallback to CV', () => {
+  const profile = {
+    first_name: 'Alice',
+    last_name: 'Martin',
+    cv_en_path: '/path/to/cv.pdf',
+  };
+  assert.equal(mapProfileValue('transcript_upload', profile), '/path/to/cv.pdf');
+  assert.equal(mapProfileValue('portfolio_upload', profile), '/path/to/cv.pdf');
+  assert.equal(mapProfileValue('other_upload', profile), '/path/to/cv.pdf');
 });

@@ -16,6 +16,28 @@ const RULES = [
     when: (f) => f.type === 'file' && test_norm(/(cover|motivation|lettre)/, f.label, f.name),
   },
   {
+    key: 'transcript_upload',
+    when: (f) =>
+      f.type === 'file' &&
+      test_norm(
+        /transcript|releve de notes|academic record|grade report|bulletin.*notes|bulletin scolaire/,
+        f.label,
+        f.name
+      ),
+  },
+  {
+    key: 'portfolio_upload',
+    when: (f) =>
+      f.type === 'file' &&
+      test_norm(/portfolio|work sample|travaux|\bbook\b|writing sample|echantillon/, f.label, f.name),
+  },
+  {
+    key: 'other_upload',
+    when: (f) =>
+      f.type === 'file' &&
+      test_norm(/additional.*doc|other.*doc|autre.*doc|supplement|piece jointe/, f.label, f.name),
+  },
+  {
     key: 'cv_upload',
     when: (f) => f.type === 'file' && test_norm(/(resume|curriculum|cv|cv.file)/, f.label, f.name),
   },
@@ -170,6 +192,9 @@ export function mapProfileValue(classKey, profile, opts = {}) {
     eeo_ethnicity: profile.ethnicity ?? 'Prefer not to say',
     eeo_veteran: profile.veteran_status ?? 'Prefer not to say',
     eeo_disability: profile.disability_status ?? 'Prefer not to say',
+    transcript_upload: profile.transcript_path ?? profile.cv_en_path,
+    portfolio_upload: profile.portfolio_path ?? profile.cv_en_path,
+    other_upload: profile.other_document_path ?? profile.cv_en_path,
   };
   return map[classKey];
 }
