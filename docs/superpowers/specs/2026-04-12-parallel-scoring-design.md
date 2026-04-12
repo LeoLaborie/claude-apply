@@ -73,7 +73,7 @@ Workers return their `record` to the main flow. Writing to `evaluations.jsonl` a
 5. `callClaudeAsync(system, user)` — the bulk of the time
 6. `parseScoreJson(raw)` → return the `record`
 
-Each worker is autonomous (fetch + score). `pLimit` controls global concurrency, preventing both too many Playwright browsers and too many `claude` processes.
+Each worker is autonomous (fetch + score). `pLimit` controls global concurrency, preventing both too many Playwright browsers and too many `claude` processes. With `--parallel 5`, up to 5 headless Chromium instances may run simultaneously (~200MB each). The default of 5 is chosen to stay under ~1GB extra RAM while still achieving a ~5x speedup. Users on memory-constrained machines can lower it with `--parallel 2`.
 
 ## Output
 
