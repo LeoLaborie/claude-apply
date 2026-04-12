@@ -259,6 +259,58 @@ test('runScan — skip_required_any bypasses required_any for flagged company', 
   );
 });
 
+test('runScan — passes searchText built from title_filter.positive to Workday fetcher', async () => {
+  let capturedBody = null;
+  const original = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => {
+    if (typeof url === 'string' && url.includes('myworkdayjobs.com')) {
+      capturedBody = JSON.parse(opts.body);
+    }
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ total: 0, jobPostings: [] }),
+      text: async () => '{}',
+    };
+  };
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-searchtext-'));
+  fs.writeFileSync(path.join(tmpDir, 'pipeline.md'), '# Pipeline\n');
+  fs.writeFileSync(path.join(tmpDir, 'scan-history.tsv'), '');
+  fs.writeFileSync(path.join(tmpDir, 'filtered-out.tsv'), '');
+  fs.writeFileSync(path.join(tmpDir, 'applications.md'), '');
+
+  try {
+    await runScan({
+      portalsConfig: {
+        tracked_companies: [
+          {
+            name: 'TestCorp',
+            careers_url: 'https://testcorp.wd3.myworkdayjobs.com/TestCareers',
+            enabled: true,
+          },
+        ],
+        title_filter: {
+          positive: ['Intern', 'Stage', '/^stagiaire\\b/i'],
+          negative: [],
+        },
+      },
+      profile: { blacklist_companies: [] },
+      pipelinePath: path.join(tmpDir, 'pipeline.md'),
+      historyPath: path.join(tmpDir, 'scan-history.tsv'),
+      filteredPath: path.join(tmpDir, 'filtered-out.tsv'),
+      applicationsPath: path.join(tmpDir, 'applications.md'),
+      dryRun: true,
+    });
+
+    assert.ok(capturedBody, 'Expected a POST to Workday API');
+    assert.equal(capturedBody.searchText, 'Intern Stage');
+  } finally {
+    globalThis.fetch = original;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
 test('scan CLI — missing candidate-profile.yml fails with ProfileMissingError', () => {
   const cfgDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-cfg-'));
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-data-'));
