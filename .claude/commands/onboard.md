@@ -120,11 +120,12 @@ If the user gave specific role/domain keywords in step 3 (e.g. "Machine Learning
 
 This is the most fragile step. Read it twice before starting.
 
-**Constraint**: `src/scan/` only supports **Lever**, **Greenhouse**, and **Ashby** as of v0.1. Every company you add to `portals.yml` must have a `careers_url` matching one of these hosts:
+**Constraint**: `src/scan/` supports **Lever**, **Greenhouse**, **Ashby**, and **Workday**. Every company you add to `portals.yml` must have a `careers_url` matching one of these hosts:
 
 - `https://jobs.lever.co/<slug>`
 - `https://boards.greenhouse.io/<slug>` or `https://job-boards.greenhouse.io/<slug>`
 - `https://jobs.ashbyhq.com/<slug>`
+- `https://<tenant>.wd<N>.myworkdayjobs.com/<slug>` (use the slug registry — see 5.1b below)
 
 ### 5.1 Build a candidate list via WebSearch
 
@@ -134,11 +135,28 @@ Use the `WebSearch` tool (load it via `ToolSearch` if not already loaded). Run q
 site:jobs.lever.co "<domain keyword>" <location>
 site:boards.greenhouse.io "<domain keyword>" <location>
 site:jobs.ashbyhq.com "<domain keyword>" <location>
+site:myworkdayjobs.com "<domain keyword>" <location>
 ```
 
-Run **at least 6 queries** (2 per ATS, varying the keyword/location). Collect unique `{company, careers_url}` pairs from the results. Target ~50 candidates at this stage to leave room for verification dropouts.
+Run **at least 8 queries** (2 per ATS, varying the keyword/location). Collect unique `{company, careers_url}` pairs from the results. Target ~50 candidates at this stage to leave room for verification dropouts.
 
 If the domain is very niche and WebSearch returns fewer than 15 candidates total, ask the user for hints ("Any companies you already have in mind?") and add them.
+
+### 5.1b Workday slug registry lookup
+
+For companies identified as potential Workday tenants (e.g. large corporates not on Lever/Greenhouse/Ashby), check the local slug registry before giving up:
+
+```bash
+node -e "
+  import { loadSlugRegistry, lookupWorkdaySlug } from './src/scan/ats/workday-slugs.mjs';
+  const reg = loadSlugRegistry('data/known-workday-slugs.json');
+  const r = lookupWorkdaySlug(reg, 'Airbus');
+  if (r) console.log('https://' + r.tenant + '.' + r.pod + '.myworkdayjobs.com/' + r.slug);
+  else console.log('NOT_FOUND');
+"
+```
+
+If the registry returns a match, construct the full URL and add it to the candidate list for verification in step 5.2. If the registry file does not exist (`data/known-workday-slugs.json`), skip this step silently — the user has not set up a registry yet.
 
 ### 5.2 Verify each URL via the ATS API
 
