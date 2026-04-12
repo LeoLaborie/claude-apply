@@ -73,6 +73,7 @@ export async function runScan(opts) {
     applicationsPath,
     dryRun = false,
     onlySlug = null,
+    onProgress = null,
   } = opts;
 
   const whitelist = portalsConfig.title_filter || { positive: [], negative: [] };
@@ -113,6 +114,7 @@ export async function runScan(opts) {
   let raw = 0;
   let historyWrites = 0;
   const perCompany = [];
+  let progressIndex = 0;
 
   for (const result of fetchResults) {
     if (result.error) {
@@ -138,6 +140,18 @@ export async function runScan(opts) {
         count: 0,
         error: result.error,
       });
+      progressIndex++;
+      if (onProgress) {
+        onProgress({
+          index: progressIndex,
+          total: fetchResults.length,
+          company: result.company,
+          platform: result.platform,
+          count: 0,
+          newCount: 0,
+          error: result.error,
+        });
+      }
       continue;
     }
 
@@ -148,6 +162,7 @@ export async function runScan(opts) {
     });
     raw += result.offers.length;
 
+    let companyNew = 0;
     for (const offer of result.offers) {
       if (seen.has(offer.url)) {
         // URL already in scan-history or applications.md — no need to re-log
@@ -201,6 +216,7 @@ export async function runScan(opts) {
       }
 
       added.push(offer);
+      companyNew++;
       appendOffer(doc, offer);
       if (!dryRun) {
         appendHistoryRow(historyPath, {
@@ -213,6 +229,19 @@ export async function runScan(opts) {
         });
         historyWrites++;
       }
+    }
+
+    progressIndex++;
+    if (onProgress) {
+      onProgress({
+        index: progressIndex,
+        total: fetchResults.length,
+        company: result.company,
+        platform: result.platform,
+        count: result.offers.length,
+        newCount: companyNew,
+        error: null,
+      });
     }
   }
 
@@ -297,6 +326,15 @@ async function main() {
     applicationsPath: path.join(DATA_DIR, 'applications.md'),
     dryRun,
     onlySlug,
+    onProgress: ({ index, total, company, count, newCount, error }) => {
+      if (error) {
+        process.stderr.write(`[${index}/${total}] \u2717 ${company} \u2014 ${error}\n`);
+      } else {
+        process.stderr.write(
+          `[${index}/${total}] \u2713 ${company} \u2014 ${count} raw, ${newCount} new\n`
+        );
+      }
+    },
   });
 
   if (asJson) {
