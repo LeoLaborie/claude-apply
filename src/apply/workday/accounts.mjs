@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, renameSync, mkdirSync } from 'node:fs';
+import { dirname } from 'node:path';
 import yaml from 'js-yaml';
 
 export function generateEmail(profileEmail, tenant) {
@@ -24,4 +25,20 @@ export function readAccounts(filePath) {
 
 export function findAccount(accounts, tenant) {
   return accounts.find((a) => a.tenant === tenant);
+}
+
+export function writeAccount(filePath, { tenant, email, password }) {
+  mkdirSync(dirname(filePath), { recursive: true });
+  const existing = readAccounts(filePath);
+  existing.push({
+    tenant,
+    email,
+    password,
+    created_at: new Date().toISOString(),
+    email_verified: false,
+  });
+  const doc = yaml.dump({ accounts: existing }, { lineWidth: -1 });
+  const tmp = filePath + '.tmp';
+  writeFileSync(tmp, doc);
+  renameSync(tmp, filePath);
 }

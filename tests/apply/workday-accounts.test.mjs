@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { generateEmail, generatePassword, readAccounts, findAccount } from '../../src/apply/workday/accounts.mjs';
+import { generateEmail, generatePassword, readAccounts, findAccount, writeAccount } from '../../src/apply/workday/accounts.mjs';
 
 test('generateEmail — inserts +tenant before @', () => {
   assert.equal(generateEmail('leo@gmail.com', 'totalenergies'), 'leo+totalenergies@gmail.com');
@@ -72,4 +72,49 @@ test('findAccount — returns matching account', () => {
 test('findAccount — returns undefined when not found', () => {
   const accounts = [{ tenant: 'totalenergies', email: 'a@b.com' }];
   assert.equal(findAccount(accounts, 'missing'), undefined);
+});
+
+test('writeAccount — creates file with one account when file absent', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'wdacct-'));
+  const file = join(dir, 'accounts.yml');
+  try {
+    writeAccount(file, {
+      tenant: 'totalenergies',
+      email: 'leo+totalenergies@gmail.com',
+      password: 'secret123',
+    });
+    const accounts = readAccounts(file);
+    assert.equal(accounts.length, 1);
+    assert.equal(accounts[0].tenant, 'totalenergies');
+    assert.equal(accounts[0].email_verified, false);
+    assert.ok(accounts[0].created_at);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('writeAccount — appends without overwriting existing accounts', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'wdacct-'));
+  const file = join(dir, 'accounts.yml');
+  try {
+    writeAccount(file, { tenant: 'totalenergies', email: 'a@b.com', password: 'pw1' });
+    writeAccount(file, { tenant: 'sanofi', email: 'c@d.com', password: 'pw2' });
+    const accounts = readAccounts(file);
+    assert.equal(accounts.length, 2);
+    assert.equal(accounts[0].tenant, 'totalenergies');
+    assert.equal(accounts[1].tenant, 'sanofi');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('writeAccount — no .tmp file remains after write', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'wdacct-'));
+  const file = join(dir, 'accounts.yml');
+  try {
+    writeAccount(file, { tenant: 'test', email: 'x@y.com', password: 'pw' });
+    assert.equal(existsSync(file + '.tmp'), false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
