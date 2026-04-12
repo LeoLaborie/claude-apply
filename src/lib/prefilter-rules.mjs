@@ -6,25 +6,48 @@ const LOCATION_FR_RE =
 const LOCATION_FOREIGN_RE =
   /\b(new york|nyc|london|berlin|munich|san francisco|sf bay|palo alto|tokyo|seoul|singapore|dubai|mena|morocco|sydney|australia|montreal|warsaw|poland|sweden|stockholm|netherlands|amsterdam|spain|madrid|barcelona|germany|luxembourg|italy|italian|milan|rome|austria|vienna|switzerland|zurich|geneva|denmark|copenhagen|norway|oslo|finland|helsinki|ireland|dublin|belgium|brussels|usa only|uk only|us citizens? only|green card|visa sponsorship not)\b/i;
 
-export function checkLocation(offer) {
+const LOCATION_SEG_RE = /\s*[-/,]\s*/;
+const REMOTE_RE = /^remote$/i;
+
+function splitLocationSegments(loc) {
+  return loc
+    .split(LOCATION_SEG_RE)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+export function checkLocation(offer, targetLocations) {
+  const loc = offer.location || '';
+
+  // Structured location available — use positive matching
+  if (loc) {
+    const segments = splitLocationSegments(loc);
+    const geoSegments = segments.filter((s) => !REMOTE_RE.test(s));
+
+    if (geoSegments.length === 0) {
+      // Pure "Remote" with no geographic qualifier — ambiguous, pass
+      return { pass: true };
+    }
+
+    const match = geoSegments.some((seg) =>
+      (targetLocations || []).some((t) => seg.toLowerCase().includes(t.toLowerCase()))
+    );
+    if (match) return { pass: true };
+    return { pass: false, reason: `location: ${loc} not in target zones` };
+  }
+
+  // Fallback: no structured location — use regex heuristic on title + body
   const title = offer.title || '';
   const body = offer.body || '';
-  // 1. If the title explicitly mentions a foreign-only location and no FR
-  //    location, reject immediately. This handles patterns like
-  //    "Role - Morocco" or "Account Executive - Netherlands" where the body
-  //    may incidentally mention France as a supported region.
   const titleHasForeign = LOCATION_FOREIGN_RE.test(title);
   const titleHasFr = LOCATION_FR_RE.test(title);
   if (titleHasForeign && !titleHasFr) {
     return { pass: false, reason: 'location: foreign in title, no FR' };
   }
-  // 2. FR mention anywhere (title or body) → pass. Hybrid titles like
-  //    "AI Scientist - Paris/London" fall into this branch.
   const haystack = `${title} ${body}`;
   if (LOCATION_FR_RE.test(haystack)) return { pass: true };
-  // 3. No FR signal found — if body has a foreign-only mention, reject.
   if (LOCATION_FOREIGN_RE.test(body)) return { pass: false, reason: 'location: foreign only' };
-  return { pass: true }; // ambiguous → pass
+  return { pass: true };
 }
 
 const MONTHS = {
@@ -146,7 +169,7 @@ export function runPrefilter(offer, config) {
   const checks = [
     () => checkTitle(offer, config.whitelist),
     () => checkBlacklist(offer, config.blacklist),
-    () => checkLocation(offer),
+    () => checkLocation(offer, config.targetLocations),
     () => checkStartDate(offer, config.minStartDate),
   ];
   for (const fn of checks) {

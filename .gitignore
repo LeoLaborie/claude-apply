@@ -16,6 +16,9 @@ data/
 # Brainstorming specs (personal, not project docs)
 docs/superpowers/
 
+# Git worktrees
+.worktrees/
+
 # Generated files
 dashboard.html
 *.log

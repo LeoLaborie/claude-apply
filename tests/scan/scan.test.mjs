@@ -35,6 +35,7 @@ test('runScan — e2e avec 2 companies mockées, écrit pipeline + history', asy
   const profile = {
     min_start_date: '2026-08-24',
     blacklist_companies: [],
+    target_locations: ['France', 'Paris', 'Remote'],
   };
 
   const leverJson = [
@@ -127,7 +128,11 @@ test('runScan — Workday end-to-end (URL nue + URL avec locale)', async () => {
       },
     ],
   };
-  const profile = { min_start_date: '2020-01-01', blacklist_companies: [] };
+  const profile = {
+    min_start_date: '2020-01-01',
+    blacklist_companies: [],
+    target_locations: ['France', 'Paris', 'Remote'],
+  };
 
   // Both companies hit the same Workday API endpoint (locale is stripped
   // by parseWorkdayUrl). The fixture is a short page so fetchWorkday's

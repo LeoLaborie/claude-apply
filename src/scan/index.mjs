@@ -77,10 +77,13 @@ export async function runScan(opts) {
   } = opts;
 
   const whitelist = portalsConfig.title_filter || { positive: [], negative: [] };
+  const targetLocations =
+    profile.target_locations || [profile.country, profile.city, 'Remote'].filter(Boolean);
   const prefilterConfig = {
     whitelist,
     blacklist: profile.blacklist_companies || [],
     minStartDate: profile.min_start_date || '2026-08-24',
+    targetLocations,
   };
 
   let companies = (portalsConfig.tracked_companies || [])

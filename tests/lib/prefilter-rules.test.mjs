@@ -37,6 +37,76 @@ test('checkLocation: pass ambigu (aucun signal)', () => {
   assert.deepEqual(checkLocation({ body: 'Great team great tech', title: 'Dev' }), { pass: true });
 });
 
+// ---------- checkLocation with targetLocations ----------
+const targets = ['France', 'Paris', 'Remote'];
+
+test('checkLocation: pass "Paris, France" matches target "France"', () => {
+  const r = checkLocation({ location: 'Paris, France', title: 'Dev', body: '' }, targets);
+  assert.deepEqual(r, { pass: true });
+});
+
+test('checkLocation: reject "PRC, Shanghai" no target match', () => {
+  const r = checkLocation({ location: 'PRC, Shanghai', title: 'Dev', body: '' }, targets);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /location/);
+});
+
+test('checkLocation: reject "Brazil - Sao Paulo"', () => {
+  const r = checkLocation({ location: 'Brazil - Sao Paulo', title: 'Dev', body: '' }, targets);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /location/);
+});
+
+test('checkLocation: pass "Remote - France" geo segment matches', () => {
+  const r = checkLocation({ location: 'Remote - France', title: 'Dev', body: '' }, targets);
+  assert.deepEqual(r, { pass: true });
+});
+
+test('checkLocation: reject "Remote - US" geo segment no match', () => {
+  const r = checkLocation({ location: 'Remote - US', title: 'Dev', body: '' }, targets);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /location/);
+});
+
+test('checkLocation: pass "Remote" alone (ambiguous, no geo qualifier)', () => {
+  const r = checkLocation({ location: 'Remote', title: 'Dev', body: '' }, targets);
+  assert.deepEqual(r, { pass: true });
+});
+
+test('checkLocation: reject "Taiwan-Hsinchu" hyphen separator', () => {
+  const r = checkLocation({ location: 'Taiwan-Hsinchu', title: 'Dev', body: '' }, targets);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /location/);
+});
+
+test('checkLocation: pass "Paris, France / London, UK" one segment matches', () => {
+  const r = checkLocation(
+    { location: 'Paris, France / London, UK', title: 'Dev', body: '' },
+    targets
+  );
+  assert.deepEqual(r, { pass: true });
+});
+
+// ---------- checkLocation fallback (empty location) ----------
+test('checkLocation: fallback pass body mentions Paris', () => {
+  const r = checkLocation({ location: '', title: 'Dev', body: 'Based in Paris office' }, targets);
+  assert.deepEqual(r, { pass: true });
+});
+
+test('checkLocation: fallback reject body mentions New York only', () => {
+  const r = checkLocation(
+    { location: '', title: 'FDSE', body: 'Based in New York City, USA only' },
+    targets
+  );
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /location/);
+});
+
+test('checkLocation: fallback pass no signal (ambiguous)', () => {
+  const r = checkLocation({ location: '', title: 'Dev', body: 'Great team' }, targets);
+  assert.deepEqual(r, { pass: true });
+});
+
 // ---------- checkStartDate ----------
 test('checkStartDate: pass si septembre 2026', () => {
   assert.deepEqual(checkStartDate({ body: 'Starting September 2026' }, '2026-08-24'), {
@@ -101,8 +171,13 @@ test('checkBlacklist: reject case-insensitive', () => {
 
 // ---------- runPrefilter (intégration) ----------
 test('runPrefilter: court-circuit sur la première règle qui échoue', () => {
-  const offer = { title: 'Senior Dev', body: 'Paris', company: 'Foo' };
-  const config = { minStartDate: '2026-08-24', blacklist: [], whitelist: wl };
+  const offer = { title: 'Senior Dev', body: 'Paris', company: 'Foo', location: '' };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: wl,
+    targetLocations: ['France', 'Paris', 'Remote'],
+  };
   const r = runPrefilter(offer, config);
   assert.equal(r.pass, false);
   assert.match(r.reason, /negative|title/);
@@ -113,7 +188,13 @@ test('runPrefilter: pass offre valide', () => {
     title: 'ML Engineer Intern',
     body: 'Paris office, starting September 2026',
     company: 'Mistral',
+    location: 'Paris, France',
   };
-  const config = { minStartDate: '2026-08-24', blacklist: [], whitelist: wl };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: wl,
+    targetLocations: ['France', 'Paris', 'Remote'],
+  };
   assert.deepEqual(runPrefilter(offer, config), { pass: true });
 });
