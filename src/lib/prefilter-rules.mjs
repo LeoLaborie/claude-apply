@@ -169,7 +169,7 @@ export function runPrefilter(offer, config) {
   const checks = [
     () => checkTitle(offer, config.whitelist),
     () => checkBlacklist(offer, config.blacklist),
-    () => checkLocation(offer),
+    () => checkLocation(offer, config.targetLocations),
     () => checkStartDate(offer, config.minStartDate),
   ];
   for (const fn of checks) {

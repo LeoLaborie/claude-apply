@@ -171,8 +171,13 @@ test('checkBlacklist: reject case-insensitive', () => {
 
 // ---------- runPrefilter (intégration) ----------
 test('runPrefilter: court-circuit sur la première règle qui échoue', () => {
-  const offer = { title: 'Senior Dev', body: 'Paris', company: 'Foo' };
-  const config = { minStartDate: '2026-08-24', blacklist: [], whitelist: wl };
+  const offer = { title: 'Senior Dev', body: 'Paris', company: 'Foo', location: '' };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: wl,
+    targetLocations: ['France', 'Paris', 'Remote'],
+  };
   const r = runPrefilter(offer, config);
   assert.equal(r.pass, false);
   assert.match(r.reason, /negative|title/);
@@ -183,7 +188,13 @@ test('runPrefilter: pass offre valide', () => {
     title: 'ML Engineer Intern',
     body: 'Paris office, starting September 2026',
     company: 'Mistral',
+    location: 'Paris, France',
   };
-  const config = { minStartDate: '2026-08-24', blacklist: [], whitelist: wl };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: wl,
+    targetLocations: ['France', 'Paris', 'Remote'],
+  };
   assert.deepEqual(runPrefilter(offer, config), { pass: true });
 });
