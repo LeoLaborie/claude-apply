@@ -237,24 +237,63 @@ For each `free_text` field:
 3. Use `find` to locate the final submit button (`Submit`, `Submit Application`, `Apply`, `Envoyer`, `Postuler`, `Send application`). On multi-step forms, click `Next` first and re-run step 4 on the next page.
 4. Click the submit button.
 
-## 8. Confirmation detection (15 s max)
+## 8. Confirmation detection (20 s max, L1→L2→L3 fallback)
 
-Poll every 2 s, up to 15 s:
+Import `classifyConfirmation`, `classifyTabContext`, `suggestProbeUrls` from `src/apply/confirmation-detector.mjs`.
 
-1. Get `afterUrl` via `javascript_tool`.
+The renderer may freeze after submit (JS timeout). Use a 3-level fallback:
+
+**Setup:** `attempts = 0`, `level = 'L1'`. Poll every 2 s, max 20 s total.
+
+### L1 — Normal (renderer responsive)
+
+1. Get `afterUrl` via `javascript_tool`: `return window.location.href`.
 2. Get `pageText` via `get_page_text`.
-3. Import `classifyConfirmation` from `src/apply/confirmation-detector.mjs`.
+3. If **either tool times out or errors**:
+   - Increment `attempts`.
+   - If `attempts >= 2` → switch to **L2**.
+   - Otherwise retry on next poll.
 4. Call `classifyConfirmation({ beforeUrl, afterUrl, pageText })`.
-5. Act on the result:
-   - **`Applied`**: exit loop, record success.
-   - **`Failed`**: screenshot, inspect validation errors. Before giving up, re-check all required fields — a React re-render may have wiped a checkbox. Fix and retry submit once. If it fails again, stop.
-   - **`Submitted (unconfirmed)`**: keep polling.
+   - `Applied` → exit, record success.
+   - `Failed` → screenshot, inspect validation errors. Re-check required fields (React re-render may have wiped a checkbox). Fix and retry submit once. If it fails again, stop.
+   - `Submitted (unconfirmed)` → keep polling.
 
-**Known gotcha — Lever "already received"**: if `afterUrl` matches `/already-received` or page text mentions `"Your application was already submitted"` / `"Application already received"`, the offer was previously applied to (Lever blocks re-submission for ~3 months). Status = **`Applied`** (not Failed).
+### L2 — Renderer blocked (use browser-process data)
 
-**Aggregator silent close (e.g. WTTJ)**: some sites close the apply modal silently with no success page. Text/URL detection will fail. Fall back to the user's application tracker on that site if available, or mark `Submitted (unconfirmed)` and notify.
+1. Call `mcp__claude-in-chrome__tabs_context_mcp` → find the tab by its ID.
+2. If **tab is gone** (closed by the site after submit):
+   - Status = `Submitted (unconfirmed)`, reason = "tab closed by site after submit".
+   - Alert the user. Exit.
+3. Extract `{ url, title }` from the tab info.
+4. Call `classifyTabContext({ url, title })`.
+   - `Applied` → exit, record success.
+5. If `url != beforeUrl` and no match yet:
+   - Try `get_page_text` — the new page may be responsive even if the old one froze.
+   - If it succeeds: `classifyConfirmation({ beforeUrl, afterUrl: url, pageText })`.
+   - `Applied` / `Failed` → exit as above.
+6. If `url == beforeUrl` → switch to **L3**.
 
-After 15 s with no match → status `Submitted (unconfirmed)`, screenshot, notify the user.
+### L3 — Probe candidate URLs (destructive — navigates away)
+
+1. Call `suggestProbeUrls(beforeUrl)` → `candidates[]`.
+2. For each candidate URL:
+   - `mcp__claude-in-chrome__navigate` → candidate.
+   - Wait 2 s.
+   - `get_page_text` → `pageText`.
+   - `classifyConfirmation({ beforeUrl, afterUrl: candidate, pageText })`.
+   - `Applied` → exit, record success.
+3. If no candidate matched → status `Submitted (unconfirmed)`.
+
+### After the loop
+
+If 20 s elapsed with no definitive result → status `Submitted (unconfirmed)`, screenshot, notify.
+
+**Known gotchas:**
+
+- **Lever `/already-received`**: caught by L1 (URL regex) and L2 (`classifyTabContext` URL check). Status = `Applied`, not `Failed`.
+- **Tab closed by site**: L2 detects the missing tab. Status = `Submitted (unconfirmed)`, alert user — the tab is gone so no screenshot is possible.
+- **Redirect to third-party domain**: L2 captures the new URL via `tabs_context_mcp` even if `javascript_tool` fails on the new domain (missing extension permission).
+- **Aggregator silent close (e.g. WTTJ)**: L3 probes candidate URLs. If none match, `Submitted (unconfirmed)`.
 
 ## 9. State update
 
