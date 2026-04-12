@@ -21,7 +21,7 @@ test('loadSlugRegistry — returns parsed object from valid JSON file', () => {
 test('loadSlugRegistry — throws on non-existent file', () => {
   assert.throws(
     () => loadSlugRegistry('/tmp/does-not-exist-workday-slugs.json'),
-    /ENOENT|no such file/i,
+    /ENOENT|no such file/i
   );
 });
 
