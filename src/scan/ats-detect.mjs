@@ -1,6 +1,8 @@
 // Detect ATS platform and slug from a careers URL.
 // Returns {platform, slug} or null if URL is not recognized.
 
+import { lookupRegistry, getRegistry } from './ats/workday.mjs';
+
 const PATTERNS = [
   { platform: 'lever', re: /^https?:\/\/jobs\.lever\.co\/([^\/?#]+)/i },
   { platform: 'greenhouse', re: /^https?:\/\/(?:job-boards|boards)\.greenhouse\.io\/([^\/?#]+)/i },
@@ -44,4 +46,14 @@ export async function verifyCompany(careersUrl) {
   }
   const mod = await import(`./ats/${platform}.mjs`);
   return mod.verifySlug(slug);
+}
+
+export function resolveWorkdayFromRegistry(tenant) {
+  const entry = lookupRegistry(tenant);
+  if (!entry) return null;
+  return `https://${entry.tenant}.${entry.pod}.myworkdayjobs.com/${entry.site}`;
+}
+
+export function listWorkdayRegistry() {
+  return getRegistry();
 }
