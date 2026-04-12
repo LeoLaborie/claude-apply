@@ -86,7 +86,12 @@ export async function fetchWorkday(url, companyName, opts = {}) {
       });
     }
     if (postings.length < pageSize) break;
-    if (offers.length >= maxOffers) break;
+    if (offers.length >= maxOffers) {
+      console.warn(
+        `[workday] ${parts.tenant}/${parts.site}: stopped at ${offers.length} offers (maxOffers=${maxOffers})`
+      );
+      break;
+    }
     offset += pageSize;
   }
   return offers;
