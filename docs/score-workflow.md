@@ -53,3 +53,32 @@ node src/score/index.mjs <url>
 ## Cost
 
 ~$0.03 per offer in stripped mode. Running `score` on a 30-offer pipeline costs ~$1.
+
+## Batch mode
+
+Score all unscored offers from the pipeline in parallel:
+
+```bash
+node src/score/index.mjs --batch --parallel 5
+```
+
+Reads `data/pipeline.md`, filters out offers already in `evaluations.jsonl`, and scores the remainder with N concurrent workers (default: 5). Each worker fetches the job page, runs the prefilter, calls `claude -p`, and appends the result.
+
+Progress is logged to stderr:
+
+```
+[batch]  [3/25] ✓ Mistral AI — Research Intern          4.2 apply
+[batch]  [4/25] ✗ Qonto — Backend Intern                skipped (prefilter: location)
+```
+
+Summary printed at the end:
+
+```
+[batch] Done: 22 scored, 2 filtered, 1 error (25 total)
+[batch] Results: 14 apply, 8 skip
+[batch] Time: 58s (5 parallel workers)
+```
+
+Individual errors don't abort the batch — failed offers are retried on the next `--batch` run.
+
+With 5 workers, up to 5 headless Chromium instances may run simultaneously (~200MB each, ~1GB total). Lower with `--parallel 2` on memory-constrained machines.
