@@ -213,6 +213,29 @@ test('verifySlug — returns ko on non-Workday URL', async () => {
   assert.match(r.reason, /not a Workday URL/);
 });
 
+test('fetchWorkday — passes searchText in POST body', async () => {
+  const original = globalThis.fetch;
+  let capturedBody = null;
+  globalThis.fetch = async (url, opts) => {
+    capturedBody = JSON.parse(opts.body);
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ total: 0, jobPostings: [] }),
+      text: async () => '{}',
+    };
+  };
+  restore = () => {
+    globalThis.fetch = original;
+  };
+
+  await fetchWorkday('https://sanofi.wd3.myworkdayjobs.com/SanofiCareers', 'Sanofi', {
+    searchText: 'Intern Stage Stagiaire',
+  });
+
+  assert.equal(capturedBody.searchText, 'Intern Stage Stagiaire');
+});
+
 test('fetchWorkday — stops pagination when MAX_OFFERS reached', async () => {
   // Create a page of 5 postings (will be the pageSize)
   const fullPage = {

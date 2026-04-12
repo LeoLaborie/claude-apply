@@ -23,7 +23,7 @@ function buildJobUrl({ tenant, pod, site }, externalPath) {
   return `https://${tenant}.${pod}.myworkdayjobs.com/en-US/${site}${externalPath}`;
 }
 
-async function postJobs({ tenant, pod, site }, { limit, offset }) {
+async function postJobs({ tenant, pod, site }, { limit, offset, searchText = '' }) {
   const url = `https://${tenant}.${pod}.myworkdayjobs.com/wday/cxs/${tenant}/${site}/jobs`;
   const res = await fetch(url, {
     method: 'POST',
@@ -32,7 +32,7 @@ async function postJobs({ tenant, pod, site }, { limit, offset }) {
       'Content-Type': 'application/json',
       'User-Agent': 'claude-apply-scan/1.0',
     },
-    body: JSON.stringify({ appliedFacets: {}, limit, offset, searchText: '' }),
+    body: JSON.stringify({ appliedFacets: {}, limit, offset, searchText }),
   });
   if (!res.ok) {
     throw new Error(`Workday API ${tenant}/${site}: HTTP ${res.status}`);
@@ -69,10 +69,11 @@ export async function fetchWorkday(url, companyName, opts = {}) {
   const parts = parseWorkdayUrl(url);
   const pageSize = opts.pageSize ?? DEFAULT_PAGE_SIZE;
   const maxOffers = opts.maxOffers ?? DEFAULT_MAX_OFFERS;
+  const searchText = opts.searchText ?? '';
   const offers = [];
   let offset = 0;
   while (true) {
-    const page = await postJobs(parts, { limit: pageSize, offset });
+    const page = await postJobs(parts, { limit: pageSize, offset, searchText });
     const postings = Array.isArray(page?.jobPostings) ? page.jobPostings : [];
     for (const p of postings) {
       offers.push({
