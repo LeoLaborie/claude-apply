@@ -129,6 +129,22 @@ test('writeAccount — no .tmp file remains after write', () => {
   }
 });
 
+test('writeAccount — throws on duplicate tenant', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'wdacct-'));
+  const file = join(dir, 'accounts.yml');
+  try {
+    writeAccount(file, { tenant: 'totalenergies', email: 'a@b.com', password: 'pw1' });
+    assert.throws(
+      () => writeAccount(file, { tenant: 'totalenergies', email: 'x@y.com', password: 'pw2' }),
+      /already exists/
+    );
+    const accounts = readAccounts(file);
+    assert.equal(accounts.length, 1);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('markVerified — sets email_verified to true', () => {
   const dir = mkdtempSync(join(tmpdir(), 'wdacct-'));
   const file = join(dir, 'accounts.yml');

@@ -27,9 +27,19 @@ export function findAccount(accounts, tenant) {
   return accounts.find((a) => a.tenant === tenant);
 }
 
-export function writeAccount(filePath, { tenant, email, password }) {
+function atomicWriteAccounts(filePath, accounts) {
   mkdirSync(dirname(filePath), { recursive: true });
+  const doc = yaml.dump({ accounts }, { lineWidth: -1 });
+  const tmp = filePath + '.tmp';
+  writeFileSync(tmp, doc);
+  renameSync(tmp, filePath);
+}
+
+export function writeAccount(filePath, { tenant, email, password }) {
   const existing = readAccounts(filePath);
+  if (existing.some((a) => a.tenant === tenant)) {
+    throw new Error(`writeAccount: tenant '${tenant}' already exists`);
+  }
   existing.push({
     tenant,
     email,
@@ -37,10 +47,7 @@ export function writeAccount(filePath, { tenant, email, password }) {
     created_at: new Date().toISOString(),
     email_verified: false,
   });
-  const doc = yaml.dump({ accounts: existing }, { lineWidth: -1 });
-  const tmp = filePath + '.tmp';
-  writeFileSync(tmp, doc);
-  renameSync(tmp, filePath);
+  atomicWriteAccounts(filePath, existing);
 }
 
 export function markVerified(filePath, tenant) {
@@ -48,8 +55,5 @@ export function markVerified(filePath, tenant) {
   const account = findAccount(accounts, tenant);
   if (!account) throw new Error(`markVerified: tenant '${tenant}' not found`);
   account.email_verified = true;
-  const doc = yaml.dump({ accounts }, { lineWidth: -1 });
-  const tmp = filePath + '.tmp';
-  writeFileSync(tmp, doc);
-  renameSync(tmp, filePath);
+  atomicWriteAccounts(filePath, accounts);
 }
