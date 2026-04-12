@@ -171,19 +171,9 @@ The loop exited because `detectStep` returned `'review'`.
 4. Note `startTime = Date.now()`.
 5. Click "Submit Application" via `find` + `click`.
 
-## 5. Confirmation detection (15s max)
+## 5. Confirmation detection
 
-Poll every 2 seconds, up to 15 seconds (7-8 attempts):
-
-1. Get `afterUrl` via `javascript_tool`: `return window.location.href`.
-2. Get `pageText` via `mcp__claude-in-chrome__get_page_text`.
-3. Call `classifyConfirmation({ beforeUrl, afterUrl, pageText })` from `src/apply/confirmation-detector.mjs`.
-4. Act on the result:
-   - `"Applied"` → exit loop, record success.
-   - `"Failed"` → STOP. Display the error. Check if a required field was wiped by a React re-render. If fixable, fix and retry submit once. If it fails again, stop.
-   - `"Submitted (unconfirmed)"` → keep polling.
-
-After 15 seconds with no definitive result → status `Submitted (unconfirmed)`.
+Follow **step 8** of `.claude/commands/apply.md` (L1→L2→L3 fallback). Use `beforeUrl` captured in step 4.3 above.
 
 ## 6. Logging and final report
 
