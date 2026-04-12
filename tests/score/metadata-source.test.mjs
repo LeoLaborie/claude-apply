@@ -184,3 +184,35 @@ test('--from-pipeline + --company is rejected as mutually exclusive', () => {
   assert.equal(proc.status, 2);
   assert.match(proc.stderr, /mutually exclusive/);
 });
+
+test('parseScoreArgs — --batch flag', () => {
+  const f = parseScoreArgs(['--batch']);
+  assert.equal(f.batch, true);
+  assert.equal(f.parallel, 5);
+  assert.equal(f.url, null);
+});
+
+test('parseScoreArgs — --parallel implies --batch', () => {
+  const f = parseScoreArgs(['--parallel', '3']);
+  assert.equal(f.batch, true);
+  assert.equal(f.parallel, 3);
+});
+
+test('parseScoreArgs — --batch + URL throws', () => {
+  assert.throws(
+    () => parseScoreArgs(['https://jobs.example.com/a', '--batch']),
+    /mutually exclusive/
+  );
+});
+
+test('parseScoreArgs — --parallel without value defaults to 5', () => {
+  const f = parseScoreArgs(['--batch', '--parallel']);
+  assert.equal(f.parallel, 5);
+});
+
+test('parseScoreArgs — --batch + --from-pipeline throws', () => {
+  assert.throws(
+    () => parseScoreArgs(['--batch', '--from-pipeline']),
+    /mutually exclusive/
+  );
+});

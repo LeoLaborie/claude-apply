@@ -238,6 +238,8 @@ export function parseScoreArgs(argv) {
     role: null,
     location: null,
     fromPipeline: false,
+    batch: false,
+    parallel: 5,
   };
 
   function take(name) {
@@ -254,6 +256,16 @@ export function parseScoreArgs(argv) {
   flags.company = take('--company');
   flags.role = take('--role');
   flags.location = take('--location');
+  const parallelVal = take('--parallel');
+  if (parallelVal !== null) {
+    flags.parallel = parseInt(parallelVal, 10) || 5;
+    flags.batch = true;
+  }
+  const batchIdx = args.indexOf('--batch');
+  if (batchIdx !== -1) {
+    flags.batch = true;
+    args.splice(batchIdx, 1);
+  }
   const fpIdx = args.indexOf('--from-pipeline');
   if (fpIdx !== -1) {
     flags.fromPipeline = true;
@@ -269,6 +281,15 @@ export function parseScoreArgs(argv) {
   }
   if (flags.fromPipeline && hasAnyMetadataFlag) {
     throw new Error('--from-pipeline is mutually exclusive with --company/--role/--location');
+  }
+  if (flags.batch && flags.url) {
+    throw new Error('--batch is mutually exclusive with a positional URL');
+  }
+  if (flags.batch && flags.fromPipeline) {
+    throw new Error('--batch is mutually exclusive with --from-pipeline');
+  }
+  if (flags.batch && hasAnyMetadataFlag) {
+    throw new Error('--batch is mutually exclusive with --company/--role/--location');
   }
 
   return flags;
