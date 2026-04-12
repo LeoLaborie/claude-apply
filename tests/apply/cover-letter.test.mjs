@@ -3,7 +3,12 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { escapeLatex, formatDate, renderLatex, CoverLetterError } from '../../src/apply/cover-letter.mjs';
+import {
+  escapeLatex,
+  formatDate,
+  renderLatex,
+  CoverLetterError,
+} from '../../src/apply/cover-letter.mjs';
 
 test('escapeLatex escapes all LaTeX special characters', () => {
   assert.equal(escapeLatex('R&D 100%'), 'R\\&D 100\\%');
@@ -65,4 +70,119 @@ test('CoverLetterError has code property', () => {
   const err = new CoverLetterError('LATEX_COMPILATION_FAILED', 'test');
   assert.equal(err.code, 'LATEX_COMPILATION_FAILED');
   assert.ok(err instanceof Error);
+});
+
+import { generateCoverLetter } from '../../src/apply/cover-letter.mjs';
+
+test('generateCoverLetter calls buildLetterPrompt and returns pdfPath + textContent', async (t) => {
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cl-gen-'));
+
+  const spawnMock = t.mock.fn((cmd, args, opts) => {
+    if (cmd === 'claude') {
+      return {
+        status: 0,
+        stdout: JSON.stringify({
+          result: 'Generated letter body about ML.',
+          usage: { input_tokens: 100, output_tokens: 50 },
+          total_cost_usd: 0.001,
+        }),
+        stderr: '',
+      };
+    }
+    if (cmd === 'pdflatex') {
+      const outDirArg = args.find((a) => a.startsWith('-output-directory='));
+      const dir = outDirArg.split('=')[1];
+      const texFile = args[args.length - 1];
+      const name = path.basename(texFile, '.tex');
+      fs.writeFileSync(path.join(dir, `${name}.pdf`), 'fake-pdf');
+      return { status: 0, stdout: '', stderr: '' };
+    }
+    return { status: 0, stdout: '', stderr: '' };
+  });
+
+  const result = await generateCoverLetter({
+    company: 'Acme AI',
+    role: 'ML Intern',
+    jdText: 'Looking for ML intern with Python.',
+    language: 'fr',
+    cvMd: '# Alice Martin\nML student',
+    profile: {
+      first_name: 'Alice',
+      last_name: 'Martin',
+      email: 'alice@example.com',
+      phone: '+33600000000',
+    },
+    outDir,
+    _spawnSync: spawnMock,
+  });
+
+  assert.ok(result.pdfPath.endsWith('.pdf'));
+  assert.equal(result.textContent, 'Generated letter body about ML.');
+  assert.equal(result.usage.input_tokens, 100);
+  assert.equal(spawnMock.mock.calls.length, 2); // claude + pdflatex
+
+  fs.rmSync(outDir, { recursive: true });
+});
+
+test('generateCoverLetter throws LLM_GENERATION_FAILED when claude -p fails', async (t) => {
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cl-fail-'));
+  const spawnMock = t.mock.fn(() => ({ status: 1, stdout: '', stderr: 'API error' }));
+
+  await assert.rejects(
+    () =>
+      generateCoverLetter({
+        company: 'X',
+        role: 'Y',
+        jdText: '',
+        language: 'en',
+        cvMd: '',
+        profile: { first_name: 'A', last_name: 'B', email: '', phone: '' },
+        outDir,
+        _spawnSync: spawnMock,
+      }),
+    (err) => {
+      assert.equal(err.code, 'LLM_GENERATION_FAILED');
+      return true;
+    },
+  );
+
+  fs.rmSync(outDir, { recursive: true });
+});
+
+test('generateCoverLetter produces correctly named PDF', async (t) => {
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cl-name-'));
+  const spawnMock = t.mock.fn((cmd, args, opts) => {
+    if (cmd === 'claude') {
+      return {
+        status: 0,
+        stdout: JSON.stringify({ result: 'Body text.', usage: {} }),
+        stderr: '',
+      };
+    }
+    if (cmd === 'pdflatex') {
+      const outDirArg = args.find((a) => a.startsWith('-output-directory='));
+      const dir = outDirArg.split('=')[1];
+      const texFile = args[args.length - 1];
+      const name = path.basename(texFile, '.tex');
+      fs.writeFileSync(path.join(dir, `${name}.pdf`), 'fake');
+      return { status: 0, stdout: '', stderr: '' };
+    }
+    return { status: 0, stdout: '', stderr: '' };
+  });
+
+  const result = await generateCoverLetter({
+    company: 'Acme & Co.',
+    role: 'Machine Learning Intern (Paris)',
+    jdText: '',
+    language: 'fr',
+    cvMd: '',
+    profile: { first_name: 'Alice', last_name: 'Martin', email: '', phone: '' },
+    outDir,
+    _spawnSync: spawnMock,
+  });
+
+  const fileName = path.basename(result.pdfPath);
+  assert.match(fileName, /^\d{4}-\d{2}-\d{2}_acme-co_machine-learning-intern-paris\.pdf$/);
+
+  fs.rmSync(outDir, { recursive: true });
 });
