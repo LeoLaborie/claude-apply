@@ -91,3 +91,8 @@ test('checkTitle: invalid regex escape hatch rejects cleanly without crashing', 
   assert.match(r.reason, /invalid title_filter term/);
   assert.match(r.reason, /\[unclosed/);
 });
+
+test('checkTitle: empty required_any array is a no-op (skip_required_any support)', () => {
+  const wl = { positive: ['intern'], negative: [], required_any: [] };
+  assert.deepEqual(checkTitle({ title: 'Research Intern' }, wl), { pass: true });
+});
