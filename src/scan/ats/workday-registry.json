@@ -4,5 +4,10 @@
   { "tenant": "renault", "pod": "wd3", "site": "Renault", "company": "Renault" },
   { "tenant": "michelin", "pod": "wd3", "site": "Michelin", "company": "Michelin" },
   { "tenant": "criteo", "pod": "wd3", "site": "Criteo", "company": "Criteo" },
-  { "tenant": "totalenergies", "pod": "wd3", "site": "TotalEnergies_careers", "company": "TotalEnergies" }
+  {
+    "tenant": "totalenergies",
+    "pod": "wd3",
+    "site": "TotalEnergies_careers",
+    "company": "TotalEnergies"
+  }
 ]

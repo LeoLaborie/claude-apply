@@ -5,7 +5,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach } from 'node:test';
 import { installMockFetch } from '../helpers.mjs';
-import { parseWorkdayUrl, fetchWorkday, verifySlug, lookupRegistry } from '../../src/scan/ats/workday.mjs';
+import {
+  parseWorkdayUrl,
+  fetchWorkday,
+  verifySlug,
+  lookupRegistry,
+  getRegistry,
+} from '../../src/scan/ats/workday.mjs';
 
 test('parseWorkdayUrl — extracts tenant, pod, site from valid URL', () => {
   const { tenant, pod, site } = parseWorkdayUrl(
@@ -81,6 +87,23 @@ test('lookupRegistry — returns null for unknown tenant', () => {
 test('lookupRegistry — is case-insensitive on tenant', () => {
   const entry = lookupRegistry('Sanofi');
   assert.equal(entry.tenant, 'sanofi');
+});
+
+test('workday-registry.json — no duplicate tenants', () => {
+  const registry = getRegistry();
+  const tenants = registry.map((e) => e.tenant);
+  assert.equal(tenants.length, new Set(tenants).size, 'duplicate tenants found');
+});
+
+test('workday-registry.json — all entries have required fields', () => {
+  const registry = getRegistry();
+  for (const entry of registry) {
+    assert.equal(typeof entry.tenant, 'string', `missing tenant in ${JSON.stringify(entry)}`);
+    assert.equal(typeof entry.pod, 'string', `missing pod in ${JSON.stringify(entry)}`);
+    assert.equal(typeof entry.site, 'string', `missing site in ${JSON.stringify(entry)}`);
+    assert.equal(typeof entry.company, 'string', `missing company in ${JSON.stringify(entry)}`);
+    assert.match(entry.pod, /^wd\d+$/, `invalid pod format: ${entry.pod}`);
+  }
 });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

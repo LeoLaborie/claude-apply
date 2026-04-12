@@ -15,6 +15,10 @@ export function lookupRegistry(tenant) {
   return REGISTRY_BY_TENANT.get(tenant.toLowerCase()) ?? null;
 }
 
+export function getRegistry() {
+  return [...REGISTRY];
+}
+
 const WORKDAY_URL_RE =
   /^https?:\/\/([^.]+)\.(wd\d+)\.myworkdayjobs\.com(?:\/[a-z]{2}-[A-Z]{2})?\/([^\/?#]+)(?:\/|\?|#|$)/i;
 
