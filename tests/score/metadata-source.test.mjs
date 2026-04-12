@@ -211,8 +211,5 @@ test('parseScoreArgs — --parallel without value defaults to 5', () => {
 });
 
 test('parseScoreArgs — --batch + --from-pipeline throws', () => {
-  assert.throws(
-    () => parseScoreArgs(['--batch', '--from-pipeline']),
-    /mutually exclusive/
-  );
+  assert.throws(() => parseScoreArgs(['--batch', '--from-pipeline']), /mutually exclusive/);
 });
