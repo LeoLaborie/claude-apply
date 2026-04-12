@@ -29,6 +29,8 @@ const cases = [
   [{ name: 'releve', type: 'file', label: 'Relevé de notes' }, 'transcript_upload'],
   [{ name: 'portfolio', type: 'file', label: 'Portfolio' }, 'portfolio_upload'],
   [{ name: 'samples', type: 'file', label: 'Writing Sample' }, 'portfolio_upload'],
+  [{ name: 'additional', type: 'file', label: 'Additional Documents' }, 'other_upload'],
+  [{ name: 'other', type: 'file', label: 'Other Document' }, 'other_upload'],
   [{ name: 'gender', type: 'select', label: 'Gender Identity' }, 'eeo_gender'],
   [{ name: 'veteran', type: 'select', label: 'Veteran Status' }, 'eeo_veteran'],
   [{ name: 'disability', type: 'select', label: 'Disability Status' }, 'eeo_disability'],

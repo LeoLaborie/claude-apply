@@ -28,6 +28,12 @@ const RULES = [
       test_norm(/portfolio|work sample|travaux|book|writing sample|echantillon/, f.label, f.name),
   },
   {
+    key: 'other_upload',
+    when: (f) =>
+      f.type === 'file' &&
+      test_norm(/additional.*doc|other.*doc|autre.*doc|supplement|piece jointe/, f.label, f.name),
+  },
+  {
     key: 'cv_upload',
     when: (f) => f.type === 'file' && test_norm(/(resume|curriculum|cv|cv.file)/, f.label, f.name),
   },
