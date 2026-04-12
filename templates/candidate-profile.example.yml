@@ -74,3 +74,11 @@ disability_status: null
 # Used by /scan and /score to filter out unwanted companies / too-early start dates.
 blacklist_companies: []
 min_start_date: '2026-08-24'
+
+# --- Geographic targeting (optional) ---
+# Used by /scan to filter offers by location. Case-insensitive substring match.
+# When absent, derived from city + country above → ["France", "Paris", "Remote"].
+# target_locations:
+#   - France
+#   - Paris
+#   - Remote
