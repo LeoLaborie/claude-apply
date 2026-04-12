@@ -68,8 +68,9 @@ Repeat until step is `'review'`:
 1. Call `read_page` → capture current URL and DOM content.
 2. Extract `data-automation-id` attributes from the page via `javascript_tool`:
    ```javascript
-   return [...document.querySelectorAll('[data-automation-id]')]
-     .map(el => el.getAttribute('data-automation-id'));
+   return [...document.querySelectorAll('[data-automation-id]')].map((el) =>
+     el.getAttribute('data-automation-id')
+   );
    ```
 3. Call `detectStep({ url: currentUrl, domMarkers })` → step name.
 4. If `'generic'` → **STOP**: "Unrecognized Workday step. URL: `<url>`. Ask the user what to do."
@@ -159,3 +160,68 @@ Typically disability self-identification. Same logic as voluntary-disclosures:
 If `classifyField` returns `'unknown'` and the field is `required: true` → **STOP**: display `{ label, type, placeholder }` and ask the user for the value.
 
 If `classifyField` returns `'unknown'` and the field is not required → leave empty, note in final report.
+
+## 4. Review
+
+The loop exited because `detectStep` returned `'review'`.
+
+1. Call `read_page` to capture the review page content.
+2. Scan the displayed summary for obviously empty or incorrect fields. If something looks wrong → flag to the user before submitting.
+3. Capture `beforeUrl = window.location.href` via `javascript_tool`.
+4. Note `startTime = Date.now()`.
+5. Click "Submit Application" via `find` + `click`.
+
+## 5. Confirmation detection (15s max)
+
+Poll every 2 seconds, up to 15 seconds (7-8 attempts):
+
+1. Get `afterUrl` via `javascript_tool`: `return window.location.href`.
+2. Get `pageText` via `mcp__claude-in-chrome__get_page_text`.
+3. Call `classifyConfirmation({ beforeUrl, afterUrl, pageText })` from `src/apply/confirmation-detector.mjs`.
+4. Act on the result:
+   - `"Applied"` → exit loop, record success.
+   - `"Failed"` → STOP. Display the error. Check if a required field was wiped by a React re-render. If fixable, fix and retry submit once. If it fails again, stop.
+   - `"Submitted (unconfirmed)"` → keep polling.
+
+After 15 seconds with no definitive result → status `Submitted (unconfirmed)`.
+
+## 6. Logging and final report
+
+1. Stop the GIF recording → save the file.
+2. Append to the apply log:
+   ```javascript
+   import { appendApplyLog } from './src/apply/apply-log.mjs';
+   appendApplyLog('data/apply-log.jsonl', {
+     url: '$ARGUMENTS',
+     company: tenant,
+     role,
+     language,
+     finalStatus, // 'Applied' | 'Submitted (unconfirmed)' | 'Failed' | 'Discarded'
+     gifPath,
+     durationMs: Date.now() - startTime,
+     errors: [],
+     notes: null,
+   });
+   ```
+3. Update `data/applications.md`:
+   - If a row for this company + role exists → update the Status column.
+   - If not → append a new row with today's date, company, role, status.
+4. Close the tab if status is `Applied`. Leave open otherwise for human review.
+5. Print the final report:
+   - **URL**: `$ARGUMENTS`
+   - **Company / Role / Language**: extracted values
+   - **Final status**: the confirmation result
+   - **GIF**: absolute path to the recording
+   - **Filled fields**: list of canonical keys that were filled
+   - **Skipped fields**: list of non-required unknowns left empty
+   - **Warnings**: any non-blocking anomaly encountered
+
+## Absolute rules
+
+- **Never click Submit with a required field empty** or filled with a guessed value.
+- **Never guess EEO values** — use the profile value or "Prefer not to say" / "Decline to Self Identify".
+- **Never write `Applied` without a matched confirmation** (text or URL). Default to `Submitted (unconfirmed)`.
+- **Always stop and ask** on: captcha, unknown required field, unrecognized step (`'generic'`), credentials rejected, page error.
+- **Keep the GIF intact** on error — never delete it. It is diagnostic evidence.
+- **Never invent experience** — ground all answers in `config/cv.md` and the job description.
+- **Credentials before submit** — always `writeAccount` before clicking the signup submit button.
