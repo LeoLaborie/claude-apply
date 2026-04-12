@@ -212,7 +212,32 @@ For each field, in DOM order:
 
   After success, re-verify from `claude-in-chrome`: `document.querySelector('<selector>').files[0]?.name`.
 
-- **`cover_letter_upload` or `cover_letter_text`**: leave blank and report as skipped. Cover letter generation is not currently supported.
+- **`cover_letter_upload` or `cover_letter_text`**: generate a tailored cover letter.
+
+  1. Extract `company`, `role`, and `jdText` from step 3 metadata. Use `language` from the language detector.
+  2. Read `config/cv.md` as `cvMd`.
+  3. Call the cover letter generator via Bash:
+     ```bash
+     node -e "
+       import { generateCoverLetter } from './src/apply/cover-letter.mjs';
+       import fs from 'node:fs';
+       import yaml from 'js-yaml';
+       const profile = yaml.load(fs.readFileSync('config/candidate-profile.yml', 'utf8'));
+       const cvMd = fs.readFileSync('config/cv.md', 'utf8');
+       const result = await generateCoverLetter({
+         company: '<company>',
+         role: '<role>',
+         jdText: '<first 3000 chars of JD>',
+         language: '<detected language>',
+         cvMd,
+         profile,
+       });
+       console.log(JSON.stringify(result));
+     "
+     ```
+  4. For `cover_letter_upload`: use the CDP upload helper (`node src/apply/upload-file.mjs`) to upload the PDF at `result.pdfPath`. Use a selector refined for the cover letter input (`[name*="cover"]`, `[id*="letter"]`, etc.).
+  5. For `cover_letter_text`: paste `result.textContent` into the textarea using the appropriate filling method from step 5. The PDF is still saved to `data/cover-letters/` for audit.
+  6. Log: "Cover letter generated and saved to {pdfPath}".
 
 - **`free_text`**: see step 6.
 

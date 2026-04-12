@@ -46,6 +46,10 @@ Rules are ordered — earlier rules win. `cover_letter_upload` comes before `cv_
 - EEO: `eeo_gender`, `eeo_ethnicity`, `eeo_veteran`, `eeo_disability`
 - Fallback: `free_text`, `unknown`
 
+### Cover letter generation
+
+When a cover letter field is detected (`cover_letter_upload` or `cover_letter_text`), the playbook automatically generates a tailored letter via `claude -p`, renders it as a PDF through LaTeX, and fills the form. Generated letters are saved to `data/cover-letters/` for audit. See `src/apply/cover-letter.mjs` for the implementation.
+
 ## Filling
 
 Three methods depending on the field and the framework:
