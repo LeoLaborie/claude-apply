@@ -55,6 +55,14 @@ Do not try to apply with the example templates.
 
    Do not attempt to work around this — stopping on ambiguity is the invariant.
 
+## 0bis. Workday dispatch
+
+If `$ARGUMENTS` contains `myworkdayjobs.com`:
+
+1. Read the Workday-specific playbook at `docs/playbooks/apply-workday.md`.
+2. Follow that playbook **instead of** the steps below. The pre-checks from step 0 above are already done — the Workday playbook starts at its own step 0 (URL parsing).
+3. Do not return to this file.
+
 ## 1. Open the tab and start GIF recording
 
 1. Open `$ARGUMENTS` in a new tab with `mcp__claude-in-chrome__tabs_create_mcp`.
