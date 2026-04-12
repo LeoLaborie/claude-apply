@@ -84,3 +84,9 @@ test('suggestProbeUrls strips query string before suffixing', () => {
   assert.ok(urls[0].includes('abc123/thanks'));
   assert.ok(!urls[0].includes('?source'));
 });
+
+test('suggestProbeUrls strips fragment before suffixing', () => {
+  const urls = suggestProbeUrls('https://jobs.lever.co/acme/abc123#section');
+  assert.ok(urls[0].includes('abc123/thanks'));
+  assert.ok(!urls[0].includes('#'));
+});
