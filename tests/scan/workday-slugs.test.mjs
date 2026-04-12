@@ -54,3 +54,18 @@ test('lookupWorkdaySlug — returns null for unknown company', () => {
   const result = lookupWorkdaySlug(registry, 'UnknownCorp');
   assert.equal(result, null);
 });
+
+test('seed fixture — every entry has tenant, pod, slug as non-empty strings', () => {
+  for (const [key, entry] of Object.entries(registry)) {
+    assert.equal(typeof entry.tenant, 'string', `${key}.tenant should be a string`);
+    assert.ok(entry.tenant.length > 0, `${key}.tenant should be non-empty`);
+    assert.equal(typeof entry.pod, 'string', `${key}.pod should be a string`);
+    assert.ok(entry.pod.length > 0, `${key}.pod should be non-empty`);
+    assert.equal(typeof entry.slug, 'string', `${key}.slug should be a string`);
+    assert.ok(entry.slug.length > 0, `${key}.slug should be non-empty`);
+  }
+});
+
+test('seed fixture — has at least 5 entries', () => {
+  assert.ok(Object.keys(registry).length >= 5);
+});
