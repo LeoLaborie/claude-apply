@@ -10,6 +10,8 @@ tracked_companies:
   - name: Mistral AI
     careers_url: https://jobs.lever.co/mistral
     enabled: true
+    # Domain is implicit in company name — skip required_any filter
+    skip_required_any: true
   - name: Anthropic
     careers_url: https://jobs.lever.co/Anthropic
     enabled: true

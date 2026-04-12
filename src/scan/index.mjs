@@ -97,6 +97,7 @@ export async function runScan(opts) {
     });
   }
 
+  const companyByName = new Map(companies.map((c) => [c.name, c]));
   const fetchResults = await Promise.all(companies.map(fetchCompanyOffers));
 
   const seen = loadSeenUrls(historyPath, applicationsPath);
@@ -165,6 +166,11 @@ export async function runScan(opts) {
     });
     raw += result.offers.length;
 
+    const companyConfig = companyByName.get(result.company);
+    const effectiveConfig = companyConfig?.skip_required_any
+      ? { ...prefilterConfig, whitelist: { ...whitelist, required_any: [] } }
+      : prefilterConfig;
+
     let companyNew = 0;
     for (const offer of result.offers) {
       if (seen.has(offer.url)) {
@@ -177,7 +183,7 @@ export async function runScan(opts) {
 
       let check;
       try {
-        check = runPrefilter(offer, prefilterConfig);
+        check = runPrefilter(offer, effectiveConfig);
       } catch (err) {
         filtered.skipped_other = (filtered.skipped_other || 0) + 1;
         errors.push({ company: offer.company, error: `prefilter: ${err.message}` });
