@@ -17,6 +17,16 @@ const SUCCESS_URL = [
   /application[-_]?received/i,
 ];
 
+const ALREADY_RECEIVED_URL = /\/already-received\b/i;
+
+const TAB_TITLE_SUCCESS = [
+  /thank you for (applying|your application)/i,
+  /application (has been )?(received|submitted)/i,
+  /your application is (complete|received)/i,
+  /merci (pour|de) votre candidature/i,
+  /candidature (bien )?(re[çc]ue|envoy[ée]e|enregistr[ée]e)/i,
+];
+
 const ERROR_TEXT = [
   /please (fix|correct|review)/i,
   /(is )?required/i,
@@ -25,8 +35,18 @@ const ERROR_TEXT = [
   /champ obligatoire/i,
 ];
 
-export function classifyTabContext(_tabContext) {
-  return { status: 'Submitted (unconfirmed)', reason: 'not implemented' };
+export function classifyTabContext({ url, title }) {
+  if (url && ALREADY_RECEIVED_URL.test(url))
+    return { status: 'Applied', reason: 'tab context: already-received url' };
+  if (url && SUCCESS_URL.some((r) => r.test(url)))
+    return { status: 'Applied', reason: 'tab context: success url matched' };
+  const t = title || '';
+  if (TAB_TITLE_SUCCESS.some((r) => r.test(t)))
+    return { status: 'Applied', reason: 'tab context: title matched' };
+  return {
+    status: 'Submitted (unconfirmed)',
+    reason: 'tab context: no pattern matched',
+  };
 }
 
 const PROBE_SUFFIXES = [

@@ -90,3 +90,53 @@ test('suggestProbeUrls strips fragment before suffixing', () => {
   assert.ok(urls[0].includes('abc123/thanks'));
   assert.ok(!urls[0].includes('#'));
 });
+
+// --- classifyTabContext ---
+
+test('classifyTabContext: title with "Thank you for applying" → Applied', () => {
+  const r = classifyTabContext({
+    url: 'https://jobs.lever.co/acme/abc123',
+    title: 'Thank you for applying | Acme Corp',
+  });
+  assert.equal(r.status, 'Applied');
+});
+
+test('classifyTabContext: title with "Merci pour votre candidature" → Applied', () => {
+  const r = classifyTabContext({
+    url: 'https://example.com/job/x',
+    title: 'Merci pour votre candidature - Example',
+  });
+  assert.equal(r.status, 'Applied');
+});
+
+test('classifyTabContext: URL matches /confirmation → Applied', () => {
+  const r = classifyTabContext({
+    url: 'https://boards.greenhouse.io/acme/jobs/123/confirmation',
+    title: 'Acme Corp Careers',
+  });
+  assert.equal(r.status, 'Applied');
+});
+
+test('classifyTabContext: URL matches /already-received → Applied', () => {
+  const r = classifyTabContext({
+    url: 'https://jobs.lever.co/acme/abc123/already-received',
+    title: 'Lever',
+  });
+  assert.equal(r.status, 'Applied');
+});
+
+test('classifyTabContext: generic title and unchanged URL → Submitted (unconfirmed)', () => {
+  const r = classifyTabContext({
+    url: 'https://jobs.lever.co/acme/abc123',
+    title: 'Software Engineer - Acme Corp - Lever',
+  });
+  assert.equal(r.status, 'Submitted (unconfirmed)');
+});
+
+test('classifyTabContext: null title does not crash', () => {
+  const r = classifyTabContext({
+    url: 'https://jobs.lever.co/acme/abc123',
+    title: null,
+  });
+  assert.equal(r.status, 'Submitted (unconfirmed)');
+});
