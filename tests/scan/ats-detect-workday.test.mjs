@@ -1,9 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  resolveWorkdayFromRegistry,
-  listWorkdayRegistry,
-} from '../../src/scan/ats-detect.mjs';
+import { resolveWorkdayFromRegistry, listWorkdayRegistry } from '../../src/scan/ats-detect.mjs';
 
 test('resolveWorkdayFromRegistry — returns full URL for known tenant', () => {
   const url = resolveWorkdayFromRegistry('totalenergies');
