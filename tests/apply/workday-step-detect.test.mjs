@@ -6,28 +6,40 @@ import { detectStep, STEP_SIGNATURES } from '../../src/apply/workday/step-detect
 
 test('detectStep — URL /myInformation → my-information', () => {
   assert.equal(
-    detectStep({ url: 'https://t.wd3.myworkdayjobs.com/site/job/123/myInformation', domMarkers: [] }),
+    detectStep({
+      url: 'https://t.wd3.myworkdayjobs.com/site/job/123/myInformation',
+      domMarkers: [],
+    }),
     'my-information'
   );
 });
 
 test('detectStep — URL /myExperience → my-experience', () => {
   assert.equal(
-    detectStep({ url: 'https://t.wd3.myworkdayjobs.com/site/job/123/myExperience', domMarkers: [] }),
+    detectStep({
+      url: 'https://t.wd3.myworkdayjobs.com/site/job/123/myExperience',
+      domMarkers: [],
+    }),
     'my-experience'
   );
 });
 
 test('detectStep — URL /voluntaryDisclosures → voluntary-disclosures', () => {
   assert.equal(
-    detectStep({ url: 'https://t.wd3.myworkdayjobs.com/site/job/123/voluntaryDisclosures', domMarkers: [] }),
+    detectStep({
+      url: 'https://t.wd3.myworkdayjobs.com/site/job/123/voluntaryDisclosures',
+      domMarkers: [],
+    }),
     'voluntary-disclosures'
   );
 });
 
 test('detectStep — URL /selfIdentify → self-identify', () => {
   assert.equal(
-    detectStep({ url: 'https://t.wd3.myworkdayjobs.com/site/job/123/selfIdentify', domMarkers: [] }),
+    detectStep({
+      url: 'https://t.wd3.myworkdayjobs.com/site/job/123/selfIdentify',
+      domMarkers: [],
+    }),
     'self-identify'
   );
 });
@@ -43,35 +55,50 @@ test('detectStep — URL /review → review', () => {
 
 test('detectStep — DOM marker myInformation-SectionTitle → my-information', () => {
   assert.equal(
-    detectStep({ url: 'https://t.wd3.myworkdayjobs.com/site/job/123/apply', domMarkers: ['myInformation-SectionTitle'] }),
+    detectStep({
+      url: 'https://t.wd3.myworkdayjobs.com/site/job/123/apply',
+      domMarkers: ['myInformation-SectionTitle'],
+    }),
     'my-information'
   );
 });
 
 test('detectStep — DOM marker myExperience-SectionTitle → my-experience', () => {
   assert.equal(
-    detectStep({ url: 'https://t.wd3.myworkdayjobs.com/generic', domMarkers: ['myExperience-SectionTitle'] }),
+    detectStep({
+      url: 'https://t.wd3.myworkdayjobs.com/generic',
+      domMarkers: ['myExperience-SectionTitle'],
+    }),
     'my-experience'
   );
 });
 
 test('detectStep — DOM marker voluntaryDisclosures-SectionTitle → voluntary-disclosures', () => {
   assert.equal(
-    detectStep({ url: 'https://t.wd3.myworkdayjobs.com/generic', domMarkers: ['voluntaryDisclosures-SectionTitle'] }),
+    detectStep({
+      url: 'https://t.wd3.myworkdayjobs.com/generic',
+      domMarkers: ['voluntaryDisclosures-SectionTitle'],
+    }),
     'voluntary-disclosures'
   );
 });
 
 test('detectStep — DOM marker selfIdentify-SectionTitle → self-identify', () => {
   assert.equal(
-    detectStep({ url: 'https://t.wd3.myworkdayjobs.com/generic', domMarkers: ['selfIdentify-SectionTitle'] }),
+    detectStep({
+      url: 'https://t.wd3.myworkdayjobs.com/generic',
+      domMarkers: ['selfIdentify-SectionTitle'],
+    }),
     'self-identify'
   );
 });
 
 test('detectStep — DOM marker review-SectionTitle → review', () => {
   assert.equal(
-    detectStep({ url: 'https://t.wd3.myworkdayjobs.com/generic', domMarkers: ['review-SectionTitle'] }),
+    detectStep({
+      url: 'https://t.wd3.myworkdayjobs.com/generic',
+      domMarkers: ['review-SectionTitle'],
+    }),
     'review'
   );
 });
@@ -80,7 +107,10 @@ test('detectStep — DOM marker review-SectionTitle → review', () => {
 
 test('detectStep — URL wins when URL and DOM disagree', () => {
   assert.equal(
-    detectStep({ url: 'https://t.wd3.myworkdayjobs.com/site/job/123/myExperience', domMarkers: ['review-SectionTitle'] }),
+    detectStep({
+      url: 'https://t.wd3.myworkdayjobs.com/site/job/123/myExperience',
+      domMarkers: ['review-SectionTitle'],
+    }),
     'my-experience'
   );
 });
