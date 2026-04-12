@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateEmail, generatePassword } from '../../src/apply/workday/accounts.mjs';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { generateEmail, generatePassword, readAccounts, findAccount } from '../../src/apply/workday/accounts.mjs';
 
 test('generateEmail — inserts +tenant before @', () => {
   assert.equal(generateEmail('leo@gmail.com', 'totalenergies'), 'leo+totalenergies@gmail.com');
@@ -24,4 +27,49 @@ test('generatePassword — returns unique values', () => {
   const a = generatePassword();
   const b = generatePassword();
   assert.notEqual(a, b);
+});
+
+test('readAccounts — returns [] when file does not exist', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'wdacct-'));
+  try {
+    const result = readAccounts(join(dir, 'nope.yml'));
+    assert.deepEqual(result, []);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('readAccounts — parses valid YAML', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'wdacct-'));
+  const file = join(dir, 'accounts.yml');
+  try {
+    writeFileSync(file, `accounts:
+  - tenant: totalenergies
+    email: leo+totalenergies@gmail.com
+    password: "abc123"
+    created_at: 2026-04-12T10:00:00Z
+    email_verified: true
+`);
+    const result = readAccounts(file);
+    assert.equal(result.length, 1);
+    assert.equal(result[0].tenant, 'totalenergies');
+    assert.equal(result[0].email, 'leo+totalenergies@gmail.com');
+    assert.equal(result[0].email_verified, true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('findAccount — returns matching account', () => {
+  const accounts = [
+    { tenant: 'totalenergies', email: 'a@b.com' },
+    { tenant: 'sanofi', email: 'c@d.com' },
+  ];
+  const found = findAccount(accounts, 'sanofi');
+  assert.equal(found.email, 'c@d.com');
+});
+
+test('findAccount — returns undefined when not found', () => {
+  const accounts = [{ tenant: 'totalenergies', email: 'a@b.com' }];
+  assert.equal(findAccount(accounts, 'missing'), undefined);
 });

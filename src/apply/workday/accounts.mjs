@@ -1,4 +1,6 @@
 import { randomBytes } from 'node:crypto';
+import { readFileSync, existsSync } from 'node:fs';
+import yaml from 'js-yaml';
 
 export function generateEmail(profileEmail, tenant) {
   const atIdx = profileEmail.indexOf('@');
@@ -12,4 +14,14 @@ export function generateEmail(profileEmail, tenant) {
 
 export function generatePassword() {
   return randomBytes(24).toString('base64url');
+}
+
+export function readAccounts(filePath) {
+  if (!existsSync(filePath)) return [];
+  const doc = yaml.load(readFileSync(filePath, 'utf8'));
+  return doc?.accounts ?? [];
+}
+
+export function findAccount(accounts, tenant) {
+  return accounts.find((a) => a.tenant === tenant);
 }
