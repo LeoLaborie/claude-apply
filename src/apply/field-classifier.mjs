@@ -188,6 +188,9 @@ export function mapProfileValue(classKey, profile, opts = {}) {
     eeo_ethnicity: profile.ethnicity ?? 'Prefer not to say',
     eeo_veteran: profile.veteran_status ?? 'Prefer not to say',
     eeo_disability: profile.disability_status ?? 'Prefer not to say',
+    transcript_upload: profile.transcript_path ?? profile.cv_en_path,
+    portfolio_upload: profile.portfolio_path ?? profile.cv_en_path,
+    other_upload: profile.other_document_path ?? profile.cv_en_path,
   };
   return map[classKey];
 }
