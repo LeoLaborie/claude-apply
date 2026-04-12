@@ -1,0 +1,8 @@
+[
+  { "tenant": "sanofi", "pod": "wd3", "site": "SanofiCareers", "company": "Sanofi" },
+  { "tenant": "airbus", "pod": "wd3", "site": "Airbus", "company": "Airbus" },
+  { "tenant": "renault", "pod": "wd3", "site": "Renault", "company": "Renault" },
+  { "tenant": "michelin", "pod": "wd3", "site": "Michelin", "company": "Michelin" },
+  { "tenant": "criteo", "pod": "wd3", "site": "Criteo", "company": "Criteo" },
+  { "tenant": "totalenergies", "pod": "wd3", "site": "TotalEnergies_careers", "company": "TotalEnergies" }
+]
