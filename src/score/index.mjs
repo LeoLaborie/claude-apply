@@ -11,7 +11,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { buildPrompt } from './prompt-builder.mjs';
 import { appendJsonl, appendFilteredOut } from '../lib/jsonl-writer.mjs';
@@ -102,51 +102,75 @@ async function buildOffer(url, overrides = {}) {
   };
 }
 
-function callClaude(system, user) {
-  // Batch mode: strip all Claude Code overhead (hooks, plugins, CLAUDE.md,
-  // auto-memory, MCP) while keeping OAuth auth (Claude MAX subscription).
-  // Run from /tmp so no project CLAUDE.md is auto-discovered.
+export function callClaudeAsync(system, user) {
   const emptyMcpPath = path.join(os.tmpdir(), 'claude-apply-empty-mcp.json');
   if (!fs.existsSync(emptyMcpPath)) {
     fs.writeFileSync(emptyMcpPath, '{"mcpServers":{}}');
   }
-  const proc = spawnSync(
-    'claude',
-    [
-      '-p',
-      '--system-prompt',
-      system,
-      '--disable-slash-commands',
-      '--no-chrome',
-      '--strict-mcp-config',
-      '--mcp-config',
-      emptyMcpPath,
-      '--setting-sources',
-      '',
-      '--output-format',
-      'json',
-    ],
-    {
-      input: user,
-      encoding: 'utf8',
-      maxBuffer: 4 * 1024 * 1024,
-      cwd: os.tmpdir(),
-    }
-  );
-  if (proc.status !== 0) {
-    throw new Error(`claude CLI failed (${proc.status}): ${proc.stderr}`);
-  }
-  const parsed = JSON.parse(proc.stdout);
-  const u = parsed.usage || {};
-  const totalTokens =
-    (u.input_tokens || 0) +
-    (u.cache_creation_input_tokens || 0) +
-    (u.cache_read_input_tokens || 0) +
-    (u.output_tokens || 0);
-  console.error(
-    `[usage] in=${u.input_tokens || 0} cache_create=${u.cache_creation_input_tokens || 0} cache_read=${u.cache_read_input_tokens || 0} out=${u.output_tokens || 0} total=${totalTokens} cost=$${(parsed.total_cost_usd || 0).toFixed(4)}`
-  );
-  return (parsed.result || '').trim();
+
+  return new Promise((resolve, reject) => {
+    const proc = spawn(
+      'claude',
+      [
+        '-p',
+        '--system-prompt',
+        system,
+        '--disable-slash-commands',
+        '--no-chrome',
+        '--strict-mcp-config',
+        '--mcp-config',
+        emptyMcpPath,
+        '--setting-sources',
+        '',
+        '--output-format',
+        'json',
+      ],
+      {
+        cwd: os.tmpdir(),
+        stdio: ['pipe', 'pipe', 'pipe'],
+      }
+    );
+
+    let stdout = '';
+    let stderr = '';
+    proc.stdout.on('data', (chunk) => {
+      stdout += chunk;
+    });
+    proc.stderr.on('data', (chunk) => {
+      stderr += chunk;
+    });
+
+    proc.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(`claude CLI failed (${code}): ${stderr}`));
+        return;
+      }
+      try {
+        const parsed = JSON.parse(stdout);
+        const u = parsed.usage || {};
+        const totalTokens =
+          (u.input_tokens || 0) +
+          (u.cache_creation_input_tokens || 0) +
+          (u.cache_read_input_tokens || 0) +
+          (u.output_tokens || 0);
+        console.error(
+          `[usage] in=${u.input_tokens || 0} cache_create=${u.cache_creation_input_tokens || 0} cache_read=${u.cache_read_input_tokens || 0} out=${u.output_tokens || 0} total=${totalTokens} cost=$${(parsed.total_cost_usd || 0).toFixed(4)}`
+        );
+        resolve((parsed.result || '').trim());
+      } catch (err) {
+        reject(
+          new Error(
+            `Failed to parse claude output: ${err.message}\nstdout: ${stdout.slice(0, 500)}`
+          )
+        );
+      }
+    });
+
+    proc.on('error', (err) => reject(new Error(`Failed to spawn claude: ${err.message}`)));
+
+    proc.stdin.write(user);
+    proc.stdin.end();
+  });
 }
 
 function parseScoreJson(raw) {
@@ -298,7 +322,7 @@ async function main() {
     jdMaxTokens: 1500,
   });
 
-  const raw = callClaude(system, user);
+  const raw = await callClaudeAsync(system, user);
   const scored = parseScoreJson(raw);
 
   const evalPath = path.join(DATA_DIR, 'evaluations.jsonl');
