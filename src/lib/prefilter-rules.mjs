@@ -30,7 +30,7 @@ export function checkLocation(offer, targetLocations) {
     }
 
     const match = geoSegments.some((seg) =>
-      (targetLocations || []).some((t) => seg.toLowerCase().includes(t.toLowerCase())),
+      (targetLocations || []).some((t) => seg.toLowerCase().includes(t.toLowerCase()))
     );
     if (match) return { pass: true };
     return { pass: false, reason: `location: ${loc} not in target zones` };

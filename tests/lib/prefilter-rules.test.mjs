@@ -82,7 +82,7 @@ test('checkLocation: reject "Taiwan-Hsinchu" hyphen separator', () => {
 test('checkLocation: pass "Paris, France / London, UK" one segment matches', () => {
   const r = checkLocation(
     { location: 'Paris, France / London, UK', title: 'Dev', body: '' },
-    targets,
+    targets
   );
   assert.deepEqual(r, { pass: true });
 });
@@ -96,7 +96,7 @@ test('checkLocation: fallback pass body mentions Paris', () => {
 test('checkLocation: fallback reject body mentions New York only', () => {
   const r = checkLocation(
     { location: '', title: 'FDSE', body: 'Based in New York City, USA only' },
-    targets,
+    targets
   );
   assert.equal(r.pass, false);
   assert.match(r.reason, /location/);
