@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach } from 'node:test';
 import { installMockFetch } from '../helpers.mjs';
-import { parseWorkdayUrl, fetchWorkday, verifySlug } from '../../src/scan/ats/workday.mjs';
+import { parseWorkdayUrl, fetchWorkday, verifySlug, lookupRegistry } from '../../src/scan/ats/workday.mjs';
 
 test('parseWorkdayUrl — extracts tenant, pod, site from valid URL', () => {
   const { tenant, pod, site } = parseWorkdayUrl(
@@ -62,6 +62,25 @@ test('parseWorkdayUrl — strips en-US locale prefix from URL', () => {
 test('parseWorkdayUrl — strips fr-FR locale prefix', () => {
   const { site } = parseWorkdayUrl('https://sanofi.wd3.myworkdayjobs.com/fr-FR/SanofiCareers');
   assert.equal(site, 'SanofiCareers');
+});
+
+test('lookupRegistry — returns entry for known tenant', () => {
+  const entry = lookupRegistry('sanofi');
+  assert.deepEqual(entry, {
+    tenant: 'sanofi',
+    pod: 'wd3',
+    site: 'SanofiCareers',
+    company: 'Sanofi',
+  });
+});
+
+test('lookupRegistry — returns null for unknown tenant', () => {
+  assert.equal(lookupRegistry('unknown-corp'), null);
+});
+
+test('lookupRegistry — is case-insensitive on tenant', () => {
+  const entry = lookupRegistry('Sanofi');
+  assert.equal(entry.tenant, 'sanofi');
 });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

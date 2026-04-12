@@ -2,6 +2,19 @@
 // Endpoint: POST https://{tenant}.wd{N}.myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs
 // Returns Offer[] conforming to the Offer contract.
 
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const REGISTRY = JSON.parse(readFileSync(join(__dirname, 'workday-registry.json'), 'utf8'));
+const REGISTRY_BY_TENANT = new Map(REGISTRY.map((e) => [e.tenant, e]));
+
+export function lookupRegistry(tenant) {
+  if (typeof tenant !== 'string') return null;
+  return REGISTRY_BY_TENANT.get(tenant.toLowerCase()) ?? null;
+}
+
 const WORKDAY_URL_RE =
   /^https?:\/\/([^.]+)\.(wd\d+)\.myworkdayjobs\.com(?:\/[a-z]{2}-[A-Z]{2})?\/([^\/?#]+)(?:\/|\?|#|$)/i;
 
