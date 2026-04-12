@@ -55,3 +55,9 @@ test('pLimit — concurrency 1 runs sequentially', async () => {
   ]);
   assert.deepEqual(order, ['a-start', 'a-end', 'b-start', 'b-end']);
 });
+
+test('pLimit — throws on invalid concurrency', () => {
+  assert.throws(() => pLimit(0), /positive integer/);
+  assert.throws(() => pLimit(-1), /positive integer/);
+  assert.throws(() => pLimit(NaN), /positive integer/);
+});

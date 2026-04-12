@@ -1,4 +1,7 @@
 export function pLimit(concurrency) {
+  if (!Number.isInteger(concurrency) || concurrency < 1) {
+    throw new RangeError(`pLimit: concurrency must be a positive integer, got ${concurrency}`);
+  }
   let active = 0;
   const queue = [];
 
