@@ -68,7 +68,7 @@ export async function renderLatex({
     {
       encoding: 'utf8',
       timeout: 30_000,
-    },
+    }
   );
 
   const pdfPath = path.join(outDir, `${outName}.pdf`);
@@ -149,13 +149,13 @@ export async function generateCoverLetter({
       encoding: 'utf8',
       maxBuffer: 4 * 1024 * 1024,
       cwd: os.tmpdir(),
-    },
+    }
   );
 
   if (proc.status !== 0) {
     throw new CoverLetterError(
       'LLM_GENERATION_FAILED',
-      `claude -p failed (exit ${proc.status}): ${proc.stderr}`,
+      `claude -p failed (exit ${proc.status}): ${proc.stderr}`
     );
   }
 

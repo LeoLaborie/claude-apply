@@ -213,7 +213,6 @@ For each field, in DOM order:
   After success, re-verify from `claude-in-chrome`: `document.querySelector('<selector>').files[0]?.name`.
 
 - **`cover_letter_upload` or `cover_letter_text`**: generate a tailored cover letter.
-
   1. Extract `company`, `role`, and `jdText` from step 3 metadata. Use `language` from the language detector.
   2. Read `config/cv.md` as `cvMd`.
   3. Call the cover letter generator via Bash:

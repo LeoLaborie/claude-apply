@@ -143,7 +143,7 @@ test('generateCoverLetter throws LLM_GENERATION_FAILED when claude -p fails', as
     (err) => {
       assert.equal(err.code, 'LLM_GENERATION_FAILED');
       return true;
-    },
+    }
   );
 
   fs.rmSync(outDir, { recursive: true });
