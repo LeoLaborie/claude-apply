@@ -1,0 +1,8 @@
+{
+  "sanofi": { "tenant": "sanofi", "pod": "wd3", "slug": "SanofiCareers" },
+  "airbus": { "tenant": "ag", "pod": "wd3", "slug": "Airbus" },
+  "renault": { "tenant": "alliancewd", "pod": "wd3", "slug": "renault-group-careers" },
+  "michelin": { "tenant": "michelinhr", "pod": "wd3", "slug": "Michelin" },
+  "criteo": { "tenant": "criteo", "pod": "wd3", "slug": "Criteo_Career_Site" },
+  "thales": { "tenant": "thales", "pod": "wd3", "slug": "Careers" }
+}
