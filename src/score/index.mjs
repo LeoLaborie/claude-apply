@@ -19,7 +19,7 @@ import { writeTrackerTsv } from '../lib/tsv-writer.mjs';
 import { detectClosedPage } from '../lib/page-liveness.mjs';
 import { runPrefilter } from '../lib/prefilter-rules.mjs';
 import { loadProfile, ProfileMissingError } from '../lib/load-profile.mjs';
-import { readPipelineMd, findOfferByUrl } from '../lib/pipeline-md.mjs';
+import { readPipelineMd, findOfferByUrl, parseOfferLine } from '../lib/pipeline-md.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -193,6 +193,39 @@ function nextId(evaluationsPath) {
     } catch {}
   }
   return String(max + 1).padStart(3, '0');
+}
+
+export function getScoredUrls(evaluationsPath) {
+  if (!fs.existsSync(evaluationsPath)) return new Set();
+  const lines = fs.readFileSync(evaluationsPath, 'utf8').trim().split('\n').filter(Boolean);
+  const urls = new Set();
+  for (const line of lines) {
+    try {
+      const obj = JSON.parse(line);
+      if (obj.url) urls.add(obj.url);
+    } catch {}
+  }
+  return urls;
+}
+
+export function getAllPipelineOffers(pipelinePath) {
+  if (!fs.existsSync(pipelinePath)) return [];
+  const doc = readPipelineMd(pipelinePath);
+  const offers = [];
+  for (const section of doc.sections) {
+    for (const line of section.lines) {
+      const parsed = parseOfferLine(line);
+      if (parsed) {
+        offers.push({
+          url: parsed.url,
+          company: parsed.company,
+          title: parsed.title,
+          location: section.location || '',
+        });
+      }
+    }
+  }
+  return offers;
 }
 
 export function parseScoreArgs(argv) {
