@@ -42,3 +42,14 @@ export function writeAccount(filePath, { tenant, email, password }) {
   writeFileSync(tmp, doc);
   renameSync(tmp, filePath);
 }
+
+export function markVerified(filePath, tenant) {
+  const accounts = readAccounts(filePath);
+  const account = findAccount(accounts, tenant);
+  if (!account) throw new Error(`markVerified: tenant '${tenant}' not found`);
+  account.email_verified = true;
+  const doc = yaml.dump({ accounts }, { lineWidth: -1 });
+  const tmp = filePath + '.tmp';
+  writeFileSync(tmp, doc);
+  renameSync(tmp, filePath);
+}

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { generateEmail, generatePassword, readAccounts, findAccount, writeAccount } from '../../src/apply/workday/accounts.mjs';
+import { generateEmail, generatePassword, readAccounts, findAccount, writeAccount, markVerified } from '../../src/apply/workday/accounts.mjs';
 
 test('generateEmail — inserts +tenant before @', () => {
   assert.equal(generateEmail('leo@gmail.com', 'totalenergies'), 'leo+totalenergies@gmail.com');
@@ -114,6 +114,45 @@ test('writeAccount — no .tmp file remains after write', () => {
   try {
     writeAccount(file, { tenant: 'test', email: 'x@y.com', password: 'pw' });
     assert.equal(existsSync(file + '.tmp'), false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('markVerified — sets email_verified to true', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'wdacct-'));
+  const file = join(dir, 'accounts.yml');
+  try {
+    writeAccount(file, { tenant: 'totalenergies', email: 'a@b.com', password: 'pw' });
+    markVerified(file, 'totalenergies');
+    const accounts = readAccounts(file);
+    assert.equal(accounts[0].email_verified, true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('markVerified — leaves other accounts unchanged', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'wdacct-'));
+  const file = join(dir, 'accounts.yml');
+  try {
+    writeAccount(file, { tenant: 'totalenergies', email: 'a@b.com', password: 'pw1' });
+    writeAccount(file, { tenant: 'sanofi', email: 'c@d.com', password: 'pw2' });
+    markVerified(file, 'totalenergies');
+    const accounts = readAccounts(file);
+    assert.equal(accounts[0].email_verified, true);
+    assert.equal(accounts[1].email_verified, false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('markVerified — throws when tenant not found', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'wdacct-'));
+  const file = join(dir, 'accounts.yml');
+  try {
+    writeAccount(file, { tenant: 'totalenergies', email: 'a@b.com', password: 'pw' });
+    assert.throws(() => markVerified(file, 'missing'), /not found/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
