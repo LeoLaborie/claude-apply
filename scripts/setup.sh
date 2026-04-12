@@ -83,6 +83,35 @@ case "$OS" in
     ;;
 esac
 
+# 2b. pdflatex (for cover letter PDF generation)
+if command -v pdflatex >/dev/null 2>&1; then
+  echo "→ pdflatex already installed"
+else
+  echo "→ Installing pdflatex (for cover letter generation)..."
+  case "$OS" in
+    Linux)
+      if command -v apt-get >/dev/null 2>&1; then
+        sudo apt-get install -y texlive-latex-base texlive-latex-recommended
+      else
+        echo "  ✗ Cannot auto-install texlive — install pdflatex manually"
+      fi
+      ;;
+    Darwin)
+      if command -v brew >/dev/null 2>&1; then
+        brew install --cask basictex
+      else
+        echo "  ✗ Cannot auto-install basictex — install pdflatex manually"
+      fi
+      ;;
+  esac
+  if command -v pdflatex >/dev/null 2>&1; then
+    echo "  ✓ pdflatex installed"
+  else
+    echo "  ⚠ pdflatex not available — cover letter PDF generation will not work"
+  fi
+fi
+echo ""
+
 if [[ ! -d "$CDP_PROFILE" ]]; then
   echo "→ Creating Chrome CDP profile at: $CDP_PROFILE"
   if [[ -d "$DEFAULT_PROFILE" ]]; then

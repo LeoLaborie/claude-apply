@@ -57,3 +57,9 @@ test('setup.sh: copies templates into config/ and does not touch real $HOME', ()
     rmSync(fakeHome, { recursive: true, force: true });
   }
 });
+
+test('setup.sh contains pdflatex installation step', () => {
+  const script = readFileSync(join(REPO_ROOT, 'scripts', 'setup.sh'), 'utf8');
+  assert.match(script, /pdflatex/);
+  assert.match(script, /texlive/);
+});
