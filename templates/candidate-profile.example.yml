@@ -61,6 +61,11 @@ languages:
 cv_fr_path: /absolute/path/to/your/cv-fr.pdf
 cv_en_path: /absolute/path/to/your/cv-en.pdf
 
+# --- Optional document paths (absolute) ---
+transcript_path: null # releve de notes / academic transcript
+portfolio_path: null # portfolio / work samples
+other_document_path: null # any additional document
+
 # --- Auto-apply threshold (0..10) ---
 auto_apply_min_score: 8
 

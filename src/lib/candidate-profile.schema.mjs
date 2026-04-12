@@ -34,6 +34,9 @@ const OPTIONAL_FIELDS = [
   'disability_status',
   'blacklist_companies',
   'min_start_date',
+  'transcript_path',
+  'portfolio_path',
+  'other_document_path',
 ];
 
 function validateEducationEntry(e, i) {
