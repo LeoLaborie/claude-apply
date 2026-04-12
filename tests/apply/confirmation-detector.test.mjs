@@ -1,6 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyConfirmation } from '../../src/apply/confirmation-detector.mjs';
+import {
+  classifyConfirmation,
+  classifyTabContext,
+  suggestProbeUrls,
+} from '../../src/apply/confirmation-detector.mjs';
 
 test('detects english success text', () => {
   const r = classifyConfirmation({
@@ -54,4 +58,29 @@ test('success text takes precedence over leftover error word', () => {
     pageText: 'Thank you for applying! If you notice any error, contact us.',
   });
   assert.equal(r.status, 'Applied');
+});
+
+// --- suggestProbeUrls ---
+
+test('suggestProbeUrls returns 6 candidate URLs', () => {
+  const urls = suggestProbeUrls('https://jobs.lever.co/acme/abc123');
+  assert.equal(urls.length, 6);
+  assert.ok(urls.includes('https://jobs.lever.co/acme/abc123/thanks'));
+  assert.ok(urls.includes('https://jobs.lever.co/acme/abc123/thank-you'));
+  assert.ok(urls.includes('https://jobs.lever.co/acme/abc123/confirmation'));
+  assert.ok(urls.includes('https://jobs.lever.co/acme/abc123/submitted'));
+  assert.ok(urls.includes('https://jobs.lever.co/acme/abc123/merci'));
+  assert.ok(urls.includes('https://jobs.lever.co/acme/abc123/already-received'));
+});
+
+test('suggestProbeUrls strips trailing slash', () => {
+  const urls = suggestProbeUrls('https://jobs.lever.co/acme/abc123/');
+  assert.ok(urls[0].includes('abc123/thanks'));
+  assert.ok(!urls[0].includes('abc123//thanks'));
+});
+
+test('suggestProbeUrls strips query string before suffixing', () => {
+  const urls = suggestProbeUrls('https://jobs.lever.co/acme/abc123?source=linkedin');
+  assert.ok(urls[0].includes('abc123/thanks'));
+  assert.ok(!urls[0].includes('?source'));
 });

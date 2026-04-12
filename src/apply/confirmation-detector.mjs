@@ -25,6 +25,24 @@ const ERROR_TEXT = [
   /champ obligatoire/i,
 ];
 
+export function classifyTabContext(_tabContext) {
+  return { status: 'Submitted (unconfirmed)', reason: 'not implemented' };
+}
+
+const PROBE_SUFFIXES = [
+  '/thanks',
+  '/thank-you',
+  '/confirmation',
+  '/submitted',
+  '/merci',
+  '/already-received',
+];
+
+export function suggestProbeUrls(baseUrl) {
+  const stripped = baseUrl.replace(/[?#].*$/, '').replace(/\/+$/, '');
+  return PROBE_SUFFIXES.map((suffix) => stripped + suffix);
+}
+
 export function classifyConfirmation({ beforeUrl, afterUrl, pageText }) {
   const text = pageText || '';
   if (SUCCESS_TEXT.some((r) => r.test(text)))
