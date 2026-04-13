@@ -15,6 +15,16 @@ export class PortalsNotApprovedError extends Error {
   }
 }
 
+export class PortalsApprovalLockedError extends Error {
+  constructor(statePath) {
+    super(
+      `portals approval already recorded in ${statePath}; call clearPortalsApproval before re-approving a different list`
+    );
+    this.name = 'PortalsApprovalLockedError';
+    this.statePath = statePath;
+  }
+}
+
 export function readOnboardState(statePath) {
   if (!fs.existsSync(statePath)) return {};
   const raw = fs.readFileSync(statePath, 'utf8');
@@ -42,10 +52,25 @@ export function hashPortalsList(list) {
 }
 
 export function markPortalsApproved(statePath, list) {
+  const nextHash = hashPortalsList(list);
+  const existing = readOnboardState(statePath).portals_approved_hash;
+  if (existing && existing !== nextHash) {
+    throw new PortalsApprovalLockedError(statePath);
+  }
   writeOnboardState(statePath, {
     portals_approved_at: new Date().toISOString(),
-    portals_approved_hash: hashPortalsList(list),
+    portals_approved_hash: nextHash,
   });
+}
+
+export function clearPortalsApproval(statePath) {
+  const current = readOnboardState(statePath);
+  delete current.portals_approved_at;
+  delete current.portals_approved_hash;
+  fs.mkdirSync(path.dirname(statePath), { recursive: true });
+  const tmp = statePath + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(current, null, 2) + '\n', 'utf8');
+  fs.renameSync(tmp, statePath);
 }
 
 export function assertPortalsApproved(statePath, list) {

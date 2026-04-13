@@ -10,7 +10,9 @@ import {
   hashPortalsList,
   markPortalsApproved,
   assertPortalsApproved,
+  clearPortalsApproval,
   PortalsNotApprovedError,
+  PortalsApprovalLockedError,
 } from '../../src/lib/onboard-state.mjs';
 
 function tmpStatePath() {
@@ -123,4 +125,38 @@ test('assertPortalsApproved throws hash_mismatch when list has been mutated', ()
     assert.ok(err instanceof PortalsNotApprovedError);
     assert.equal(err.reason, 'hash_mismatch');
   }
+});
+
+test('markPortalsApproved is idempotent when called twice with the same list', () => {
+  const p = tmpStatePath();
+  markPortalsApproved(p, LIST_A);
+  assert.doesNotThrow(() => markPortalsApproved(p, LIST_A));
+  assert.equal(readOnboardState(p).portals_approved_hash, hashPortalsList(LIST_A));
+});
+
+test('markPortalsApproved refuses to overwrite a different approved hash', () => {
+  const p = tmpStatePath();
+  markPortalsApproved(p, LIST_A);
+  const mutated = [...LIST_A, { name: 'Evil Corp', careers_url: 'https://jobs.lever.co/evil' }];
+  try {
+    markPortalsApproved(p, mutated);
+    assert.fail('expected throw');
+  } catch (err) {
+    assert.ok(err instanceof PortalsApprovalLockedError);
+  }
+  assert.equal(readOnboardState(p).portals_approved_hash, hashPortalsList(LIST_A));
+});
+
+test('clearPortalsApproval lets a new list be approved and preserves prior state', () => {
+  const p = tmpStatePath();
+  writeOnboardState(p, { job_type: 'internship' });
+  markPortalsApproved(p, LIST_A);
+  clearPortalsApproval(p);
+  const cleared = readOnboardState(p);
+  assert.equal(cleared.portals_approved_hash, undefined);
+  assert.equal(cleared.portals_approved_at, undefined);
+  assert.equal(cleared.job_type, 'internship');
+  const mutated = [...LIST_A, { name: 'Cohere', careers_url: 'https://jobs.lever.co/cohere' }];
+  assert.doesNotThrow(() => markPortalsApproved(p, mutated));
+  assert.equal(readOnboardState(p).portals_approved_hash, hashPortalsList(mutated));
 });
