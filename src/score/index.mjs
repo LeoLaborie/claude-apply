@@ -339,7 +339,7 @@ async function main() {
 
     const { cvMarkdown } = await loadProfile(CONFIG_DIR);
     if (!cvMarkdown) {
-      throw new ProfileMissingError(`config/cv.md not found in ${CONFIG_DIR} — run /onboard`);
+      throw new ProfileMissingError(`config/cv.md not found in ${CONFIG_DIR} — run /apply-onboard`);
     }
 
     const startId = parseInt(nextId(evalPath), 10);
@@ -508,7 +508,7 @@ async function main() {
 
   const { cvMarkdown } = await loadProfile(CONFIG_DIR);
   if (!cvMarkdown) {
-    throw new ProfileMissingError(`config/cv.md not found in ${CONFIG_DIR} — run /onboard`);
+    throw new ProfileMissingError(`config/cv.md not found in ${CONFIG_DIR} — run /apply-onboard`);
   }
 
   const { system, user } = buildPrompt({

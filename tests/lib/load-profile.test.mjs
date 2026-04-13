@@ -66,7 +66,7 @@ test('loadProfile — throws ProfileMissingError when yml missing', async () => 
       (err) => {
         assert.ok(err instanceof ProfileMissingError);
         assert.match(err.message, /candidate-profile\.yml/);
-        assert.match(err.message, /\/onboard/);
+        assert.match(err.message, /\/apply-onboard/);
         return true;
       }
     );

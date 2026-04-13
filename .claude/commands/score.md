@@ -11,7 +11,7 @@ Fetch the offer at `$ARGUMENTS`, build a prompt that compares it against `config
 
 Before running the scorer, check that `config/candidate-profile.yml` **and** `config/cv.md` exist. If either is missing, **stop** and tell the user:
 
-> "No config found. Run `/onboard` first — it will extract your CV and build the profile."
+> "No config found. Run `/apply-onboard` first — it will extract your CV and build the profile."
 
 ## Prerequisites
 
