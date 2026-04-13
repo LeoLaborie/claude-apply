@@ -57,7 +57,7 @@ export async function renderLatex({
     .replace(/<<COMPANY>>/g, escapeLatex(company))
     .replace(/<<ROLE>>/g, escapeLatex(role))
     .replace(/<<DATE>>/g, escapeLatex(date))
-    .replace(/<<BODY>>/g, body);
+    .replace(/<<BODY>>/g, escapeLatex(body));
 
   const texPath = path.join(outDir, `${outName}.tex`);
   fs.writeFileSync(texPath, tex);

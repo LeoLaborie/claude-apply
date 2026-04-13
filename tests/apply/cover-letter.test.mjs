@@ -41,8 +41,16 @@ test('formatDate defaults to English for unknown language', () => {
   assert.equal(formatDate(d, 'de'), 'January 5, 2026');
 });
 
-test('renderLatex injects placeholders into template', async () => {
+test('renderLatex injects placeholders into template', async (t) => {
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cl-test-'));
+  const spawnMock = t.mock.fn((cmd, args) => {
+    const outDirArg = args.find((a) => a.startsWith('-output-directory='));
+    const dir = outDirArg.split('=')[1];
+    const texFile = args[args.length - 1];
+    const name = path.basename(texFile, '.tex');
+    fs.writeFileSync(path.join(dir, `${name}.pdf`), 'fake-pdf');
+    return { status: 0, stdout: '', stderr: '' };
+  });
   const result = await renderLatex({
     body: 'This is the letter body.',
     company: 'Acme & Co',
@@ -53,6 +61,7 @@ test('renderLatex injects placeholders into template', async () => {
     date: '12 avril 2026',
     outDir,
     outName: 'test-letter',
+    _spawnSync: spawnMock,
   });
 
   assert.ok(fs.existsSync(result.texPath));
@@ -63,6 +72,37 @@ test('renderLatex injects placeholders into template', async () => {
   assert.match(tex, /This is the letter body\./);
   assert.match(tex, /12 avril 2026/);
 
+  fs.rmSync(outDir, { recursive: true });
+});
+
+test('renderLatex escapes LaTeX special characters in body', async (t) => {
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cl-body-'));
+  const spawnMock = t.mock.fn((cmd, args) => {
+    const outDirArg = args.find((a) => a.startsWith('-output-directory='));
+    const dir = outDirArg.split('=')[1];
+    const texFile = args[args.length - 1];
+    const name = path.basename(texFile, '.tex');
+    fs.writeFileSync(path.join(dir, `${name}.pdf`), 'fake-pdf');
+    return { status: 0, stdout: '', stderr: '' };
+  });
+  const result = await renderLatex({
+    body: 'Led R&D on 50% of the $100K budget with #1 team_lead.',
+    company: 'Acme',
+    role: 'ML',
+    candidateName: 'Alice Martin',
+    email: 'a@b.c',
+    phone: '+33',
+    date: '2026',
+    outDir,
+    outName: 'body-esc',
+    _spawnSync: spawnMock,
+  });
+  const tex = fs.readFileSync(result.texPath, 'utf8');
+  assert.match(tex, /R\\&D/);
+  assert.match(tex, /50\\%/);
+  assert.match(tex, /\\\$100K/);
+  assert.match(tex, /\\#1/);
+  assert.match(tex, /team\\_lead/);
   fs.rmSync(outDir, { recursive: true });
 });
 
