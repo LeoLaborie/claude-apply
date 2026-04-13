@@ -182,7 +182,7 @@ If `clickInQuestion` throws `question not found` or `choice not found`, **STOP**
   el.dispatchEvent(new Event('change', { bubbles: true }));
   ```
 - **Checkboxes and radios (ALWAYS)**: never use `form_input`. Use `element.click()` via `javascript_tool`, then verify `element.checked` and `aria-checked`.
-- **Custom dropdowns (React Select, etc.)**: use `find` + `click` on the option element.
+- **Custom dropdowns (`.select__control` — React Select)**: use `REACT_SELECT_SNIPPET` from `src/apply/react-select-helper.mjs` via `javascript_tool`. Bind `controlSelector` and `optionText` in the eval preamble. See `docs/playbooks/apply-greenhouse.md` for the error codes (`CONTROL_NOT_FOUND`, `MENU_NOT_OPENED`, `OPTION_NOT_FOUND`, `SELECTION_NOT_APPLIED`) and the `computer`-based fallback.
 - **Google Places autocompletes (location inputs)**: programmatic events do NOT trigger the Places API — the form will reject the submit with "please select a location from the dropdown". Use `mcp__claude-in-chrome__computer` to physically `left_click`, `type`, `wait`, then `key Return` to pick the first suggestion. Verify the canonical value is stored.
 
 For each field, in DOM order:
