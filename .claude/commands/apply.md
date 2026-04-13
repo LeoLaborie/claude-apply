@@ -50,7 +50,7 @@ Do not try to apply with the example templates.
      3. Add https://<host>/*.
      4. Refresh the tab and re-run /apply.
 
-   See /onboard step 7.4 for the full list of hosts.
+   See /onboard:setup for the full list of hosts.
    ```
 
    Do not attempt to work around this — stopping on ambiguity is the invariant.
