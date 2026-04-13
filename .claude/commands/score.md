@@ -71,6 +71,22 @@ Appends one JSON line to `data/evaluations.jsonl`:
 
 ~$0.03 per offer when using the stripped `claude -p` mode (~$0.14 otherwise). The script runs from a temp directory with `--disable-slash-commands --no-chrome --strict-mcp-config --setting-sources ""` to avoid Claude Code overhead.
 
+## Batch mode
+
+Score all unscored offers from `data/pipeline.md` in parallel:
+
+```bash
+node src/score/index.mjs --batch [--parallel N]
+```
+
+- `--batch` — read all offers from `data/pipeline.md`, skip those already in `evaluations.jsonl` (dedup by URL), score the rest.
+- `--parallel N` — number of concurrent workers (default: 5). Implies `--batch`.
+- `--batch` is mutually exclusive with `<url>`, `--from-pipeline`, and `--company/--role/--location`.
+
+Progress is logged to stderr. Each scored record is printed to stdout as a JSON line.
+
+Idempotent: re-running `--batch` only scores offers not yet in `evaluations.jsonl`.
+
 ## Next step
 
 If `verdict === "apply"`, run `/apply <url>` to start the automated application flow.

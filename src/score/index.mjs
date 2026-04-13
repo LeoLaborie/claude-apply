@@ -11,7 +11,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { buildPrompt } from './prompt-builder.mjs';
 import { appendJsonl, appendFilteredOut } from '../lib/jsonl-writer.mjs';
@@ -19,7 +19,8 @@ import { writeTrackerTsv } from '../lib/tsv-writer.mjs';
 import { detectClosedPage } from '../lib/page-liveness.mjs';
 import { runPrefilter } from '../lib/prefilter-rules.mjs';
 import { loadProfile, ProfileMissingError } from '../lib/load-profile.mjs';
-import { readPipelineMd, findOfferByUrl } from '../lib/pipeline-md.mjs';
+import { readPipelineMd, findOfferByUrl, parseOfferLine } from '../lib/pipeline-md.mjs';
+import { pLimit } from '../lib/p-limit.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -102,51 +103,78 @@ async function buildOffer(url, overrides = {}) {
   };
 }
 
-function callClaude(system, user) {
-  // Batch mode: strip all Claude Code overhead (hooks, plugins, CLAUDE.md,
-  // auto-memory, MCP) while keeping OAuth auth (Claude MAX subscription).
-  // Run from /tmp so no project CLAUDE.md is auto-discovered.
+export function callClaudeAsync(system, user) {
   const emptyMcpPath = path.join(os.tmpdir(), 'claude-apply-empty-mcp.json');
   if (!fs.existsSync(emptyMcpPath)) {
     fs.writeFileSync(emptyMcpPath, '{"mcpServers":{}}');
   }
-  const proc = spawnSync(
-    'claude',
-    [
-      '-p',
-      '--system-prompt',
-      system,
-      '--disable-slash-commands',
-      '--no-chrome',
-      '--strict-mcp-config',
-      '--mcp-config',
-      emptyMcpPath,
-      '--setting-sources',
-      '',
-      '--output-format',
-      'json',
-    ],
-    {
-      input: user,
-      encoding: 'utf8',
-      maxBuffer: 4 * 1024 * 1024,
-      cwd: os.tmpdir(),
-    }
-  );
-  if (proc.status !== 0) {
-    throw new Error(`claude CLI failed (${proc.status}): ${proc.stderr}`);
-  }
-  const parsed = JSON.parse(proc.stdout);
-  const u = parsed.usage || {};
-  const totalTokens =
-    (u.input_tokens || 0) +
-    (u.cache_creation_input_tokens || 0) +
-    (u.cache_read_input_tokens || 0) +
-    (u.output_tokens || 0);
-  console.error(
-    `[usage] in=${u.input_tokens || 0} cache_create=${u.cache_creation_input_tokens || 0} cache_read=${u.cache_read_input_tokens || 0} out=${u.output_tokens || 0} total=${totalTokens} cost=$${(parsed.total_cost_usd || 0).toFixed(4)}`
-  );
-  return (parsed.result || '').trim();
+
+  return new Promise((resolve, reject) => {
+    const proc = spawn(
+      'claude',
+      [
+        '-p',
+        '--system-prompt',
+        system,
+        '--disable-slash-commands',
+        '--no-chrome',
+        '--strict-mcp-config',
+        '--mcp-config',
+        emptyMcpPath,
+        '--setting-sources',
+        '',
+        '--output-format',
+        'json',
+      ],
+      {
+        cwd: os.tmpdir(),
+        stdio: ['pipe', 'pipe', 'pipe'],
+      }
+    );
+
+    let stdout = '';
+    let stderr = '';
+    proc.stdout.on('data', (chunk) => {
+      stdout += chunk;
+    });
+    proc.stderr.on('data', (chunk) => {
+      stderr += chunk;
+    });
+
+    proc.on('close', (code) => {
+      if (code !== 0) {
+        reject(new Error(`claude CLI failed (${code}): ${stderr}`));
+        return;
+      }
+      try {
+        const parsed = JSON.parse(stdout);
+        const u = parsed.usage || {};
+        const totalTokens =
+          (u.input_tokens || 0) +
+          (u.cache_creation_input_tokens || 0) +
+          (u.cache_read_input_tokens || 0) +
+          (u.output_tokens || 0);
+        console.error(
+          `[usage] in=${u.input_tokens || 0} cache_create=${u.cache_creation_input_tokens || 0} cache_read=${u.cache_read_input_tokens || 0} out=${u.output_tokens || 0} total=${totalTokens} cost=$${(parsed.total_cost_usd || 0).toFixed(4)}`
+        );
+        resolve((parsed.result || '').trim());
+      } catch (err) {
+        reject(
+          new Error(
+            `Failed to parse claude output: ${err.message}\nstdout: ${stdout.slice(0, 500)}`
+          )
+        );
+      }
+    });
+
+    proc.on('error', (err) => reject(new Error(`Failed to spawn claude: ${err.message}`)));
+
+    proc.stdin.on('error', (err) =>
+      reject(new Error(`Failed to write to claude stdin: ${err.message}`))
+    );
+    proc.stdin.write(user);
+    proc.stdin.end();
+  });
 }
 
 function parseScoreJson(raw) {
@@ -171,6 +199,39 @@ function nextId(evaluationsPath) {
   return String(max + 1).padStart(3, '0');
 }
 
+export function getScoredUrls(evaluationsPath) {
+  if (!fs.existsSync(evaluationsPath)) return new Set();
+  const lines = fs.readFileSync(evaluationsPath, 'utf8').trim().split('\n').filter(Boolean);
+  const urls = new Set();
+  for (const line of lines) {
+    try {
+      const obj = JSON.parse(line);
+      if (obj.url) urls.add(obj.url);
+    } catch {}
+  }
+  return urls;
+}
+
+export function getAllPipelineOffers(pipelinePath) {
+  if (!fs.existsSync(pipelinePath)) return [];
+  const doc = readPipelineMd(pipelinePath);
+  const offers = [];
+  for (const section of doc.sections) {
+    for (const line of section.lines) {
+      const parsed = parseOfferLine(line);
+      if (parsed) {
+        offers.push({
+          url: parsed.url,
+          company: parsed.company,
+          title: parsed.title,
+          location: section.location || '',
+        });
+      }
+    }
+  }
+  return offers;
+}
+
 export function parseScoreArgs(argv) {
   const args = argv.slice();
   const flags = {
@@ -181,6 +242,8 @@ export function parseScoreArgs(argv) {
     role: null,
     location: null,
     fromPipeline: false,
+    batch: false,
+    parallel: 5,
   };
 
   function take(name) {
@@ -197,6 +260,16 @@ export function parseScoreArgs(argv) {
   flags.company = take('--company');
   flags.role = take('--role');
   flags.location = take('--location');
+  const parallelVal = take('--parallel');
+  if (parallelVal !== null) {
+    flags.parallel = parseInt(parallelVal, 10) || 5;
+    flags.batch = true;
+  }
+  const batchIdx = args.indexOf('--batch');
+  if (batchIdx !== -1) {
+    flags.batch = true;
+    args.splice(batchIdx, 1);
+  }
   const fpIdx = args.indexOf('--from-pipeline');
   if (fpIdx !== -1) {
     flags.fromPipeline = true;
@@ -213,8 +286,29 @@ export function parseScoreArgs(argv) {
   if (flags.fromPipeline && hasAnyMetadataFlag) {
     throw new Error('--from-pipeline is mutually exclusive with --company/--role/--location');
   }
+  if (flags.batch && flags.url) {
+    throw new Error('--batch is mutually exclusive with a positional URL');
+  }
+  if (flags.batch && flags.fromPipeline) {
+    throw new Error('--batch is mutually exclusive with --from-pipeline');
+  }
+  if (flags.batch && hasAnyMetadataFlag) {
+    throw new Error('--batch is mutually exclusive with --company/--role/--location');
+  }
 
   return flags;
+}
+
+function formatProgress(index, total, offer, result) {
+  const num = `[${index}/${total}]`;
+  const label = `${offer.company} — ${offer.title}`;
+  if (result.skipped) {
+    return `[batch]  ${num} ✗ ${label.padEnd(45)} ${result.reason}`;
+  }
+  if (result.error) {
+    return `[batch]  ${num} ✗ ${label.padEnd(45)} error: ${result.error}`;
+  }
+  return `[batch]  ${num} ✓ ${label.padEnd(45)} ${result.score} ${result.verdict}`;
 }
 
 async function main() {
@@ -228,6 +322,131 @@ async function main() {
   } catch (err) {
     console.error(err.message);
     process.exit(2);
+  }
+
+  if (flags.batch) {
+    const pipelinePath = path.join(DATA_DIR, 'pipeline.md');
+    const evalPath = path.join(DATA_DIR, 'evaluations.jsonl');
+
+    const allOffers = getAllPipelineOffers(pipelinePath);
+    const scored = getScoredUrls(evalPath);
+    const pending = allOffers.filter((o) => !scored.has(o.url));
+
+    if (pending.length === 0) {
+      console.error('[batch] Nothing to score — all offers already evaluated.');
+      return;
+    }
+
+    const { cvMarkdown } = await loadProfile(CONFIG_DIR);
+    if (!cvMarkdown) {
+      throw new ProfileMissingError(`config/cv.md not found in ${CONFIG_DIR} — run /onboard`);
+    }
+
+    const startId = parseInt(nextId(evalPath), 10);
+    const limit = pLimit(flags.parallel);
+    const startTime = Date.now();
+
+    let completed = 0;
+    let countScored = 0;
+    let countFiltered = 0;
+    let countError = 0;
+    let countApply = 0;
+    let countSkip = 0;
+
+    console.error(
+      `[batch] Scoring ${pending.length} offers (${flags.parallel} parallel workers)...`
+    );
+
+    const tasks = pending.map((offer, idx) => {
+      const id = String(startId + idx).padStart(3, '0');
+
+      return limit(async () => {
+        try {
+          const fetched = await fetchOfferBody(offer.url);
+          const fullOffer = {
+            ...offer,
+            finalUrl: fetched.finalUrl,
+            status: fetched.status,
+            body: fetched.body,
+            metadata_source: 'pipeline',
+          };
+
+          const liveness = detectClosedPage(fullOffer);
+          if (liveness.closed) {
+            const date = new Date().toISOString().slice(0, 10);
+            appendFilteredOut(path.join(DATA_DIR, 'filtered-out.tsv'), {
+              date,
+              url: offer.url,
+              company: offer.company || 'unknown',
+              title: offer.title || '',
+              reason: `liveness: ${liveness.reason}`,
+            });
+            const result = { skipped: true, reason: liveness.reason };
+            completed++;
+            countFiltered++;
+            console.error(formatProgress(completed, pending.length, offer, result));
+            return null;
+          }
+
+          const { system, user } = buildPrompt({
+            cvMarkdown,
+            offer: fullOffer,
+            jdMaxTokens: 1500,
+          });
+          const raw = await callClaudeAsync(system, user);
+          const scoredResult = parseScoreJson(raw);
+
+          const date = new Date().toISOString().slice(0, 10);
+          const record = {
+            id,
+            date,
+            company: fullOffer.company || 'unknown',
+            role: fullOffer.title || 'unknown',
+            url: fullOffer.url || '',
+            location: fullOffer.location || '',
+            metadata_source: 'pipeline',
+            score: scoredResult.score,
+            verdict: scoredResult.verdict,
+            reason: scoredResult.reason,
+            status: 'Evaluated',
+          };
+
+          appendJsonl(evalPath, record);
+          const tsvDir = path.join(DATA_DIR, 'tracker-additions');
+          writeTrackerTsv(tsvDir, {
+            num: id,
+            date,
+            company: record.company,
+            role: record.role,
+            score: scoredResult.score,
+            notes: scoredResult.reason,
+          });
+
+          completed++;
+          countScored++;
+          if (scoredResult.verdict === 'apply') countApply++;
+          else countSkip++;
+          console.error(formatProgress(completed, pending.length, offer, scoredResult));
+          console.log(JSON.stringify(record));
+          return record;
+        } catch (err) {
+          completed++;
+          countError++;
+          console.error(formatProgress(completed, pending.length, offer, { error: err.message }));
+          return null;
+        }
+      });
+    });
+
+    await Promise.allSettled(tasks);
+
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+    console.error(
+      `[batch] Done: ${countScored} scored, ${countFiltered} filtered, ${countError} error (${pending.length} total)`
+    );
+    console.error(`[batch] Results: ${countApply} apply, ${countSkip} skip`);
+    console.error(`[batch] Time: ${elapsed}s (${flags.parallel} parallel workers)`);
+    return;
   }
 
   let offer;
@@ -298,7 +517,7 @@ async function main() {
     jdMaxTokens: 1500,
   });
 
-  const raw = callClaude(system, user);
+  const raw = await callClaudeAsync(system, user);
   const scored = parseScoreJson(raw);
 
   const evalPath = path.join(DATA_DIR, 'evaluations.jsonl');
