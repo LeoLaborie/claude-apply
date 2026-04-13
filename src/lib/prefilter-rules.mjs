@@ -140,14 +140,20 @@ function findMatch(terms, title) {
 
 export function checkTitle(offer, whitelist) {
   const title = offer.title || '';
+  const body = offer.body || '';
   try {
     const neg = findMatch(whitelist.negative, title);
     if (neg) return { pass: false, reason: `title: negative match "${neg}"` };
     const pos = findMatch(whitelist.positive, title);
     if (!pos) return { pass: false, reason: 'title: no positive match' };
     if (Array.isArray(whitelist.required_any) && whitelist.required_any.length > 0) {
-      const req = findMatch(whitelist.required_any, title);
-      if (!req) return { pass: false, reason: 'title: missing required_any keyword' };
+      const haystack = `${title}\n${body}`;
+      const req = findMatch(whitelist.required_any, haystack);
+      if (!req)
+        return {
+          pass: false,
+          reason: 'title: missing required_any keyword (searched title + description)',
+        };
     }
     return { pass: true };
   } catch (err) {

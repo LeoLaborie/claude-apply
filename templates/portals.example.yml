@@ -43,7 +43,9 @@ title_filter:
   # Optional exclusion keywords — offers matching any of these are dropped.
   negative: []
 
-  # Optional secondary filter applied *on top of* positive/negative:
-  # if set, the title must also match at least one of these (same whole-word
-  # semantics and regex escape hatch as above). Leave empty or omit to skip.
+  # Optional domain filter applied *on top of* positive/negative:
+  # if set, the job title OR description must contain at least one of these
+  # keywords (same whole-word semantics and regex escape hatch as above).
+  # Leave empty or omit to skip. Use `skip_required_any: true` per company
+  # for ATS fetchers that do not populate the description (e.g. Workday).
   required_any: []
