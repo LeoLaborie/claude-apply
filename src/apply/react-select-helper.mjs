@@ -81,17 +81,38 @@ export const REACT_SELECT_SNIPPET = `(async () => {
   fire(option, 'mouseup');
   option.click();
 
-  let valueEl = null;
+  const matchedLabel = labels[matchIdx];
+  const matchedLower = matchedLabel.toLowerCase();
+  const valueMatches = (text) => {
+    const v = (text || '').trim();
+    if (!v) return false;
+    const vLower = v.toLowerCase();
+    return (
+      v === matchedLabel ||
+      vLower === matchedLower ||
+      vLower === targetLower ||
+      vLower.startsWith(targetLower) ||
+      matchedLower.startsWith(vLower)
+    );
+  };
+
+  let appliedValue = '';
   for (let i = 0; i < 10; i++) {
-    valueEl =
-      container.querySelector('.select__single-value') ||
-      container.querySelector('.select__multi-value__label');
-    if (valueEl && (valueEl.textContent || '').trim().length > 0) break;
+    const valueEls = Array.from(
+      container.querySelectorAll(
+        '.select__single-value, .select__multi-value__label',
+      ),
+    );
+    const hit = valueEls.find((el) => valueMatches(el.textContent));
+    if (hit) {
+      appliedValue = hit.textContent.trim();
+      break;
+    }
     await sleep(50);
   }
-  if (!valueEl || !(valueEl.textContent || '').trim()) {
-    return { ok: false, code: 'SELECTION_NOT_APPLIED' };
+  if (!appliedValue) {
+    return { ok: false, code: 'SELECTION_NOT_APPLIED', found: labels };
   }
 
-  return { ok: true, value: valueEl.textContent.trim() };
+  return { ok: true, value: appliedValue };
 })()`;

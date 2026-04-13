@@ -79,3 +79,14 @@ test('REACT_SELECT_SNIPPET: exposes controlSelector and optionText bindings', ()
   assert.ok(REACT_SELECT_SNIPPET.includes('controlSelector'));
   assert.ok(REACT_SELECT_SNIPPET.includes('optionText'));
 });
+
+test('REACT_SELECT_SNIPPET: verifies applied value against the matched option', () => {
+  assert.ok(
+    REACT_SELECT_SNIPPET.includes('valueMatches'),
+    'snippet must compare the displayed value against the target'
+  );
+  assert.ok(
+    REACT_SELECT_SNIPPET.includes('matchedLabel'),
+    'snippet must reference the matched option label for verification'
+  );
+});
