@@ -169,6 +169,9 @@ export function callClaudeAsync(system, user) {
 
     proc.on('error', (err) => reject(new Error(`Failed to spawn claude: ${err.message}`)));
 
+    proc.stdin.on('error', (err) =>
+      reject(new Error(`Failed to write to claude stdin: ${err.message}`))
+    );
     proc.stdin.write(user);
     proc.stdin.end();
   });
