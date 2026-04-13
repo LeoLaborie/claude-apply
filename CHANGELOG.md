@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `discoverCompany(name, options)` in `src/scan/discover-company.mjs` — smart slug discovery that walks platform-specific variations (`x`, `x-ai`, `xhq`, `xlabs`, `x-labs`, …) across Lever → Greenhouse → Ashby → Workday registry and returns the first hit. Resolutions are cached in `data/known-ats-slugs.json`. Closes #38: `/apply-onboard:companies` no longer drops the 17/37 companies (Doctolib, Cohere, Modal, Scale AI, Writer, OpenAI, …) that live under non-obvious slugs.
 - `npm run explain -- "<title>" [--company "<co>"]` CLI traces why a title is accepted or filtered by the current `portals.yml` + `candidate-profile.yml`.
 - `verifySlug(slug)` primitive on each ATS fetcher (`lever`, `greenhouse`, `ashby`), returning `{ ok, count }` or `{ ok: false, status, reason }`.
 - `verifyCompany(careersUrl)` dispatcher and `getSupportedHosts()` helper in `src/scan/ats-detect.mjs`.

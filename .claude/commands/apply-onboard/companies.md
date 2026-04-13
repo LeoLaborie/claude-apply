@@ -90,6 +90,24 @@ Response shape:
 
 Add a 100 ms delay between verifications to be polite to the APIs.
 
+### 5b. Smart slug discovery when the careers URL is unknown
+
+If you only have a company **name** (no URL, or your guessed URL 404s), use `discoverCompany` from `src/scan/discover-company.mjs`. It walks platform-specific slug variations (`x`, `x-ai`, `xhq`, `xlabs`, `x-labs`, …) across Lever → Greenhouse → Ashby → Workday registry and returns the first hit. Successful resolutions are cached in `data/known-ats-slugs.json` so the next run is instant.
+
+```bash
+node -e "
+  import('./src/scan/discover-company.mjs').then(async m => {
+    const r = await m.discoverCompany('Doctolib', {
+      cachePath: 'data/known-ats-slugs.json',
+      workdayRegistryPath: 'data/known-workday-slugs.json',
+    });
+    console.log(JSON.stringify(r));
+  });
+"
+```
+
+Use this whenever your naive guess returns `ok: false` before dropping the candidate — many companies (Doctolib, Cohere, Modal, Scale AI, Writer, OpenAI, …) live on a different ATS or under a non-obvious slug.
+
 Drop any candidate that is a clear duplicate (same org, multiple slugs).
 
 ## 6. Trim to ~30 and get approval
