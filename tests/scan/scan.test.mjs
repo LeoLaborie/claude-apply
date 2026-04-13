@@ -259,12 +259,12 @@ test('runScan — skip_required_any bypasses required_any for flagged company', 
   );
 });
 
-test('runScan — passes searchText built from title_filter.positive to Workday fetcher', async () => {
-  let capturedBody = null;
+test('runScan — issues one Workday POST per positive term', async () => {
+  const capturedBodies = [];
   const original = globalThis.fetch;
   globalThis.fetch = async (url, opts) => {
     if (typeof url === 'string' && url.includes('myworkdayjobs.com')) {
-      capturedBody = JSON.parse(opts.body);
+      capturedBodies.push(JSON.parse(opts.body));
     }
     return {
       ok: true,
@@ -303,8 +303,11 @@ test('runScan — passes searchText built from title_filter.positive to Workday 
       dryRun: true,
     });
 
-    assert.ok(capturedBody, 'Expected a POST to Workday API');
-    assert.equal(capturedBody.searchText, 'Intern Stage');
+    assert.equal(capturedBodies.length, 2);
+    assert.deepEqual(
+      capturedBodies.map((b) => b.searchText),
+      ['Intern', 'Stage']
+    );
   } finally {
     globalThis.fetch = original;
     fs.rmSync(tmpDir, { recursive: true, force: true });

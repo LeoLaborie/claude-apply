@@ -213,46 +213,96 @@ test('verifySlug — returns ko on non-Workday URL', async () => {
   assert.match(r.reason, /not a Workday URL/);
 });
 
-test('fetchWorkday — passes searchText in POST body', async () => {
+test('fetchWorkday — issues one POST per searchTerm and dedupes by url', async () => {
   const original = globalThis.fetch;
-  let capturedBody = null;
+  const bodies = [];
   globalThis.fetch = async (url, opts) => {
-    capturedBody = JSON.parse(opts.body);
+    const body = JSON.parse(opts.body);
+    bodies.push(body);
+    const unique = body.searchText === 'Intern' ? 'U1' : 'U2';
     return {
       ok: true,
       status: 200,
-      json: async () => ({ total: 0, jobPostings: [] }),
-      text: async () => '{}',
+      json: async () => ({
+        total: 2,
+        jobPostings: [
+          { title: 'Shared', externalPath: '/job/shared', locationsText: 'Paris' },
+          {
+            title: `${body.searchText} only`,
+            externalPath: `/job/${unique}`,
+            locationsText: 'Paris',
+          },
+        ],
+      }),
+      text: async () => '',
     };
   };
   restore = () => {
     globalThis.fetch = original;
   };
 
-  await fetchWorkday('https://sanofi.wd3.myworkdayjobs.com/SanofiCareers', 'Sanofi', {
-    searchText: 'Intern Stage Stagiaire',
+  const offers = await fetchWorkday(
+    'https://sanofi.wd3.myworkdayjobs.com/SanofiCareers',
+    'Sanofi',
+    { searchTerms: ['Intern', 'Stage'], pageSize: 20 }
+  );
+
+  assert.equal(bodies.length, 2);
+  assert.deepEqual(
+    bodies.map((b) => b.searchText),
+    ['Intern', 'Stage']
+  );
+  assert.equal(offers.length, 3);
+  const urls = offers.map((o) => o.url).sort();
+  assert.deepEqual(urls, [
+    'https://sanofi.wd3.myworkdayjobs.com/en-US/SanofiCareers/job/U1',
+    'https://sanofi.wd3.myworkdayjobs.com/en-US/SanofiCareers/job/U2',
+    'https://sanofi.wd3.myworkdayjobs.com/en-US/SanofiCareers/job/shared',
+  ]);
+});
+
+test('fetchWorkday — empty searchTerms falls back to single empty-search request', async () => {
+  const original = globalThis.fetch;
+  const bodies = [];
+  globalThis.fetch = async (url, opts) => {
+    bodies.push(JSON.parse(opts.body));
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ total: 0, jobPostings: [] }),
+      text: async () => '',
+    };
+  };
+  restore = () => {
+    globalThis.fetch = original;
+  };
+
+  await fetchWorkday('https://acme.wd3.myworkdayjobs.com/AcmeCareers', 'Acme', {
+    searchTerms: [],
+    pageSize: 20,
   });
 
-  assert.equal(capturedBody.searchText, 'Intern Stage Stagiaire');
+  assert.equal(bodies.length, 1);
+  assert.equal(bodies[0].searchText, '');
 });
 
 test('fetchWorkday — stops pagination when MAX_OFFERS reached', async () => {
-  // Create a page of 5 postings (will be the pageSize)
-  const fullPage = {
-    total: 999,
-    jobPostings: Array.from({ length: 5 }, (_, i) => ({
-      title: `Job ${i}`,
-      externalPath: `/job/Job-${i}_R${1000 + i}`,
-      locationsText: 'Paris',
-    })),
-  };
-
-  // Mock: return full pages indefinitely (simulate a huge board)
+  // Mock: return full pages indefinitely (simulate a huge board),
+  // with unique externalPaths per call so dedup-by-url doesn't interfere.
   const original = globalThis.fetch;
   let callCount = 0;
   globalThis.fetch = async () => {
     callCount++;
-    return { ok: true, status: 200, json: async () => fullPage, text: async () => '' };
+    const base = (callCount - 1) * 5;
+    const page = {
+      total: 999,
+      jobPostings: Array.from({ length: 5 }, (_, i) => ({
+        title: `Job ${base + i}`,
+        externalPath: `/job/Job-${base + i}_R${1000 + base + i}`,
+        locationsText: 'Paris',
+      })),
+    };
+    return { ok: true, status: 200, json: async () => page, text: async () => '' };
   };
   restore = () => {
     globalThis.fetch = original;

@@ -69,30 +69,44 @@ export async function fetchWorkday(url, companyName, opts = {}) {
   const parts = parseWorkdayUrl(url);
   const pageSize = opts.pageSize ?? DEFAULT_PAGE_SIZE;
   const maxOffers = opts.maxOffers ?? DEFAULT_MAX_OFFERS;
-  const searchText = opts.searchText ?? '';
-  const offers = [];
-  let offset = 0;
-  while (true) {
-    const page = await postJobs(parts, { limit: pageSize, offset, searchText });
-    const postings = Array.isArray(page?.jobPostings) ? page.jobPostings : [];
-    for (const p of postings) {
-      offers.push({
-        url: buildJobUrl(parts, p.externalPath || ''),
-        title: p.title || '',
-        company: companyName,
-        location: p.locationsText || '',
-        body: '',
-        platform: 'workday',
-      });
+  const terms =
+    Array.isArray(opts.searchTerms) && opts.searchTerms.length > 0 ? opts.searchTerms : [''];
+
+  const byUrl = new Map();
+  let capped = false;
+
+  outer: for (const searchText of terms) {
+    let offset = 0;
+    while (true) {
+      const page = await postJobs(parts, { limit: pageSize, offset, searchText });
+      const postings = Array.isArray(page?.jobPostings) ? page.jobPostings : [];
+      for (const p of postings) {
+        const offerUrl = buildJobUrl(parts, p.externalPath || '');
+        if (!byUrl.has(offerUrl)) {
+          byUrl.set(offerUrl, {
+            url: offerUrl,
+            title: p.title || '',
+            company: companyName,
+            location: p.locationsText || '',
+            body: '',
+            platform: 'workday',
+          });
+        }
+        if (byUrl.size >= maxOffers) {
+          capped = true;
+          break;
+        }
+      }
+      if (capped || postings.length < pageSize) break;
+      offset += pageSize;
     }
-    if (postings.length < pageSize) break;
-    if (offers.length >= maxOffers) {
+    if (capped) {
       console.warn(
-        `[workday] ${parts.tenant}/${parts.site}: stopped at ${offers.length} offers (maxOffers=${maxOffers})`
+        `[workday] ${parts.tenant}/${parts.site}: stopped at ${byUrl.size} offers (maxOffers=${maxOffers})`
       );
-      break;
+      break outer;
     }
-    offset += pageSize;
   }
-  return offers;
+
+  return [...byUrl.values()];
 }
