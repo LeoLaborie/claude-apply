@@ -54,14 +54,14 @@ When a cover letter field is detected (`cover_letter_upload` or `cover_letter_te
 
 Three methods depending on the field and the framework:
 
-| Type                                 | Method                                                                    |
-| ------------------------------------ | ------------------------------------------------------------------------- |
-| Static text/email/tel/url/textarea   | `form_input`                                                              |
-| React-controlled input/textarea      | Native setter + `dispatchEvent('input' + 'change')` via `javascript_tool` |
-| Checkbox / radio                     | `element.click()` via `javascript_tool` — never `form_input`              |
-| Custom dropdown (React Select, etc.) | `find` + `click` on the option element                                    |
-| Google Places autocomplete           | Physical keyboard via `mcp__claude-in-chrome__computer`                   |
-| File                                 | CDP helper `src/apply/upload-file.mjs` — **never** JS                     |
+| Type                                 | Method                                                                                                    |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| Static text/email/tel/url/textarea   | `form_input`                                                                                              |
+| React-controlled input/textarea      | Native setter + `dispatchEvent('input' + 'change')` via `javascript_tool`                                 |
+| Checkbox / radio                     | `element.click()` via `javascript_tool` — never `form_input`                                              |
+| Custom dropdown (`.select__control`) | `REACT_SELECT_SNIPPET` (see `src/apply/react-select-helper.mjs` and `docs/playbooks/apply-greenhouse.md`) |
+| Google Places autocomplete           | Physical keyboard via `mcp__claude-in-chrome__computer`                                                   |
+| File                                 | CDP helper `src/apply/upload-file.mjs` — **never** JS                                                     |
 
 ## File upload
 
