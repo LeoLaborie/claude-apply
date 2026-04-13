@@ -69,7 +69,7 @@ Appends one JSON line to `data/evaluations.jsonl`:
 
 ## Cost
 
-~$0.03 per offer when using the stripped `claude -p` mode (~$0.14 otherwise). The script runs from a temp directory with `--disable-slash-commands --no-chrome --strict-mcp-config --setting-sources ""` to avoid Claude Code overhead.
+Around USD 0.03 per offer when using the stripped `claude -p` mode (around USD 0.14 otherwise). The script runs from a temp directory with `--disable-slash-commands --no-chrome --strict-mcp-config --setting-sources ""` to avoid Claude Code overhead.
 
 ## Batch mode
 
