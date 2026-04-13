@@ -32,7 +32,7 @@ A URL that doesn't match these patterns is skipped silently. To add a new ATS, s
 
 ## Title filter
 
-`portals.yml.title_filter.required_any` is a list of keywords — a job title must contain at least one, matched as a word-boundary regex (so `International` does not match `Intern`).
+`portals.yml.title_filter.positive` / `negative` are whole-word regexes matched against the job **title**. `required_any` is a domain filter matched against the **title and the description**: the keyword can appear in either. This is deliberate — many ML internships are posted with generic titles like "Software Engineering Intern – Data Platform" where the domain keyword only appears in the description. Some ATS fetchers (Workday) do not populate the description field; for those portals, set `skip_required_any: true` per company or add the domain keyword to `positive` instead.
 
 Example:
 
