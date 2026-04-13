@@ -46,9 +46,9 @@ function reasonToStatus(reason) {
   return 'skipped_other';
 }
 
-function buildSearchText(positiveTerms) {
-  if (!Array.isArray(positiveTerms) || positiveTerms.length === 0) return '';
-  return positiveTerms.filter((t) => typeof t === 'string' && !t.startsWith('/')).join(' ');
+function buildSearchTerms(positiveTerms) {
+  if (!Array.isArray(positiveTerms) || positiveTerms.length === 0) return [];
+  return positiveTerms.filter((t) => typeof t === 'string' && !t.startsWith('/'));
 }
 
 async function fetchCompanyOffers(company, whitelist) {
@@ -62,7 +62,9 @@ async function fetchCompanyOffers(company, whitelist) {
   }
   try {
     const opts =
-      det.platform === 'workday' ? { searchText: buildSearchText(whitelist.positive) } : undefined;
+      det.platform === 'workday'
+        ? { searchTerms: buildSearchTerms(whitelist.positive) }
+        : undefined;
     const offers = opts ? await fn(det.slug, company.name, opts) : await fn(det.slug, company.name);
     return { company: company.name, platform: det.platform, offers, error: null };
   } catch (err) {
