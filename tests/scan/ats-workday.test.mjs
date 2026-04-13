@@ -212,3 +212,59 @@ test('verifySlug — returns ko on non-Workday URL', async () => {
   assert.equal(r.ok, false);
   assert.match(r.reason, /not a Workday URL/);
 });
+
+test('fetchWorkday — passes searchText in POST body', async () => {
+  const original = globalThis.fetch;
+  let capturedBody = null;
+  globalThis.fetch = async (url, opts) => {
+    capturedBody = JSON.parse(opts.body);
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ total: 0, jobPostings: [] }),
+      text: async () => '{}',
+    };
+  };
+  restore = () => {
+    globalThis.fetch = original;
+  };
+
+  await fetchWorkday('https://sanofi.wd3.myworkdayjobs.com/SanofiCareers', 'Sanofi', {
+    searchText: 'Intern Stage Stagiaire',
+  });
+
+  assert.equal(capturedBody.searchText, 'Intern Stage Stagiaire');
+});
+
+test('fetchWorkday — stops pagination when MAX_OFFERS reached', async () => {
+  // Create a page of 5 postings (will be the pageSize)
+  const fullPage = {
+    total: 999,
+    jobPostings: Array.from({ length: 5 }, (_, i) => ({
+      title: `Job ${i}`,
+      externalPath: `/job/Job-${i}_R${1000 + i}`,
+      locationsText: 'Paris',
+    })),
+  };
+
+  // Mock: return full pages indefinitely (simulate a huge board)
+  const original = globalThis.fetch;
+  let callCount = 0;
+  globalThis.fetch = async () => {
+    callCount++;
+    return { ok: true, status: 200, json: async () => fullPage, text: async () => '' };
+  };
+  restore = () => {
+    globalThis.fetch = original;
+  };
+
+  const offers = await fetchWorkday('https://big.wd3.myworkdayjobs.com/BigCorp', 'BigCorp', {
+    pageSize: 5,
+    maxOffers: 12,
+  });
+
+  // Should stop at 12 (or after the page that crosses 12), not loop forever
+  assert.ok(offers.length <= 15, `Expected <= 15 offers, got ${offers.length}`);
+  assert.ok(offers.length >= 12, `Expected >= 12 offers, got ${offers.length}`);
+  assert.ok(callCount <= 3, `Expected <= 3 fetch calls, got ${callCount}`);
+});

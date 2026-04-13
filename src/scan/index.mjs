@@ -46,7 +46,12 @@ function reasonToStatus(reason) {
   return 'skipped_other';
 }
 
-async function fetchCompanyOffers(company) {
+function buildSearchText(positiveTerms) {
+  if (!Array.isArray(positiveTerms) || positiveTerms.length === 0) return '';
+  return positiveTerms.filter((t) => typeof t === 'string' && !t.startsWith('/')).join(' ');
+}
+
+async function fetchCompanyOffers(company, whitelist) {
   const det = detectPlatform(company.careers_url);
   if (!det) {
     return { company: company.name, platform: null, offers: [], error: 'platform not detected' };
@@ -56,7 +61,9 @@ async function fetchCompanyOffers(company) {
     return { company: company.name, platform: det.platform, offers: [], error: 'no fetcher' };
   }
   try {
-    const offers = await fn(det.slug, company.name);
+    const opts =
+      det.platform === 'workday' ? { searchText: buildSearchText(whitelist.positive) } : undefined;
+    const offers = opts ? await fn(det.slug, company.name, opts) : await fn(det.slug, company.name);
     return { company: company.name, platform: det.platform, offers, error: null };
   } catch (err) {
     return { company: company.name, platform: det.platform, offers: [], error: err.message };
@@ -98,7 +105,7 @@ export async function runScan(opts) {
   }
 
   const companyByName = new Map(companies.map((c) => [c.name, c]));
-  const fetchResults = await Promise.all(companies.map(fetchCompanyOffers));
+  const fetchResults = await Promise.all(companies.map((c) => fetchCompanyOffers(c, whitelist)));
 
   const seen = loadSeenUrls(historyPath, applicationsPath);
 
