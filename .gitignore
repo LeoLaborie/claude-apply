@@ -18,6 +18,7 @@ docs/superpowers/
 
 # Git worktrees
 .worktrees/
+.claude/worktrees/
 
 # Generated files
 dashboard.html

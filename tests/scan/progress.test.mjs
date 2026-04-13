@@ -54,7 +54,11 @@ test('onProgress is called once per company with correct shape', async () => {
       { name: 'Beta Inc', careers_url: 'https://jobs.ashbyhq.com/beta', enabled: true },
     ],
   };
-  const profile = { min_start_date: '2026-08-24', blacklist_companies: [] };
+  const profile = {
+    min_start_date: '2026-08-24',
+    blacklist_companies: [],
+    target_locations: ['Paris', 'France', 'Remote'],
+  };
 
   const calls = [];
   const onProgress = (info) => calls.push(info);
@@ -105,7 +109,11 @@ test('onProgress reports errors for failing companies', async () => {
       { name: 'Broken Co', careers_url: 'https://jobs.lever.co/broken', enabled: true },
     ],
   };
-  const profile = { min_start_date: '2026-08-24', blacklist_companies: [] };
+  const profile = {
+    min_start_date: '2026-08-24',
+    blacklist_companies: [],
+    target_locations: ['Paris', 'France', 'Remote'],
+  };
 
   const calls = [];
   const onProgress = (info) => calls.push(info);
@@ -145,7 +153,11 @@ test('no onProgress callback does not throw', async () => {
       { name: 'Quiet Co', careers_url: 'https://jobs.lever.co/quiet', enabled: true },
     ],
   };
-  const profile = { min_start_date: '2026-08-24', blacklist_companies: [] };
+  const profile = {
+    min_start_date: '2026-08-24',
+    blacklist_companies: [],
+    target_locations: ['Paris', 'France', 'Remote'],
+  };
 
   const applicationsPath = path.join(tmp, 'applications.md');
   fs.writeFileSync(applicationsPath, '# Apps\n');
