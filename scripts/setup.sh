@@ -176,29 +176,41 @@ echo ""
 
 # 5. Config templates
 mkdir -p config data
-copied_any=0
+configs_copied=0
+configs_preserved=0
 copy_if_missing() {
-  local src="$1" dst="$2"
-  if [[ -f "$src" && ! -f "$dst" ]]; then
+  local src="$1" dst="$2" kind="${3:-config}"
+  if [[ -f "$dst" ]]; then
+    if [[ "$kind" == "config" ]]; then
+      configs_preserved=1
+    fi
+    return
+  fi
+  if [[ -f "$src" ]]; then
     cp "$src" "$dst"
     echo "  ✓ Created $dst"
-    copied_any=1
+    if [[ "$kind" == "config" ]]; then
+      configs_copied=1
+    fi
   fi
 }
 
-copy_if_missing "templates/candidate-profile.example.yml" "config/candidate-profile.yml"
-copy_if_missing "templates/cv.example.md"                  "config/cv.md"
-copy_if_missing "templates/portals.example.yml"            "config/portals.yml"
-copy_if_missing "templates/applications.example.md"        "data/applications.md"
+copy_if_missing "templates/candidate-profile.example.yml" "config/candidate-profile.yml" config
+copy_if_missing "templates/cv.example.md"                  "config/cv.md"                 config
+copy_if_missing "templates/portals.example.yml"            "config/portals.yml"           config
+copy_if_missing "templates/applications.example.md"        "data/applications.md"         data
 
-if [[ $copied_any -eq 0 ]]; then
-  echo "→ Config files already present, nothing to copy"
-else
+if [[ $configs_copied -eq 1 && $configs_preserved -eq 1 ]]; then
+  echo "→ Some templates copied, existing configs preserved — edit the new files above"
+elif [[ $configs_copied -eq 1 ]]; then
   echo "→ Example config copied — edit the files above with your own data"
+else
+  echo "→ Existing config preserved, skipping template copy"
 fi
 echo ""
 
-cat <<'EOF'
+if [[ $configs_copied -eq 1 ]]; then
+  cat <<'EOF'
 Next steps:
   1. Edit config/candidate-profile.yml with your personal info
   2. Edit config/cv.md with your CV (markdown)
@@ -211,3 +223,15 @@ Next steps:
 
 Docs: see docs/for-agents.md, docs/apply-workflow.md, docs/cdp-setup.md
 EOF
+else
+  cat <<'EOF'
+Next steps:
+  1. Reload your shell:      source ~/.zshrc   # or ~/.bashrc
+  2. Launch Chrome with CDP: chrome-apply
+  3. Install the claude-in-chrome extension in that Chrome window
+  4. Try a dry run:          node src/scan/index.mjs --dry-run
+  5. Inside Claude Code:     /apply <job_url>
+
+Docs: see docs/for-agents.md, docs/apply-workflow.md, docs/cdp-setup.md
+EOF
+fi
