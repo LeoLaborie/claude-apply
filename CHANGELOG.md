@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING**: the onboarding slash command is now `/apply-onboard` (previously `/onboard`), with sub-commands `/apply-onboard:profile`, `/apply-onboard:companies`, `/apply-onboard:setup`. The rename avoids a collision with the `onboard` skill shipped by the `frontend-design` Claude Code plugin, which was shadowing the project command and rendering the documented entry point unusable (issue #35). First-run guards in `/scan`, `/score`, and `/apply` now point at `/apply-onboard`.
 - **BREAKING**: `portals.yml` `title_filter` terms now match whole words, case-insensitive (was: case-insensitive substring). `intern` no longer rejects `International`, but also no longer matches `Interns`/`Internship` — add explicit plural variants, or use the new `/regex/flags` escape hatch for full control.
 
 ### Added

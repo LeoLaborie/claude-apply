@@ -21,7 +21,7 @@ export async function loadProfile(configDir) {
   const profilePath = path.join(configDir, 'candidate-profile.yml');
   if (!fs.existsSync(profilePath)) {
     throw new ProfileMissingError(
-      `config/candidate-profile.yml not found in ${configDir} — run /onboard`
+      `config/candidate-profile.yml not found in ${configDir} — run /apply-onboard`
     );
   }
   const yaml = await import('js-yaml');

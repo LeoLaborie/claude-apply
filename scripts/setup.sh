@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
 
-# Flags for non-interactive runs (used by /onboard).
+# Flags for non-interactive runs (used by /apply-onboard).
 #   --yes                       assume yes, never prompt
 #   --clone-chrome-profile      clone the default Chrome profile
 #   --no-clone-chrome-profile   create an empty Chrome profile

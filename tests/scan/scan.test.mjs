@@ -438,7 +438,7 @@ test('scan CLI — missing candidate-profile.yml fails with ProfileMissingError'
       /candidate-profile\.yml/,
       `expected stderr to mention candidate-profile.yml, got: ${res.stderr}`
     );
-    assert.match(res.stderr, /\/onboard/, `expected stderr to mention /onboard`);
+    assert.match(res.stderr, /\/apply-onboard/, `expected stderr to mention /apply-onboard`);
   } finally {
     fs.rmSync(cfgDir, { recursive: true, force: true });
     fs.rmSync(dataDir, { recursive: true, force: true });

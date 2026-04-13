@@ -2,7 +2,7 @@
 description: Onboarding phase 3 — run scripts/setup.sh, launch Chrome in CDP mode, and guide the user through the extension install and host permissions
 ---
 
-# /onboard:setup
+# /apply-onboard:setup
 
 You are running **phase 3 of onboarding**: finalize the environment. At the end, `node_modules/` is installed, the CDP Chrome profile exists, the `chrome-apply` alias is in the user's shell rc, Chrome is running on port 9222, and the user has been told exactly which hosts to grant to the `claude-in-chrome` extension.
 
@@ -16,7 +16,7 @@ This skill is safe to rerun — `setup.sh` is idempotent.
 
 ## 1. Load the clone-profile answer
 
-Read `data/.onboard-state.json` (written by `/onboard:profile`) to get `clone_chrome_profile`. If the file is missing or the field is absent, ask the user once:
+Read `data/.onboard-state.json` (written by `/apply-onboard:profile`) to get `clone_chrome_profile`. If the file is missing or the field is absent, ask the user once:
 
 > "Clone your existing Chrome profile (cookies, extensions) into the dedicated CDP profile? yes / no"
 

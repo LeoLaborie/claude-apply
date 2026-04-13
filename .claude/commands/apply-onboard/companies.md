@@ -2,7 +2,7 @@
 description: Onboarding phase 2 — discover ~30 target companies via WebSearch, verify their ATS boards, get user approval, and write config/portals.yml
 ---
 
-# /onboard:companies
+# /apply-onboard:companies
 
 You are running **phase 2 of onboarding**: build `config/portals.yml`. At the end, the file contains ~30 verified companies (`tracked_companies`) plus the `title_filter` derived from the user's job-type and domain answers.
 
@@ -12,11 +12,11 @@ You are running **phase 2 of onboarding**: build `config/portals.yml`. At the en
 - **Only keep companies whose ATS board is live** — verified via `verifyCompany`, not via `curl -I` on the careers HTML.
 - **Stop on ambiguity.** WebSearch returns nothing useful, the user's domain keywords are unclear, a slug redirects to a login wall → stop and ask.
 
-This skill assumes `config/candidate-profile.yml` already exists (written by `/onboard:profile`). If not, tell the user to run `/onboard:profile` first.
+This skill assumes `config/candidate-profile.yml` already exists (written by `/apply-onboard:profile`). If not, tell the user to run `/apply-onboard:profile` first.
 
 ## 1. Load inputs
 
-Read `data/.onboard-state.json` (written by `/onboard:profile`) to get `job_type`, `target_role`, `locations`. If the file is missing — the user is running this skill standalone — ask once for these three fields via `AskUserQuestion`.
+Read `data/.onboard-state.json` (written by `/apply-onboard:profile`) to get `job_type`, `target_role`, `locations`. If the file is missing — the user is running this skill standalone — ask once for these three fields via `AskUserQuestion`.
 
 ## 2. Build `title_filter`
 
@@ -113,4 +113,4 @@ Apply the user's edits (remove X, add Y with URL Z) and loop until they approve.
 
 ## 7. Done
 
-Report briefly: `config/portals.yml` written with N companies and the computed title_filter. If called from the `/onboard` orchestrator, control returns there. Otherwise tell the user to run `/onboard:setup` next.
+Report briefly: `config/portals.yml` written with N companies and the computed title_filter. If called from the `/apply-onboard` orchestrator, control returns there. Otherwise tell the user to run `/apply-onboard:setup` next.

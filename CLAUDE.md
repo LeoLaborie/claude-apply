@@ -33,9 +33,9 @@ The three stages are independent and communicate only via files in `data/`: `sca
 
 ## First-time setup
 
-**If `config/candidate-profile.yml` does not exist, the user is a first-time user — run `/onboard`.** That slash command handles everything: CV PDF extraction, building `config/cv.md` + `candidate-profile.yml`, discovering ~30 target companies via WebSearch, and running `scripts/setup.sh` non-interactively with the right flags. Read `.claude/commands/onboard.md` before starting.
+**If `config/candidate-profile.yml` does not exist, the user is a first-time user — run `/apply-onboard`.** That slash command handles everything: CV PDF extraction, building `config/cv.md` + `candidate-profile.yml`, discovering ~30 target companies via WebSearch, and running `scripts/setup.sh` non-interactively with the right flags. Read `.claude/commands/apply-onboard.md` before starting. (The command is namespaced `apply-onboard` rather than `onboard` to avoid colliding with the `onboard` skill from the `frontend-design` plugin — see issue #35.)
 
-The `/scan`, `/score`, and `/apply` commands each have a first-run guard that redirects the user to `/onboard` if the config is missing. Do not try to work around the guard by copying templates manually.
+The `/scan`, `/score`, and `/apply` commands each have a first-run guard that redirects the user to `/apply-onboard` if the config is missing. Do not try to work around the guard by copying templates manually.
 
 `scripts/setup.sh` accepts `--yes`, `--clone-chrome-profile`, `--no-clone-chrome-profile`, and `--no-rc` for non-interactive runs. Run `bash scripts/setup.sh --help` for details. Re-running is always safe — every step is idempotent.
 

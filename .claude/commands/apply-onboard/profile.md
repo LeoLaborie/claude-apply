@@ -3,7 +3,7 @@ description: Onboarding phase 1 — extract CV, ask the user the missing fields,
 argument-hint: [path-to-cv.pdf]
 ---
 
-# /onboard:profile $ARGUMENTS
+# /apply-onboard:profile $ARGUMENTS
 
 You are running **phase 1 of onboarding**: build the candidate profile. At the end of this skill, `config/cv.md`, `config/cv.<lang>.pdf`, and `config/candidate-profile.yml` exist and validate against the schema.
 
@@ -13,7 +13,7 @@ You are running **phase 1 of onboarding**: build the candidate profile. At the e
 - **Never `git commit`.** Everything you write is under `config/` (gitignored).
 - **Stop on ambiguity.** Unreadable PDF, contradictory answers, wrong path → stop and ask.
 
-This skill can be run standalone or from the `/onboard` orchestrator. It is idempotent — rerunning overwrites.
+This skill can be run standalone or from the `/apply-onboard` orchestrator. It is idempotent — rerunning overwrites.
 
 ## 1. Locate the CV PDF
 
@@ -60,7 +60,7 @@ Use **`AskUserQuestion`** once with everything you could not extract, grouped lo
 - **Work authorization** — free text (e.g. "EU citizen — no sponsorship needed")
 - **Requires visa sponsorship**: yes / no
 
-**Setup choices** (used later by `/onboard:setup`)
+**Setup choices** (used later by `/apply-onboard:setup`)
 
 - **Clone your existing Chrome profile** into the CDP profile? yes / no
 - **Cover letter auto-generation**: enable now? yes / no (default no)
@@ -69,7 +69,7 @@ Anything the user declines → `null`.
 
 ## 4. Ensure npm dependencies are installed
 
-The schema validator and the YAML writer need `node_modules`. Install lightly if missing — `/onboard:setup` runs the full `scripts/setup.sh` later and will skip the install since it is idempotent:
+The schema validator and the YAML writer need `node_modules`. Install lightly if missing — `/apply-onboard:setup` runs the full `scripts/setup.sh` later and will skip the install since it is idempotent:
 
 ```bash
 [[ -d node_modules ]] || npm install
@@ -92,7 +92,7 @@ Validate before writing by importing `validateProfile` from `src/lib/candidate-p
 
 ## 6. Persist onboarding state for the next phase
 
-Write the job-search answers to `data/.onboard-state.json` so `/onboard:companies` and `/onboard:setup` can pick them up without re-asking. `data/` is gitignored.
+Write the job-search answers to `data/.onboard-state.json` so `/apply-onboard:companies` and `/apply-onboard:setup` can pick them up without re-asking. `data/` is gitignored.
 
 ```json
 {
@@ -106,4 +106,4 @@ Write the job-search answers to `data/.onboard-state.json` so `/onboard:companie
 
 ## 7. Done
 
-Report briefly: `config/cv.md`, `config/cv.<lang>.pdf`, `config/candidate-profile.yml`, `data/.onboard-state.json` written and validated. If you were called from the `/onboard` orchestrator, control returns there. Otherwise tell the user to run `/onboard:companies` next.
+Report briefly: `config/cv.md`, `config/cv.<lang>.pdf`, `config/candidate-profile.yml`, `data/.onboard-state.json` written and validated. If you were called from the `/apply-onboard` orchestrator, control returns there. Otherwise tell the user to run `/apply-onboard:companies` next.

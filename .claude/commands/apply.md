@@ -11,7 +11,7 @@ You will apply automatically to the offer at `$ARGUMENTS`. Follow this playbook 
 
 Before anything else, check that `config/candidate-profile.yml` exists. If it does not, **stop** and tell the user:
 
-> "No config found. Run `/onboard` first — it will extract your CV, build the profile, and prepare the target companies."
+> "No config found. Run `/apply-onboard` first — it will extract your CV, build the profile, and prepare the target companies."
 
 Do not try to apply with the example templates.
 
@@ -50,7 +50,7 @@ Do not try to apply with the example templates.
      3. Add https://<host>/*.
      4. Refresh the tab and re-run /apply.
 
-   See /onboard:setup for the full list of hosts.
+   See /apply-onboard:setup for the full list of hosts.
    ```
 
    Do not attempt to work around this — stopping on ambiguity is the invariant.

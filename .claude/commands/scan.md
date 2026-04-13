@@ -11,7 +11,7 @@ Run the ATS scanner over the companies in `config/portals.yml` and append new of
 
 Before running the scanner, check that `config/candidate-profile.yml` **and** `config/portals.yml` exist. If either is missing, **stop** and tell the user:
 
-> "No config found. Run `/onboard` first — it will extract your CV, build the configs, and find ~30 target companies for you."
+> "No config found. Run `/apply-onboard` first — it will extract your CV, build the configs, and find ~30 target companies for you."
 
 Do not try to run the scanner against the example templates.
 
