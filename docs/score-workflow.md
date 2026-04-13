@@ -32,23 +32,25 @@ node src/score/index.mjs <url>
 
 ```json
 {
-  "url": "https://jobs.lever.co/example/abc-123",
+  "id": "042",
+  "date": "2026-04-13",
   "company": "Example Co",
   "role": "ML Engineering Intern",
-  "score": 0.78,
+  "url": "https://jobs.lever.co/example/abc-123",
+  "score": 7.8,
   "verdict": "apply",
-  "reasoning": "Strong match on ML systems + Python; internship-friendly, 6-month duration, Paris.",
-  "timestamp": "2026-04-10T13:00:00.000Z"
+  "reason": "Strong ML + Python match, 6-month internship Paris",
+  "status": "Evaluated"
 }
 ```
 
-`verdict` ∈ `apply | maybe | skip`.
+### Score scale and verdict
 
-## Interpreting results
-
-- **`apply`** with `score > 0.7` → good candidates. Run `/apply <url>`.
-- **`maybe`** or `score` in `[0.4, 0.7]` → read the `reasoning` before deciding.
-- **`skip`** → the prefilter or LLM found a dealbreaker; move on.
+- `score` is on a **0-10 scale**, emitted by the LLM (10 = perfect match, ≥7 = good, <5 = weak).
+- `verdict` ∈ `apply | skip` is **computed deterministically** by `src/score/index.mjs`, not by the LLM:
+  `verdict = score >= profile.auto_apply_min_score ? 'apply' : 'skip'`
+  (default threshold: `7` when `auto_apply_min_score` is absent from `config/candidate-profile.yml`).
+- To change the bar for `apply`, edit `auto_apply_min_score` in your profile — no prompt change needed.
 
 ## Cost
 

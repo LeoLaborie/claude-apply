@@ -177,13 +177,22 @@ export function callClaudeAsync(system, user) {
   });
 }
 
-function parseScoreJson(raw) {
+export const DEFAULT_AUTO_APPLY_MIN_SCORE = 7;
+
+export function computeVerdict(score, threshold = DEFAULT_AUTO_APPLY_MIN_SCORE) {
+  if (typeof score !== 'number' || Number.isNaN(score)) {
+    throw new Error('computeVerdict: score must be a number');
+  }
+  return score >= threshold ? 'apply' : 'skip';
+}
+
+export function parseScoreJson(raw) {
   const match = raw.match(/\{[\s\S]*\}/);
   if (!match) throw new Error(`No JSON in LLM response: ${raw}`);
   const obj = JSON.parse(match[0]);
   if (typeof obj.score !== 'number') throw new Error('Invalid score field');
-  if (!['apply', 'skip'].includes(obj.verdict)) throw new Error('Invalid verdict');
-  return obj;
+  if (typeof obj.reason !== 'string') throw new Error('Invalid reason field');
+  return { score: obj.score, reason: obj.reason };
 }
 
 function nextId(evaluationsPath) {
@@ -337,7 +346,7 @@ async function main() {
       return;
     }
 
-    const { cvMarkdown } = await loadProfile(CONFIG_DIR);
+    const { profile, cvMarkdown } = await loadProfile(CONFIG_DIR);
     if (!cvMarkdown) {
       throw new ProfileMissingError(`config/cv.md not found in ${CONFIG_DIR} — run /apply-onboard`);
     }
@@ -395,6 +404,10 @@ async function main() {
           });
           const raw = await callClaudeAsync(system, user);
           const scoredResult = parseScoreJson(raw);
+          const verdict = computeVerdict(
+            scoredResult.score,
+            profile?.auto_apply_min_score ?? DEFAULT_AUTO_APPLY_MIN_SCORE
+          );
 
           const date = new Date().toISOString().slice(0, 10);
           const record = {
@@ -406,7 +419,7 @@ async function main() {
             location: fullOffer.location || '',
             metadata_source: 'pipeline',
             score: scoredResult.score,
-            verdict: scoredResult.verdict,
+            verdict,
             reason: scoredResult.reason,
             status: 'Evaluated',
           };
@@ -424,9 +437,14 @@ async function main() {
 
           completed++;
           countScored++;
-          if (scoredResult.verdict === 'apply') countApply++;
+          if (verdict === 'apply') countApply++;
           else countSkip++;
-          console.error(formatProgress(completed, pending.length, offer, scoredResult));
+          console.error(
+            formatProgress(completed, pending.length, offer, {
+              score: scoredResult.score,
+              verdict,
+            })
+          );
           console.log(JSON.stringify(record));
           return record;
         } catch (err) {
@@ -506,7 +524,7 @@ async function main() {
     return;
   }
 
-  const { cvMarkdown } = await loadProfile(CONFIG_DIR);
+  const { profile, cvMarkdown } = await loadProfile(CONFIG_DIR);
   if (!cvMarkdown) {
     throw new ProfileMissingError(`config/cv.md not found in ${CONFIG_DIR} — run /apply-onboard`);
   }
@@ -519,6 +537,10 @@ async function main() {
 
   const raw = await callClaudeAsync(system, user);
   const scored = parseScoreJson(raw);
+  const verdict = computeVerdict(
+    scored.score,
+    profile?.auto_apply_min_score ?? DEFAULT_AUTO_APPLY_MIN_SCORE
+  );
 
   const evalPath = path.join(DATA_DIR, 'evaluations.jsonl');
   const id = flags.id || nextId(evalPath);
@@ -532,7 +554,7 @@ async function main() {
     location: offer.location || '',
     metadata_source: offer.metadata_source || 'unknown',
     score: scored.score,
-    verdict: scored.verdict,
+    verdict,
     reason: scored.reason,
     status: 'Evaluated',
   };
