@@ -200,7 +200,11 @@ test('runScan — skip_required_any bypasses required_any for flagged company', 
       },
     ],
   };
-  const profile = { min_start_date: '2026-08-24', blacklist_companies: [] };
+  const profile = {
+    min_start_date: '2026-08-24',
+    blacklist_companies: [],
+    target_locations: ['Paris', 'France', 'Remote'],
+  };
 
   const leverJson = [
     {

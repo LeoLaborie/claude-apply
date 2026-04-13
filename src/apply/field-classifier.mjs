@@ -29,7 +29,11 @@ const RULES = [
     key: 'portfolio_upload',
     when: (f) =>
       f.type === 'file' &&
-      test_norm(/portfolio|work sample|travaux|\bbook\b|writing sample|echantillon/, f.label, f.name),
+      test_norm(
+        /portfolio|work sample|travaux|\bbook\b|writing sample|echantillon/,
+        f.label,
+        f.name
+      ),
   },
   {
     key: 'other_upload',
