@@ -8,7 +8,7 @@ You are running **phase 2 of onboarding**: build `config/portals.yml`. At the en
 
 **Hard rules**
 
-- **Never write `portals.yml` without explicit user approval** of the final list.
+- **Never write `portals.yml` without a passing `assertPortalsApproved` gate.** Approval is recorded in `data/.onboard-state.json` by `markPortalsApproved` after the user answers `AskUserQuestion`. The gate rejects any list that differs from the approved one, and `markPortalsApproved` itself refuses to overwrite a prior approval with a different hash — you must call `clearPortalsApproval` explicitly to re-approve a mutated list (see `src/lib/onboard-state.mjs`).
 - **Only keep companies whose ATS board is live** — verified via `verifyCompany`, not via `curl -I` on the careers HTML.
 - **Stop on ambiguity.** WebSearch returns nothing useful, the user's domain keywords are unclear, a slug redirects to a login wall → stop and ask.
 
@@ -110,7 +110,7 @@ Use this whenever your naive guess returns `ok: false` before dropping the candi
 
 Drop any candidate that is a clear duplicate (same org, multiple slugs).
 
-## 6. Trim to ~30 and get approval
+## 6. Trim to ~30 and get approval (technical gate)
 
 Keep the top ~30 by relevance to the user's domain. Present a compact table:
 
@@ -122,12 +122,84 @@ Anthropic         lever        https://jobs.lever.co/Anthropic
 ...
 ```
 
-Ask: **"Here are 30 companies I found. Should I write them to `config/portals.yml`, or do you want me to remove/add any?"**
+### 6a. MANDATORY approval question
 
-Apply the user's edits (remove X, add Y with URL Z) and loop until they approve. Only then write `config/portals.yml`:
+You **MUST** call `AskUserQuestion` with exactly these options before writing anything:
+
+- `"Approve and write"`
+- `"Let me edit the list"`
+- `"Cancel"`
+
+This is the only path to writing `config/portals.yml`. Skipping this call and jumping straight to `Write config/portals.yml` is a hard-rule violation — the gate in step 6c will refuse the write anyway.
+
+On `"Let me edit the list"`: apply the user's edits (remove X, add Y with URL Z, re-verify Y via step 5). If `markPortalsApproved` was already called in a previous iteration, you MUST first reset the recorded approval so the new list can be re-approved:
+
+```bash
+node -e "
+  import('./src/lib/onboard-state.mjs').then((m) => {
+    m.clearPortalsApproval('data/.onboard-state.json');
+    console.log('approval cleared');
+  });
+"
+```
+
+Then re-present the table and loop back to 6a with the updated list.
+
+On `"Cancel"`: stop and report that no file was written.
+
+### 6b. Record approval
+
+Immediately after the user answers `"Approve and write"`, persist the approved list to a scratch JSON file and call `markPortalsApproved`:
+
+```bash
+cat > /tmp/approved-portals.json <<'JSON'
+[
+  {"name":"Mistral AI","careers_url":"https://jobs.lever.co/mistral"},
+  {"name":"Anthropic","careers_url":"https://jobs.lever.co/Anthropic"}
+]
+JSON
+
+node -e "
+  import('./src/lib/onboard-state.mjs').then(async (m) => {
+    const fs = await import('node:fs');
+    const list = JSON.parse(fs.readFileSync('/tmp/approved-portals.json', 'utf8'));
+    m.markPortalsApproved('data/.onboard-state.json', list);
+    console.log('approved', list.length);
+  });
+"
+```
+
+The heredoc must contain the **exact** list shown to the user — same names, same URLs. Order does not matter (the hash is order-insensitive), but any other drift will re-lock the gate.
+
+### 6c. Gate check before writing
+
+Immediately before calling `Write config/portals.yml`, run the gate against the same list:
+
+```bash
+node -e "
+  import('./src/lib/onboard-state.mjs').then(async (m) => {
+    const fs = await import('node:fs');
+    const list = JSON.parse(fs.readFileSync('/tmp/approved-portals.json', 'utf8'));
+    m.assertPortalsApproved('data/.onboard-state.json', list);
+    console.log('gate ok');
+  });
+"
+```
+
+- If this prints `gate ok`, proceed to `Write config/portals.yml` using the same list (add `enabled: true` on each entry) and the `title_filter` built in step 2.
+- If it throws `PortalsNotApprovedError` with `reason: 'missing'` → you never called `markPortalsApproved`. Go back to 6a.
+- If it throws `PortalsNotApprovedError` with `reason: 'hash_mismatch'` → the list you are about to write is not the one the user approved. Do **not** fix by re-running `markPortalsApproved` on the mutated list — it will now throw `PortalsApprovalLockedError`. Go back to 6a via the `"Let me edit the list"` path (which calls `clearPortalsApproval`) and re-present what you actually want to write.
+
+Write `config/portals.yml`:
 
 - `tracked_companies:` — the approved list, each entry `{ name, careers_url, enabled: true }`
 - `title_filter:` — built in step 2 (`positive`, `negative`, optional `required_any`)
+
+Finally, delete the scratch file:
+
+```bash
+rm -f /tmp/approved-portals.json
+```
 
 ## 7. Done
 
