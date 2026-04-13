@@ -1,8 +1,8 @@
 import { truncateJd } from './jd-truncate.mjs';
 
 const SYSTEM = `Tu notes des offres de stage pour un candidat étudiant ingénieur Génie Informatique.
-Réponds UNIQUEMENT en JSON valide, sans markdown, sans texte hors JSON: {"score": X.X, "verdict": "apply"|"skip", "reason": "<20 mots max>"}.
-Échelle: 5.0=parfait, 4.0=très bon, 3.5=bon (seuil candidature), 3.0=moyen, <3.0=skip.`;
+Réponds UNIQUEMENT en JSON valide, sans markdown, sans texte hors JSON: {"score": X.X, "reason": "<20 mots max>"}.
+Échelle 0-10: 10=parfait, 8=très bon, 7=bon, 5=moyen, <5=faible. Ne retourne PAS de verdict — il est calculé en aval à partir du seuil utilisateur.`;
 
 const CRITERIA = `# Critères de scoring
 - Match technique (40%): langages/frameworks/domaine vs CV

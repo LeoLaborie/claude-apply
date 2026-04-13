@@ -16,11 +16,16 @@ test('buildPrompt retourne system + user', () => {
   assert.ok(p.user.length > 0);
 });
 
-test('system contient les consignes JSON', () => {
+test('system contient les consignes JSON et l’échelle 0-10', () => {
   const p = buildPrompt({ cvMarkdown, offer, jdMaxTokens: 1500 });
   assert.match(p.system, /JSON/);
   assert.match(p.system, /score/);
-  assert.match(p.system, /verdict/);
+  assert.match(p.system, /0-10/);
+});
+
+test('system n’exige pas de verdict (calculé en aval)', () => {
+  const p = buildPrompt({ cvMarkdown, offer, jdMaxTokens: 1500 });
+  assert.doesNotMatch(p.system, /"verdict"/);
 });
 
 test('user contient profil, critères, offre', () => {
