@@ -44,8 +44,8 @@ title_filter:
   negative: []
 
   # Optional domain filter applied *on top of* positive/negative:
-  # if set, the job title OR description must contain at least one of these
-  # keywords (same whole-word semantics and regex escape hatch as above).
+  # if set, the job title must contain at least one of these keywords
+  # (same whole-word semantics and regex escape hatch as above).
   # Leave empty or omit to skip. Use `skip_required_any: true` per company
-  # for ATS fetchers that do not populate the description (e.g. Workday).
+  # to bypass for portals whose titles do not include the domain keyword.
   required_any: []
