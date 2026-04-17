@@ -28,6 +28,13 @@ Verify the file exists and is a PDF, then read it with the `Read` tool (Claude C
 - **Education**: each entry with school, degree, field, start, end, graduation year, 1-line description.
 - **Experiences**: each entry with company, title, start, end, description (3–5 lines max).
 - **Languages**: list with `{code, level}` — levels in CEFR (A1…C2) or `native`.
+- **Job-search header** — extract these four fields **only if the CV states them explicitly**. Vague phrasing ("looking for opportunities", "available soon", "open to relocation") does NOT count — leave the field `null` and let step 3 ask the user.
+  - `job_type` — one of `internship | apprenticeship | entry-level | mid-level | senior | other`. Map common synonyms (`stage` → `internship`, `alternance` → `apprenticeship`). No clear match → `null`.
+  - `target_start` — ISO date `YYYY-MM-DD`. If the CV gives only a month (`September 2026`), normalize to the first of that month (`2026-09-01`). Seasons (`fall 2026`) or vague phrases (`as soon as possible`) → `null`.
+  - `duration_months` — integer, only set if `job_type` is `internship` or `apprenticeship`. `6 months`, `6-month`, `semestre` → `6`. Ranges (`4–6 months`) → `null`.
+  - `target_role` — short free-text domain phrase. Extract from a clear "looking for X" / "seeking Y" / role headline. A bare job title with no domain framing → `null`.
+
+Hold these four extracted values (and their `null`s) in mind for step 2.5.
 
 Anything genuinely missing becomes a question in step 3.
 
