@@ -111,7 +111,7 @@ Expected fields: first name, last name, email, phone, country, city, postal code
 ### Filling: my-experience
 
 1. **CV upload**: detect `input[type="file"]` in the page. If found:
-   - Resolve CV path: `profile.cv_fr_path` or `profile.cv_en_path` based on `detectLanguage({ title: role, description: jdText })` from `src/apply/language-detect.mjs`.
+   - Resolve CV path: read `profile.cv_fr_path` or `profile.cv_en_path` based on `detectLanguage({ title: role, description: jdText })` from `src/apply/language-detect.mjs`. `loadProfile` already returns absolute paths, so pass the value straight to `--file`.
    - Upload via CDP:
      ```bash
      node src/apply/upload-file.mjs \
