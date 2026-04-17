@@ -6,7 +6,7 @@ import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { installMockFetch } from '../helpers.mjs';
-import { runScan } from '../../src/scan/index.mjs';
+import { runScan, formatSummary } from '../../src/scan/index.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.join(__dirname, '..', '..');
@@ -532,6 +532,37 @@ test('runScan — perCompany.warning is null when there is an error', async () =
   } finally {
     restore();
   }
+});
+
+test('formatSummary — renders ⚠ for a company with a warning', () => {
+  const result = {
+    scanned: 2,
+    raw: 5,
+    perCompany: [
+      { company: 'Anthropic', platform: 'lever', count: 5, error: null, warning: null },
+      {
+        company: 'Vercel',
+        platform: 'ashby',
+        count: 0,
+        error: null,
+        warning: 'board live but empty — possibly wrong slug',
+      },
+    ],
+    filtered: {
+      skipped_dup: 0,
+      skipped_title: 0,
+      skipped_blacklist: 0,
+      skipped_location: 0,
+      skipped_date: 0,
+    },
+    added: [],
+    errors: [],
+    historyWrites: 0,
+  };
+  const out = formatSummary(result, true);
+  assert.match(out, /⚠ Vercel/);
+  assert.match(out, /board live but empty/);
+  assert.match(out, /✓ Anthropic/);
 });
 
 test('scan CLI — missing candidate-profile.yml fails with ProfileMissingError', () => {
