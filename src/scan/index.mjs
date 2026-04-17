@@ -27,6 +27,7 @@ import { appendFilteredOut } from '../lib/jsonl-writer.mjs';
 import { readPipelineMd, appendOffer, writePipelineMd } from '../lib/pipeline-md.mjs';
 import { loadSeenUrls, appendHistoryRow } from '../lib/scan-history.mjs';
 import { loadProfile } from '../lib/load-profile.mjs';
+import { MissingConfigError, requireConfig } from '../lib/config-loader.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -340,8 +341,11 @@ async function main() {
     process.env.CLAUDE_APPLY_CONFIG_DIR || path.join(__dirname, '..', '..', 'config');
   const DATA_DIR = process.env.CLAUDE_APPLY_DATA_DIR || path.join(__dirname, '..', '..', 'data');
 
+  const portalsPath = path.join(CONFIG_DIR, 'portals.yml');
+  requireConfig(portalsPath);
+
   const yaml = await import('js-yaml');
-  const portalsConfig = yaml.load(fs.readFileSync(path.join(CONFIG_DIR, 'portals.yml'), 'utf8'));
+  const portalsConfig = yaml.load(fs.readFileSync(portalsPath, 'utf8'));
   const { profile } = await loadProfile(CONFIG_DIR);
 
   const result = await runScan({
@@ -374,6 +378,10 @@ async function main() {
 const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
   main().catch((err) => {
+    if (err instanceof MissingConfigError) {
+      console.error(err.message);
+      process.exit(2);
+    }
     console.error(err);
     process.exit(1);
   });
