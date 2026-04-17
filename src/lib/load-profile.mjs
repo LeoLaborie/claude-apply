@@ -1,6 +1,8 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { validateProfile } from './candidate-profile.schema.mjs';
+import { findRepoRoot } from './repo-root.mjs';
 
 export class ProfileMissingError extends Error {
   constructor(message) {
@@ -17,7 +19,31 @@ export class ProfileInvalidError extends Error {
   }
 }
 
-export async function loadProfile(configDir) {
+const PATH_FIELDS = [
+  'cv_fr_path',
+  'cv_en_path',
+  'transcript_path',
+  'portfolio_path',
+  'other_document_path',
+];
+
+function resolveOnePath(p, repoRoot) {
+  if (p == null) return p;
+  if (typeof p !== 'string') return p;
+  if (p.startsWith('~/')) return path.join(os.homedir(), p.slice(2));
+  if (path.isAbsolute(p)) return p;
+  return path.resolve(repoRoot, p);
+}
+
+function resolveProfilePaths(profile, repoRoot) {
+  const out = { ...profile };
+  for (const key of PATH_FIELDS) {
+    if (key in out) out[key] = resolveOnePath(out[key], repoRoot);
+  }
+  return out;
+}
+
+export async function loadProfile(configDir, { repoRoot } = {}) {
   const profilePath = path.join(configDir, 'candidate-profile.yml');
   if (!fs.existsSync(profilePath)) {
     throw new ProfileMissingError(
@@ -34,8 +60,11 @@ export async function loadProfile(configDir) {
     );
   }
 
+  const root = repoRoot ?? findRepoRoot(configDir);
+  const resolvedProfile = resolveProfilePaths(profile, root);
+
   const cvPath = path.join(configDir, 'cv.md');
   const cvMarkdown = fs.existsSync(cvPath) ? fs.readFileSync(cvPath, 'utf8') : null;
 
-  return { profile, cvMarkdown };
+  return { profile: resolvedProfile, cvMarkdown };
 }

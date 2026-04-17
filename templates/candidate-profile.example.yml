@@ -57,11 +57,11 @@ languages:
   - { code: en, level: C1 }
   - { code: es, level: A2 }
 
-# --- CV paths (absolute) ---
-cv_fr_path: /absolute/path/to/your/cv-fr.pdf
-cv_en_path: /absolute/path/to/your/cv-en.pdf
+# --- CV paths (repo-relative recommended; absolute or ~/... also accepted) ---
+cv_fr_path: config/cv.fr.pdf
+cv_en_path: config/cv.en.pdf
 
-# --- Optional document paths (absolute) ---
+# --- Optional document paths (repo-relative, absolute, or ~/... all accepted) ---
 transcript_path: null # releve de notes / academic transcript
 portfolio_path: null # portfolio / work samples
 other_document_path: null # any additional document

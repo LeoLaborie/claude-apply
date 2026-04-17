@@ -42,7 +42,7 @@ Anything genuinely missing becomes a question in step 3.
 
 Create `config/cv.md` as a clean markdown version of the CV. This file is read by `/score` and the cover-letter generator — faithful to the PDF, flowing markdown (no tables, `##` for sections). Do not paraphrase or embellish.
 
-Detect the language from the CV content (usually `fr` or `en`) and copy the source PDF to `config/cv.<lang>.pdf`. Use this absolute path as `cv_fr_path` or `cv_en_path` later.
+Detect the language from the CV content (usually `fr` or `en`) and copy the source PDF to `config/cv.<lang>.pdf`. Record this as a **repo-relative path** (e.g. `cv_fr_path: config/cv.fr.pdf`) so the profile stays portable between machines. Absolute and `~/`-prefixed paths are also accepted if the user already stores their CV elsewhere.
 
 ## 2.5. Confirm extracted job-search fields
 
