@@ -36,6 +36,7 @@ function tryRegex(bodyText) {
 
 function tryJsonLd(raw) {
   if (!raw || typeof raw !== 'string') return null;
+  // separator injected by fetchOfferBody's page.evaluate
   const blocks = raw.split('\n---\n');
   for (const block of blocks) {
     const obj = safeParse(block);
@@ -55,6 +56,7 @@ function safeParse(s) {
 }
 
 function pickLocalityFromJobPosting(obj) {
+  if (obj?.['@type'] !== 'JobPosting') return null;
   const jobLoc = obj?.jobLocation;
   const locs = Array.isArray(jobLoc) ? jobLoc : [jobLoc];
   for (const jl of locs) {

@@ -44,6 +44,15 @@ test('extractLocation: malformed ld+json block is skipped', () => {
   assert.deepEqual(r, { location: 'Berlin', source: 'jsonld' });
 });
 
+test('extractLocation: ld+json non-JobPosting @type is skipped', () => {
+  const ldJsonRaw = JSON.stringify({
+    '@type': 'Organization',
+    jobLocation: { address: { addressLocality: 'ShouldNotAppear' } },
+  });
+  const r = extractLocation({ ldJsonRaw, ogLocation: '', cssLocation: '', bodyText: '' });
+  assert.deepEqual(r, { location: null, source: null });
+});
+
 // ---------- meta / og ----------
 test('extractLocation: og:location when ld+json absent', () => {
   const r = extractLocation({
