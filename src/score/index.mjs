@@ -14,6 +14,7 @@ import path from 'node:path';
 import { spawnSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { buildPrompt } from './prompt-builder.mjs';
+import { extractLocation } from './location-extractor.mjs';
 import { appendJsonl, appendFilteredOut } from '../lib/jsonl-writer.mjs';
 import { writeTrackerTsv } from '../lib/tsv-writer.mjs';
 import { detectClosedPage } from '../lib/page-liveness.mjs';
@@ -88,26 +89,28 @@ async function fetchOfferBody(url) {
 async function buildOffer(url, overrides = {}) {
   const { company, title, location, source } = overrides;
   const fetched = await fetchOfferBody(url);
-  if (source === 'scrape') {
-    return {
-      url,
-      finalUrl: fetched.finalUrl,
-      status: fetched.status,
-      body: fetched.body,
-      title: fetched.scrapedTitle || '',
-      company: extractCompanyFromUrl(url) || fetched.scrapedCompany || '',
-      location: fetched.scrapedLocation || '',
-      metadata_source: 'scrape',
-    };
-  }
+  const extracted = extractLocation({
+    ldJsonRaw: fetched.ldJsonRaw,
+    ogLocation: fetched.ogLocation,
+    cssLocation: fetched.cssLocation,
+    bodyText: fetched.body,
+  });
+  const overrideLocation = typeof location === 'string' ? location.trim() : '';
+  const resolvedLocation =
+    source === 'scrape'
+      ? extracted.location
+      : overrideLocation || extracted.location;
   return {
     url,
     finalUrl: fetched.finalUrl,
     status: fetched.status,
     body: fetched.body,
-    title: title ?? '',
-    company: company ?? '',
-    location: location ?? '',
+    title: source === 'scrape' ? fetched.scrapedTitle || '' : title ?? '',
+    company:
+      source === 'scrape'
+        ? extractCompanyFromUrl(url) || fetched.scrapedCompany || ''
+        : company ?? '',
+    location: resolvedLocation,
     metadata_source: source,
   };
 }
@@ -379,11 +382,20 @@ async function main() {
       return limit(async () => {
         try {
           const fetched = await fetchOfferBody(offer.url);
+          const extracted = extractLocation({
+            ldJsonRaw: fetched.ldJsonRaw,
+            ogLocation: fetched.ogLocation,
+            cssLocation: fetched.cssLocation,
+            bodyText: fetched.body,
+          });
+          const pipelineLoc =
+            typeof offer.location === 'string' ? offer.location.trim() : '';
           const fullOffer = {
             ...offer,
             finalUrl: fetched.finalUrl,
             status: fetched.status,
             body: fetched.body,
+            location: pipelineLoc || extracted.location,
             metadata_source: 'pipeline',
           };
 
