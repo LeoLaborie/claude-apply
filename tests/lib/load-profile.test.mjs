@@ -3,10 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {
-  loadProfile,
-  ProfileInvalidError,
-} from '../../src/lib/load-profile.mjs';
+import { loadProfile, ProfileInvalidError } from '../../src/lib/load-profile.mjs';
 import { MissingConfigError } from '../../src/lib/config-loader.mjs';
 
 function makeTmpDir(prefix = 'load-profile-') {

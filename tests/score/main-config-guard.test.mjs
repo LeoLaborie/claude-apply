@@ -25,7 +25,7 @@ test('score CLI — missing candidate-profile.yml exits 2 with clean message', (
       company: 'Example Corp',
       location: 'Remote',
       metadata_source: 'json-input',
-    }),
+    })
   );
 
   // Provide cv.md so the cv guard passes; omit candidate-profile.yml to trigger the profile guard
@@ -34,11 +34,7 @@ test('score CLI — missing candidate-profile.yml exits 2 with clean message', (
   try {
     const res = spawnSync(
       process.execPath,
-      [
-        path.join(REPO_ROOT, 'src', 'score', 'index.mjs'),
-        '--json-input',
-        offerFile,
-      ],
+      [path.join(REPO_ROOT, 'src', 'score', 'index.mjs'), '--json-input', offerFile],
       {
         env: {
           ...process.env,
@@ -46,16 +42,20 @@ test('score CLI — missing candidate-profile.yml exits 2 with clean message', (
           CLAUDE_APPLY_DATA_DIR: dataDir,
         },
         encoding: 'utf8',
-      },
+      }
     );
 
-    assert.equal(res.status, 2, `expected exit 2 when profile missing, got ${res.status}\nstderr: ${res.stderr}`);
+    assert.equal(
+      res.status,
+      2,
+      `expected exit 2 when profile missing, got ${res.status}\nstderr: ${res.stderr}`
+    );
     assert.match(res.stderr, /candidate-profile\.yml/, 'stderr mentions candidate-profile.yml');
     assert.match(res.stderr, /\/apply-onboard/, 'stderr mentions /apply-onboard');
     assert.doesNotMatch(
       res.stderr,
       /\bat async\b|\bat Object\./,
-      'stderr must not contain a stack trace',
+      'stderr must not contain a stack trace'
     );
   } finally {
     fs.rmSync(cfgDir, { recursive: true, force: true });
