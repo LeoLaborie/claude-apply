@@ -41,3 +41,24 @@ test('extractLocation: malformed ld+json block is skipped', () => {
   const r = extractLocation({ ldJsonRaw, ogLocation: '', cssLocation: '', bodyText: '' });
   assert.deepEqual(r, { location: 'Berlin', source: 'jsonld' });
 });
+
+// ---------- meta / og ----------
+test('extractLocation: og:location when ld+json absent', () => {
+  const r = extractLocation({
+    ldJsonRaw: '',
+    ogLocation: 'Paris',
+    cssLocation: '',
+    bodyText: '',
+  });
+  assert.deepEqual(r, { location: 'Paris', source: 'meta' });
+});
+
+test('extractLocation: malformed ld+json + valid ogLocation falls through', () => {
+  const r = extractLocation({
+    ldJsonRaw: 'not-json',
+    ogLocation: 'Lyon',
+    cssLocation: '',
+    bodyText: '',
+  });
+  assert.deepEqual(r, { location: 'Lyon', source: 'meta' });
+});

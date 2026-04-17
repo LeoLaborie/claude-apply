@@ -1,7 +1,12 @@
 export function extractLocation(signals) {
-  const { ldJsonRaw } = signals;
+  const { ldJsonRaw, ogLocation } = signals;
+
   const fromJsonLd = tryJsonLd(ldJsonRaw);
   if (fromJsonLd) return { location: fromJsonLd, source: 'jsonld' };
+
+  const fromMeta = trimOrNull(ogLocation);
+  if (fromMeta) return { location: fromMeta, source: 'meta' };
+
   return { location: null, source: null };
 }
 
