@@ -11,3 +11,33 @@ test('extractLocation: ld+json jobLocation.address.addressLocality', () => {
   const r = extractLocation({ ldJsonRaw, ogLocation: '', cssLocation: '', bodyText: '' });
   assert.deepEqual(r, { location: 'Paris', source: 'jsonld' });
 });
+
+test('extractLocation: ld+json array jobLocation picks first', () => {
+  const ldJsonRaw = JSON.stringify({
+    '@type': 'JobPosting',
+    jobLocation: [
+      { address: { addressLocality: 'Lyon' } },
+      { address: { addressLocality: 'Nantes' } },
+    ],
+  });
+  const r = extractLocation({ ldJsonRaw, ogLocation: '', cssLocation: '', bodyText: '' });
+  assert.deepEqual(r, { location: 'Lyon', source: 'jsonld' });
+});
+
+test('extractLocation: ld+json falls back to addressRegion', () => {
+  const ldJsonRaw = JSON.stringify({
+    '@type': 'JobPosting',
+    jobLocation: { address: { addressRegion: 'Île-de-France' } },
+  });
+  const r = extractLocation({ ldJsonRaw, ogLocation: '', cssLocation: '', bodyText: '' });
+  assert.deepEqual(r, { location: 'Île-de-France', source: 'jsonld' });
+});
+
+test('extractLocation: malformed ld+json block is skipped', () => {
+  const ldJsonRaw = 'not-json\n---\n' + JSON.stringify({
+    '@type': 'JobPosting',
+    jobLocation: { address: { addressLocality: 'Berlin' } },
+  });
+  const r = extractLocation({ ldJsonRaw, ogLocation: '', cssLocation: '', bodyText: '' });
+  assert.deepEqual(r, { location: 'Berlin', source: 'jsonld' });
+});
