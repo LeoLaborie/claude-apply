@@ -112,7 +112,7 @@ Drop any candidate that is a clear duplicate (same org, multiple slugs).
 
 ### 5c. Confirm empty boards
 
-After step 5 + 5b, some candidates may have returned `{ok: true, count: 0, warning: ...}` — the board is live but currently exposes zero public jobs. This is ambiguous: the company may genuinely have a hiring freeze, OR the slug may be wrong (e.g. `vercel` vs `vercel-careers`).
+After step 5 + 5b, some candidates may have returned `{ ok: true, count: 0, warning: "…" }` (see the response shape in step 5) — the board is live but currently exposes zero public jobs. This is ambiguous: the company may genuinely have a hiring freeze, OR the slug may be wrong (e.g. `vercel` vs `vercel-careers`).
 
 If N ≥ 1 candidates carry a `warning`, present the list in a compact table:
 
@@ -126,7 +126,7 @@ Then call `AskUserQuestion` **once** with these exact options:
 
 - `"Drop all empty boards"` — remove every empty-board candidate from the list before step 6.
 - `"Keep all empty boards"` — proceed with them into the step-6 approval table as-is.
-- `"Let me decide per company"` — loop over each empty-board candidate and call `AskUserQuestion` with options `Keep`, `Drop`, `Edit URL`. On `Edit URL`, ask the user for the corrected URL and re-verify it via step 5 (`verifyCompany`). If the new URL also returns `count: 0`, ask again. If it returns `ok: false`, drop.
+- `"Let me decide per company"` — loop over each empty-board candidate and call `AskUserQuestion` with options `"Keep"`, `"Drop"`, `"Edit URL"`. On `"Edit URL"`, ask the user for the corrected URL and re-verify it via step 5 (`verifyCompany`). If the new URL returns `ok: true, count > 0`, keep the updated entry. If it returns `ok: false`, drop. If it still returns `count: 0`, call `AskUserQuestion` one more time with options `"Keep anyway"` and `"Drop"` — do not offer another `Edit URL` (at most one URL edit per company).
 
 If no candidate has a `warning`, skip this step silently.
 
