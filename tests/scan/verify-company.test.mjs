@@ -102,15 +102,15 @@ test('verifyCompany — count=0 on Lever adds warning', async () => {
 
 test('verifyCompany — count>0 does not add warning', async () => {
   restore = installMockFetch({
-    'https://api.lever.co/v0/postings/mistral?mode=json': [{ id: '1' }],
+    'https://api.lever.co/v0/postings/acmecorp?mode=json': [{ id: '1' }, { id: '2' }],
   });
-  const r = await verifyCompany('https://jobs.lever.co/mistral');
+  const r = await verifyCompany('https://jobs.lever.co/acmecorp');
   assert.equal(r.ok, true);
-  assert.equal(r.count, 1);
+  assert.equal(r.count, 2);
   assert.equal(r.warning, undefined);
 });
 
-test('verifyCompany — ok:false does not add warning', async () => {
+test('verifyCompany — ok:false (unknown platform) does not add warning', async () => {
   const r = await verifyCompany('https://careers.example.com/jobs');
   assert.equal(r.ok, false);
   assert.equal(r.warning, undefined);
