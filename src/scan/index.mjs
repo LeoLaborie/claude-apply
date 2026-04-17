@@ -152,6 +152,7 @@ export async function runScan(opts) {
         platform: result.platform,
         count: 0,
         error: result.error,
+        warning: null,
       });
       progressIndex++;
       if (onProgress) {
@@ -168,10 +169,14 @@ export async function runScan(opts) {
       continue;
     }
 
+    const warning =
+      result.offers.length === 0 ? 'board live but empty — possibly wrong slug' : null;
     perCompany.push({
       company: result.company,
       platform: result.platform,
       count: result.offers.length,
+      error: null,
+      warning,
     });
     raw += result.offers.length;
 
@@ -270,7 +275,7 @@ export async function runScan(opts) {
   return { scanned: companies.length, raw, perCompany, filtered, added, errors, historyWrites };
 }
 
-function formatSummary(result, dryRun) {
+export function formatSummary(result, dryRun) {
   const lines = [];
   const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
   lines.push(`Portal Scan — ${now}`);
@@ -278,8 +283,12 @@ function formatSummary(result, dryRun) {
   lines.push(`Entreprises scannées : ${result.scanned}/${result.scanned}`);
   lines.push(`Offres brutes         : ${result.raw}`);
   for (const c of result.perCompany) {
-    const mark = c.error ? '✗' : '✓';
-    const note = c.error ? `(${c.error})` : `(${c.platform})`;
+    const mark = c.error ? '✗' : c.warning ? '⚠' : '✓';
+    const note = c.error
+      ? `(${c.error})`
+      : c.warning
+        ? `(${c.platform} — ${c.warning})`
+        : `(${c.platform})`;
     lines.push(`  ${mark} ${c.company.padEnd(18)} ${String(c.count).padStart(3)} offres ${note}`);
   }
   lines.push('');

@@ -43,5 +43,9 @@ export async function verifyCompany(careersUrl) {
     return { ok: false, reason: `platform ${platform} not supported by verifySlug` };
   }
   const mod = await import(`./ats/${platform}.mjs`);
-  return mod.verifySlug(slug);
+  const result = await mod.verifySlug(slug);
+  if (result.ok && result.count === 0) {
+    return { ...result, warning: 'board live but empty — possibly wrong slug' };
+  }
+  return result;
 }

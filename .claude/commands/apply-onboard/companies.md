@@ -85,7 +85,7 @@ node -e "
 
 Response shape:
 
-- `{ ok: true, count: N }` → slug is live. Keep the company. If `count` is 0, flag it for sanity-check.
+- `{ ok: true, count: N, warning? }` → slug is live. Keep the company. If `count` is 0, `verifyCompany` adds `warning: 'board live but empty — possibly wrong slug'`; step 5c will ask the user to confirm these before writing.
 - `{ ok: false, status, reason }` → drop. On transient failures (5xx, network error), retry **once** after a 2 s backoff before dropping.
 
 Add a 100 ms delay between verifications to be polite to the APIs.
@@ -109,6 +109,26 @@ node -e "
 Use this whenever your naive guess returns `ok: false` before dropping the candidate — many companies (Doctolib, Cohere, Modal, Scale AI, Writer, OpenAI, …) live on a different ATS or under a non-obvious slug.
 
 Drop any candidate that is a clear duplicate (same org, multiple slugs).
+
+### 5c. Confirm empty boards
+
+After step 5 + 5b, some candidates may have returned `{ ok: true, count: 0, warning: "…" }` (see the response shape in step 5) — the board is live but currently exposes zero public jobs. This is ambiguous: the company may genuinely have a hiring freeze, OR the slug may be wrong (e.g. `vercel` vs `vercel-careers`).
+
+If N ≥ 1 candidates carry a `warning`, present the list in a compact table:
+
+```
+Company         ATS     Careers URL
+────────────────────────────────────────────────
+Vercel          ashby   https://jobs.ashbyhq.com/vercel
+```
+
+Then call `AskUserQuestion` **once** with these exact options:
+
+- `"Drop all empty boards"` — remove every empty-board candidate from the list before step 6.
+- `"Keep all empty boards"` — proceed with them into the step-6 approval table as-is.
+- `"Let me decide per company"` — loop over each empty-board candidate and call `AskUserQuestion` with options `"Keep"`, `"Drop"`, `"Edit URL"`. On `"Edit URL"`, ask the user for the corrected URL and re-verify it via step 5 (`verifyCompany`). If the new URL returns `ok: true, count > 0`, keep the updated entry. If it returns `ok: false`, drop. If it still returns `count: 0`, call `AskUserQuestion` one more time with options `"Keep anyway"` and `"Drop"` — do not offer another `Edit URL` (at most one URL edit per company).
+
+If no candidate has a `warning`, skip this step silently.
 
 ## 6. Trim to ~30 and get approval (technical gate)
 
