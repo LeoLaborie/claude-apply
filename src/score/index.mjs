@@ -54,24 +54,38 @@ async function fetchOfferBody(url) {
     const finalUrl = page.url();
 
     const pageTitle = await page.title();
-    const body = await page.evaluate(() => document.body?.innerText || '');
-    const scrapedCompany =
-      (await page.evaluate(() => {
-        const og = document.querySelector('meta[property="og:site_name"]')?.getAttribute('content');
-        if (og) return og;
-        return document.querySelector('h1')?.innerText || '';
-      })) || '';
-    const scrapedLocation = await page.evaluate(() => {
-      const el = document.querySelector('[class*="location" i], [data-testid*="location" i]');
-      return el?.innerText || '';
+    const signals = await page.evaluate(() => {
+      const body = document.body?.innerText || '';
+      const scripts = Array.from(
+        document.querySelectorAll('script[type="application/ld+json"]')
+      );
+      const ldJsonRaw = scripts.map((s) => s.innerHTML).join('\n---\n');
+      const ogEl = document.querySelector(
+        'meta[property="og:location"], meta[name="location"]'
+      );
+      const ogLocation = ogEl?.getAttribute('content') || '';
+      const companyOg = document
+        .querySelector('meta[property="og:site_name"]')
+        ?.getAttribute('content');
+      const scrapedCompany =
+        companyOg || document.querySelector('h1')?.innerText || '';
+      const cssEl = document.querySelector(
+        '[class*="location" i], [data-testid*="location" i]'
+      );
+      const cssLocation = cssEl?.innerText || '';
+      return { body, ldJsonRaw, ogLocation, scrapedCompany, cssLocation };
     });
+    const { body, ldJsonRaw, ogLocation, scrapedCompany, cssLocation } = signals;
     return {
       finalUrl,
       status,
       body,
       scrapedTitle: pageTitle,
       scrapedCompany,
-      scrapedLocation,
+      scrapedLocation: cssLocation,
+      ldJsonRaw,
+      ogLocation,
+      cssLocation,
     };
   } finally {
     await browser.close();
