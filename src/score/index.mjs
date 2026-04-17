@@ -95,21 +95,18 @@ async function buildOffer(url, overrides = {}) {
     cssLocation: fetched.cssLocation,
     bodyText: fetched.body,
   });
-  const overrideLocation = typeof location === 'string' ? location.trim() : '';
-  const resolvedLocation =
-    source === 'scrape'
-      ? extracted.location
-      : overrideLocation || extracted.location;
+  const overrideLocation = trimLoc(location);
+  const resolvedLocation = overrideLocation || extracted.location;
   return {
     url,
     finalUrl: fetched.finalUrl,
     status: fetched.status,
     body: fetched.body,
-    title: source === 'scrape' ? fetched.scrapedTitle || '' : title ?? '',
+    title: source === 'scrape' ? fetched.scrapedTitle || '' : (title ?? ''),
     company:
       source === 'scrape'
         ? extractCompanyFromUrl(url) || fetched.scrapedCompany || ''
-        : company ?? '',
+        : (company ?? ''),
     location: resolvedLocation,
     metadata_source: source,
   };
@@ -187,6 +184,10 @@ export function callClaudeAsync(system, user) {
     proc.stdin.write(user);
     proc.stdin.end();
   });
+}
+
+function trimLoc(v) {
+  return typeof v === 'string' ? v.trim() : '';
 }
 
 export const DEFAULT_AUTO_APPLY_MIN_SCORE = 7;
@@ -388,8 +389,7 @@ async function main() {
             cssLocation: fetched.cssLocation,
             bodyText: fetched.body,
           });
-          const pipelineLoc =
-            typeof offer.location === 'string' ? offer.location.trim() : '';
+          const pipelineLoc = trimLoc(offer.location);
           const fullOffer = {
             ...offer,
             finalUrl: fetched.finalUrl,
