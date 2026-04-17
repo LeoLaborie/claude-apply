@@ -34,10 +34,12 @@ test('extractLocation: ld+json falls back to addressRegion', () => {
 });
 
 test('extractLocation: malformed ld+json block is skipped', () => {
-  const ldJsonRaw = 'not-json\n---\n' + JSON.stringify({
-    '@type': 'JobPosting',
-    jobLocation: { address: { addressLocality: 'Berlin' } },
-  });
+  const ldJsonRaw =
+    'not-json\n---\n' +
+    JSON.stringify({
+      '@type': 'JobPosting',
+      jobLocation: { address: { addressLocality: 'Berlin' } },
+    });
   const r = extractLocation({ ldJsonRaw, ogLocation: '', cssLocation: '', bodyText: '' });
   assert.deepEqual(r, { location: 'Berlin', source: 'jsonld' });
 });

@@ -24,7 +24,10 @@ function tryRegex(bodyText) {
   for (const re of [LABEL_RE, EMOJI_RE]) {
     const m = bodyText.match(re);
     if (m) {
-      const cleaned = m[1].trim().replace(/[.,;:]+$/, '').trim();
+      const cleaned = m[1]
+        .trim()
+        .replace(/[.,;:]+$/, '')
+        .trim();
       if (cleaned.length > 0) return cleaned;
     }
   }
