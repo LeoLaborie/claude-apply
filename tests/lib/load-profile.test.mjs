@@ -5,9 +5,9 @@ import os from 'node:os';
 import path from 'node:path';
 import {
   loadProfile,
-  ProfileMissingError,
   ProfileInvalidError,
 } from '../../src/lib/load-profile.mjs';
+import { MissingConfigError } from '../../src/lib/config-loader.mjs';
 
 function makeTmpDir(prefix = 'load-profile-') {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -58,13 +58,14 @@ test('loadProfile — returns null cvMarkdown when cv.md missing', async () => {
   }
 });
 
-test('loadProfile — throws ProfileMissingError when yml missing', async () => {
+test('loadProfile — throws MissingConfigError when yml missing', async () => {
   const dir = makeTmpDir();
   try {
     await assert.rejects(
       () => loadProfile(dir),
       (err) => {
-        assert.ok(err instanceof ProfileMissingError);
+        assert.ok(err instanceof MissingConfigError);
+        assert.equal(err.code, 'MISSING_CONFIG');
         assert.match(err.message, /candidate-profile\.yml/);
         assert.match(err.message, /\/apply-onboard/);
         return true;

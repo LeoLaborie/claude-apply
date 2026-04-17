@@ -1,15 +1,9 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { requireConfig } from './config-loader.mjs';
 import { validateProfile } from './candidate-profile.schema.mjs';
 import { findRepoRoot } from './repo-root.mjs';
-
-export class ProfileMissingError extends Error {
-  constructor(message) {
-    super(message);
-    this.name = 'ProfileMissingError';
-  }
-}
 
 export class ProfileInvalidError extends Error {
   constructor(message, errors) {
@@ -45,11 +39,7 @@ function resolveProfilePaths(profile, repoRoot) {
 
 export async function loadProfile(configDir, { repoRoot } = {}) {
   const profilePath = path.join(configDir, 'candidate-profile.yml');
-  if (!fs.existsSync(profilePath)) {
-    throw new ProfileMissingError(
-      `config/candidate-profile.yml not found in ${configDir} — run /apply-onboard`
-    );
-  }
+  requireConfig(profilePath);
   const yaml = await import('js-yaml');
   const profile = yaml.load(fs.readFileSync(profilePath, 'utf8'));
   const { ok, errors } = validateProfile(profile);
