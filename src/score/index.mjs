@@ -18,7 +18,8 @@ import { appendJsonl, appendFilteredOut } from '../lib/jsonl-writer.mjs';
 import { writeTrackerTsv } from '../lib/tsv-writer.mjs';
 import { detectClosedPage } from '../lib/page-liveness.mjs';
 import { runPrefilter } from '../lib/prefilter-rules.mjs';
-import { loadProfile, ProfileMissingError } from '../lib/load-profile.mjs';
+import { loadProfile } from '../lib/load-profile.mjs';
+import { MissingConfigError, requireConfig } from '../lib/config-loader.mjs';
 import { readPipelineMd, findOfferByUrl, parseOfferLine } from '../lib/pipeline-md.mjs';
 import { pLimit } from '../lib/p-limit.mjs';
 
@@ -346,10 +347,8 @@ async function main() {
       return;
     }
 
+    requireConfig(path.join(CONFIG_DIR, 'cv.md'));
     const { profile, cvMarkdown } = await loadProfile(CONFIG_DIR);
-    if (!cvMarkdown) {
-      throw new ProfileMissingError(`config/cv.md not found in ${CONFIG_DIR} — run /apply-onboard`);
-    }
 
     const startId = parseInt(nextId(evalPath), 10);
     const limit = pLimit(flags.parallel);
@@ -524,10 +523,8 @@ async function main() {
     return;
   }
 
+  requireConfig(path.join(CONFIG_DIR, 'cv.md'));
   const { profile, cvMarkdown } = await loadProfile(CONFIG_DIR);
-  if (!cvMarkdown) {
-    throw new ProfileMissingError(`config/cv.md not found in ${CONFIG_DIR} — run /apply-onboard`);
-  }
 
   const { system, user } = buildPrompt({
     cvMarkdown,
@@ -575,6 +572,10 @@ async function main() {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((err) => {
+    if (err instanceof MissingConfigError) {
+      console.error(err.message);
+      process.exit(2);
+    }
     console.error(err);
     process.exit(3);
   });
