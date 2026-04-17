@@ -83,3 +83,39 @@ test('extractLocation: cssLocation whitespace-only is treated as empty', () => {
   });
   assert.deepEqual(r, { location: null, source: null });
 });
+
+// ---------- regex on body ----------
+test('extractLocation: regex Location: Paris', () => {
+  const r = extractLocation({
+    ldJsonRaw: '',
+    ogLocation: '',
+    cssLocation: '',
+    bodyText: 'Some intro\nLocation: Paris\nMore body',
+  });
+  assert.deepEqual(r, { location: 'Paris', source: 'regex' });
+});
+
+test('extractLocation: regex Lieu : Lyon (French)', () => {
+  const r = extractLocation({
+    ldJsonRaw: '',
+    ogLocation: '',
+    cssLocation: '',
+    bodyText: 'Détails\nLieu : Lyon\nFin',
+  });
+  assert.deepEqual(r, { location: 'Lyon', source: 'regex' });
+});
+
+test('extractLocation: regex emoji 📍 Berlin', () => {
+  const r = extractLocation({
+    ldJsonRaw: '',
+    ogLocation: '',
+    cssLocation: '',
+    bodyText: '📍 Berlin\n',
+  });
+  assert.deepEqual(r, { location: 'Berlin', source: 'regex' });
+});
+
+test('extractLocation: no signals returns null', () => {
+  const r = extractLocation({ ldJsonRaw: '', ogLocation: '', cssLocation: '', bodyText: '' });
+  assert.deepEqual(r, { location: null, source: null });
+});

@@ -10,7 +10,25 @@ export function extractLocation(signals) {
   const fromDom = trimOrNull(signals.cssLocation);
   if (fromDom) return { location: fromDom, source: 'dom' };
 
+  const fromRegex = tryRegex(signals.bodyText);
+  if (fromRegex) return { location: fromRegex, source: 'regex' };
+
   return { location: null, source: null };
+}
+
+const LABEL_RE = /(?:Location|Lieu|Ville|Standort|Ubicación)\s*[:：]\s*([^\n]{2,80})/i;
+const EMOJI_RE = /📍\s*([^\n]{2,80})/;
+
+function tryRegex(bodyText) {
+  if (!bodyText || typeof bodyText !== 'string') return null;
+  for (const re of [LABEL_RE, EMOJI_RE]) {
+    const m = bodyText.match(re);
+    if (m) {
+      const cleaned = m[1].trim().replace(/[.,;:]+$/, '').trim();
+      if (cleaned.length > 0) return cleaned;
+    }
+  }
+  return null;
 }
 
 function tryJsonLd(raw) {
