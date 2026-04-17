@@ -152,6 +152,7 @@ export async function runScan(opts) {
         platform: result.platform,
         count: 0,
         error: result.error,
+        warning: null,
       });
       progressIndex++;
       if (onProgress) {
@@ -168,10 +169,14 @@ export async function runScan(opts) {
       continue;
     }
 
+    const warning =
+      result.offers.length === 0 ? 'board live but empty — possibly wrong slug' : null;
     perCompany.push({
       company: result.company,
       platform: result.platform,
       count: result.offers.length,
+      error: null,
+      warning,
     });
     raw += result.offers.length;
 

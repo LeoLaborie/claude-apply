@@ -412,6 +412,128 @@ test('runScan — sends empty searchText when all positive entries are regex', a
   }
 });
 
+test('runScan — perCompany.warning set when raw=0 without error', async () => {
+  const portalsConfig = {
+    title_filter: { positive: [], negative: [] },
+    tracked_companies: [
+      { name: 'Ghost Town', careers_url: 'https://jobs.ashbyhq.com/ghost', enabled: true },
+    ],
+  };
+  const profile = { blacklist_companies: [], target_locations: ['France'] };
+
+  const restore = installMockFetch({
+    'https://api.ashbyhq.com/posting-api/job-board/ghost?includeCompensation=false': {
+      jobs: [],
+    },
+  });
+
+  const pipelinePath = path.join(tmp, 'pipeline.md');
+  const historyPath = path.join(tmp, 'scan-history.tsv');
+  const filteredPath = path.join(tmp, 'filtered-out.tsv');
+  const applicationsPath = path.join(tmp, 'applications.md');
+  fs.writeFileSync(applicationsPath, '# Apps\n');
+
+  try {
+    const result = await runScan({
+      portalsConfig,
+      profile,
+      pipelinePath,
+      historyPath,
+      filteredPath,
+      applicationsPath,
+      dryRun: true,
+    });
+    assert.equal(result.perCompany.length, 1);
+    const [entry] = result.perCompany;
+    assert.equal(entry.count, 0);
+    assert.equal(entry.error, null);
+    assert.match(entry.warning, /board live but empty/i);
+  } finally {
+    restore();
+  }
+});
+
+test('runScan — perCompany.warning is null when raw>0', async () => {
+  const portalsConfig = {
+    title_filter: { positive: [], negative: [] },
+    tracked_companies: [
+      { name: 'Mistral AI', careers_url: 'https://jobs.lever.co/mistral', enabled: true },
+    ],
+  };
+  const profile = { blacklist_companies: [], target_locations: ['France'] };
+
+  const restore = installMockFetch({
+    'https://api.lever.co/v0/postings/mistral?mode=json': [
+      {
+        hostedUrl: 'https://jobs.lever.co/mistral/a',
+        text: 'Engineer',
+        categories: { location: 'Paris' },
+        descriptionPlain: 'Paris France',
+      },
+    ],
+  });
+
+  const pipelinePath = path.join(tmp, 'pipeline.md');
+  const historyPath = path.join(tmp, 'scan-history.tsv');
+  const filteredPath = path.join(tmp, 'filtered-out.tsv');
+  const applicationsPath = path.join(tmp, 'applications.md');
+  fs.writeFileSync(applicationsPath, '# Apps\n');
+
+  try {
+    const result = await runScan({
+      portalsConfig,
+      profile,
+      pipelinePath,
+      historyPath,
+      filteredPath,
+      applicationsPath,
+      dryRun: true,
+    });
+    assert.equal(result.perCompany.length, 1);
+    assert.equal(result.perCompany[0].warning, null);
+  } finally {
+    restore();
+  }
+});
+
+test('runScan — perCompany.warning is null when there is an error', async () => {
+  const portalsConfig = {
+    title_filter: { positive: [], negative: [] },
+    tracked_companies: [
+      { name: 'Broken', careers_url: 'https://jobs.lever.co/broken', enabled: true },
+    ],
+  };
+  const profile = { blacklist_companies: [], target_locations: ['France'] };
+
+  const restore = installMockFetch({
+    'https://api.lever.co/v0/postings/broken?mode=json': { status: 404, body: null },
+  });
+
+  const pipelinePath = path.join(tmp, 'pipeline.md');
+  const historyPath = path.join(tmp, 'scan-history.tsv');
+  const filteredPath = path.join(tmp, 'filtered-out.tsv');
+  const applicationsPath = path.join(tmp, 'applications.md');
+  fs.writeFileSync(applicationsPath, '# Apps\n');
+
+  try {
+    const result = await runScan({
+      portalsConfig,
+      profile,
+      pipelinePath,
+      historyPath,
+      filteredPath,
+      applicationsPath,
+      dryRun: true,
+    });
+    assert.equal(result.perCompany.length, 1);
+    const [entry] = result.perCompany;
+    assert.ok(entry.error);
+    assert.equal(entry.warning, null);
+  } finally {
+    restore();
+  }
+});
+
 test('scan CLI — missing candidate-profile.yml fails with ProfileMissingError', () => {
   const cfgDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-cfg-'));
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-data-'));
