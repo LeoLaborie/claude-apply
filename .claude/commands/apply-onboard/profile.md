@@ -28,6 +28,13 @@ Verify the file exists and is a PDF, then read it with the `Read` tool (Claude C
 - **Education**: each entry with school, degree, field, start, end, graduation year, 1-line description.
 - **Experiences**: each entry with company, title, start, end, description (3–5 lines max).
 - **Languages**: list with `{code, level}` — levels in CEFR (A1…C2) or `native`.
+- **Job-search header** — extract these four fields **only if the CV states them explicitly**. Vague phrasing ("looking for opportunities", "available soon", "open to relocation") does NOT count — leave the field `null` and let step 3 ask the user.
+  - `job_type` — one of `internship | apprenticeship | entry-level | mid-level | senior | other`. Map common synonyms (`stage` → `internship`, `alternance` → `apprenticeship`). No clear match → `null`.
+  - `target_start` — ISO date `YYYY-MM-DD`. If the CV gives only a month (`September 2026`), normalize to the first of that month (`2026-09-01`). Seasons (`fall 2026`) or vague phrases (`as soon as possible`) → `null`.
+  - `duration_months` — integer, only set if `job_type` is `internship` or `apprenticeship`. `6 months`, `6-month`, `semestre` → `6`. Ranges (`4–6 months`) → `null`.
+  - `target_role` — short free-text domain phrase. Extract from a clear "looking for X" / "seeking Y" / role headline. A bare job title with no domain framing → `null`.
+
+Hold these four extracted values (and their `null`s) in mind for step 2.5.
 
 Anything genuinely missing becomes a question in step 3.
 
@@ -37,11 +44,38 @@ Create `config/cv.md` as a clean markdown version of the CV. This file is read b
 
 Detect the language from the CV content (usually `fr` or `en`) and copy the source PDF to `config/cv.<lang>.pdf`. Use this absolute path as `cv_fr_path` or `cv_en_path` later.
 
+## 2.5. Confirm extracted job-search fields
+
+If step 1 extracted **at least one** of the four job-search fields (`job_type`, `target_start`, `duration_months`, `target_role`), show this confirmation **before** the step-3 question block:
+
+Use `AskUserQuestion` with a single question:
+
+- **Question header (in the body)**: `I extracted these from your CV. Confirm or edit?`
+- **Body** — one line per field. Use the extracted value if set, or `<not found>` for `null`:
+
+  ```
+  - Job type:      <value or "<not found>">
+  - Target start:  <value or "<not found>">
+  - Duration:      <value or "<not found>" — only show this line if job_type is internship/apprenticeship>
+  - Target role:   <value or "<not found>">
+  ```
+
+- **Options**:
+  - `confirm` — "Use these values"
+  - `edit` — "Re-ask all four"
+
+Behaviour:
+
+- `confirm` → the extracted values are locked. Treat them as already-answered for step 3.
+- `edit` → reset **all four** extracted values to `null`. Step 3 will re-ask the entire "Job search" sub-block. (Per-field correction is intentionally not offered — the all-or-nothing reset keeps the UX one click and reuses step 3 verbatim.)
+
+If step 1 extracted **zero** of the four fields, skip this section entirely and go straight to step 3.
+
 ## 3. One question block
 
 Use **`AskUserQuestion`** once with everything you could not extract, grouped logically. Do not loop back with follow-ups unless the user's answer is internally inconsistent.
 
-**Job search**
+**Job search** (skip the entire sub-block if step 2.5 confirmed all four fields. Otherwise, only include the bullets whose value is still `null`.)
 
 - **Job type**: internship / apprenticeship / entry-level / mid-level / senior / other
 - **Target start date** (ISO date)
