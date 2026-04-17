@@ -77,3 +77,41 @@ test('verifyCompany — dispatches Workday URL to workday.verifySlug', async () 
     restore();
   }
 });
+
+test('verifyCompany — count=0 on Ashby adds warning', async () => {
+  restore = installMockFetch({
+    'https://api.ashbyhq.com/posting-api/job-board/vercel?includeCompensation=false': {
+      jobs: [],
+    },
+  });
+  const r = await verifyCompany('https://jobs.ashbyhq.com/vercel');
+  assert.equal(r.ok, true);
+  assert.equal(r.count, 0);
+  assert.match(r.warning, /board live but empty/i);
+});
+
+test('verifyCompany — count=0 on Lever adds warning', async () => {
+  restore = installMockFetch({
+    'https://api.lever.co/v0/postings/ghosttown?mode=json': [],
+  });
+  const r = await verifyCompany('https://jobs.lever.co/ghosttown');
+  assert.equal(r.ok, true);
+  assert.equal(r.count, 0);
+  assert.match(r.warning, /board live but empty/i);
+});
+
+test('verifyCompany — count>0 does not add warning', async () => {
+  restore = installMockFetch({
+    'https://api.lever.co/v0/postings/mistral?mode=json': [{ id: '1' }],
+  });
+  const r = await verifyCompany('https://jobs.lever.co/mistral');
+  assert.equal(r.ok, true);
+  assert.equal(r.count, 1);
+  assert.equal(r.warning, undefined);
+});
+
+test('verifyCompany — ok:false does not add warning', async () => {
+  const r = await verifyCompany('https://careers.example.com/jobs');
+  assert.equal(r.ok, false);
+  assert.equal(r.warning, undefined);
+});
