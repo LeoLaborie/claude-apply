@@ -62,3 +62,24 @@ test('extractLocation: malformed ld+json + valid ogLocation falls through', () =
   });
   assert.deepEqual(r, { location: 'Lyon', source: 'meta' });
 });
+
+// ---------- dom ----------
+test('extractLocation: cssLocation when higher strategies empty', () => {
+  const r = extractLocation({
+    ldJsonRaw: '',
+    ogLocation: '',
+    cssLocation: 'Berlin',
+    bodyText: '',
+  });
+  assert.deepEqual(r, { location: 'Berlin', source: 'dom' });
+});
+
+test('extractLocation: cssLocation whitespace-only is treated as empty', () => {
+  const r = extractLocation({
+    ldJsonRaw: '',
+    ogLocation: '',
+    cssLocation: '   \n ',
+    bodyText: '',
+  });
+  assert.deepEqual(r, { location: null, source: null });
+});

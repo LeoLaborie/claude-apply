@@ -7,6 +7,9 @@ export function extractLocation(signals) {
   const fromMeta = trimOrNull(ogLocation);
   if (fromMeta) return { location: fromMeta, source: 'meta' };
 
+  const fromDom = trimOrNull(signals.cssLocation);
+  if (fromDom) return { location: fromDom, source: 'dom' };
+
   return { location: null, source: null };
 }
 
