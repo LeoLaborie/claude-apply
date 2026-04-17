@@ -44,6 +44,8 @@ node src/score/index.mjs <url>
 }
 ```
 
+The `location` field is populated from `<script type="application/ld+json">`, OpenGraph/meta tags, CSS selectors, or a regex on the page body — in that order. When no signal is found, the value is `null` (distinct from the legacy `""` used by entries scored before this feature landed).
+
 ### Score scale and verdict
 
 - `score` is on a **0-10 scale**, emitted by the LLM (10 = perfect match, ≥7 = good, <5 = weak).
