@@ -75,7 +75,7 @@ If step 1 extracted **zero** of the four fields, skip this section entirely and 
 
 Use **`AskUserQuestion`** once with everything you could not extract, grouped logically. Do not loop back with follow-ups unless the user's answer is internally inconsistent.
 
-**Job search**
+**Job search** (skip the entire sub-block if step 2.5 confirmed all four fields. Otherwise, only include the bullets whose value is still `null`.)
 
 - **Job type**: internship / apprenticeship / entry-level / mid-level / senior / other
 - **Target start date** (ISO date)
