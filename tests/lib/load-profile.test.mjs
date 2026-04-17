@@ -25,8 +25,7 @@ work_authorization: EU citizen
 requires_sponsorship: false
 availability_start: '2026-09-01'
 internship_duration_months: 6
-cv_fr_path: a.pdf
-cv_en_path: b.pdf
+cv_path: a.pdf
 auto_apply_min_score: 8
 `;
 
@@ -106,20 +105,18 @@ work_authorization: EU citizen
 requires_sponsorship: false
 availability_start: '2026-09-01'
 internship_duration_months: 6
-cv_fr_path: config/cv.fr.pdf
-cv_en_path: config/cv.en.pdf
+cv_path: config/cv.pdf
 transcript_path: ~/docs/transcript.pdf
 portfolio_path: /abs/portfolio.pdf
 auto_apply_min_score: 8
 `;
 
-test('loadProfile — resolves relative CV paths against explicit repoRoot', async () => {
+test('loadProfile — resolves relative CV path against explicit repoRoot', async () => {
   const dir = makeTmpDir();
   try {
     fs.writeFileSync(path.join(dir, 'candidate-profile.yml'), VALID_YAML_ALL_PATHS);
     const { profile } = await loadProfile(dir, { repoRoot: dir });
-    assert.equal(profile.cv_fr_path, path.join(dir, 'config/cv.fr.pdf'));
-    assert.equal(profile.cv_en_path, path.join(dir, 'config/cv.en.pdf'));
+    assert.equal(profile.cv_path, path.join(dir, 'config/cv.pdf'));
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -167,7 +164,7 @@ test('loadProfile — auto-detects repoRoot via findRepoRoot when not passed', a
     fs.mkdirSync(configDir);
     fs.writeFileSync(path.join(configDir, 'candidate-profile.yml'), VALID_YAML_ALL_PATHS);
     const { profile } = await loadProfile(configDir);
-    assert.equal(profile.cv_fr_path, path.join(fs.realpathSync(repoDir), 'config/cv.fr.pdf'));
+    assert.equal(profile.cv_path, path.join(fs.realpathSync(repoDir), 'config/cv.pdf'));
   } finally {
     fs.rmSync(repoDir, { recursive: true, force: true });
   }

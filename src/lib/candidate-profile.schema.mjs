@@ -14,8 +14,7 @@ export const REQUIRED_FIELDS = [
   'requires_sponsorship',
   'availability_start',
   'internship_duration_months',
-  'cv_fr_path',
-  'cv_en_path',
+  'cv_path',
   'auto_apply_min_score',
 ];
 

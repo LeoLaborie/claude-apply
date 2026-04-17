@@ -57,9 +57,8 @@ languages:
   - { code: en, level: C1 }
   - { code: es, level: A2 }
 
-# --- CV paths (repo-relative recommended; absolute or ~/... also accepted) ---
-cv_fr_path: config/cv.fr.pdf
-cv_en_path: config/cv.en.pdf
+# --- CV path (repo-relative recommended; absolute or ~/... also accepted) ---
+cv_path: config/cv.pdf
 
 # --- Optional document paths (repo-relative, absolute, or ~/... all accepted) ---
 transcript_path: null # releve de notes / academic transcript

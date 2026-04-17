@@ -189,7 +189,7 @@ For each field, in DOM order:
 
 - **Known structured class** (`email`, `first_name`, `phone`, …): resolve via `mapProfileValue(classKey, profile)` and fill using the appropriate method. Verify the final value matches.
 
-- **`cv_upload`**: resolve the CV path from the profile (`profile.cv_fr_path` or `profile.cv_en_path` depending on the detected language).
+- **`cv_upload`**: resolve the CV path from the profile (`profile.cv_path`).
 
   **Never use `form_input` or `javascript_tool` for file inputs** — HTTPS pages block `input.value` writes for `type=file`. Some ATSes even appear to accept a JS-injected `DataTransfer` ("Success! <filename>" in the UI) but the backend silently rejects the file at submit. **CDP is mandatory**. Call the helper:
 

@@ -159,7 +159,7 @@ test('mapProfileValue: transcript/portfolio/other with dedicated paths', () => {
   const profile = {
     first_name: 'Alice',
     last_name: 'Martin',
-    cv_en_path: '/path/to/cv.pdf',
+    cv_path: '/path/to/cv.pdf',
     transcript_path: '/path/to/transcript.pdf',
     portfolio_path: '/path/to/portfolio.pdf',
     other_document_path: '/path/to/other.pdf',
@@ -173,7 +173,7 @@ test('mapProfileValue: transcript/portfolio/other fallback to CV', () => {
   const profile = {
     first_name: 'Alice',
     last_name: 'Martin',
-    cv_en_path: '/path/to/cv.pdf',
+    cv_path: '/path/to/cv.pdf',
   };
   assert.equal(mapProfileValue('transcript_upload', profile), '/path/to/cv.pdf');
   assert.equal(mapProfileValue('portfolio_upload', profile), '/path/to/cv.pdf');
