@@ -347,8 +347,8 @@ async function main() {
       return;
     }
 
-    const { profile, cvMarkdown } = await loadProfile(CONFIG_DIR);
     requireConfig(path.join(CONFIG_DIR, 'cv.md'));
+    const { profile, cvMarkdown } = await loadProfile(CONFIG_DIR);
 
     const startId = parseInt(nextId(evalPath), 10);
     const limit = pLimit(flags.parallel);
@@ -523,8 +523,8 @@ async function main() {
     return;
   }
 
-  const { profile, cvMarkdown } = await loadProfile(CONFIG_DIR);
   requireConfig(path.join(CONFIG_DIR, 'cv.md'));
+  const { profile, cvMarkdown } = await loadProfile(CONFIG_DIR);
 
   const { system, user } = buildPrompt({
     cvMarkdown,
