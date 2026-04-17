@@ -47,7 +47,7 @@ export function slugCandidates(name, platform) {
       extras.add(`${b}hq`);
     }
   }
-  return [...base, ...extras];
+  return [...base, ...extras].filter((s) => !s.includes(' '));
 }
 
 export function loadKnownSlugs(cachePath) {
