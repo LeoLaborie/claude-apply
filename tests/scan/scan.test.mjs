@@ -445,7 +445,7 @@ test('runScan — perCompany.warning set when raw=0 without error', async () => 
     });
     assert.equal(result.perCompany.length, 1);
     const [entry] = result.perCompany;
-    assert.equal(entry.count, 0);
+    assert.equal(entry.rawCount, 0);
     assert.equal(entry.error, null);
     assert.match(entry.warning, /board live but empty/i);
   } finally {
@@ -539,11 +539,21 @@ test('formatSummary — renders ⚠ for a company with a warning', () => {
     scanned: 2,
     raw: 5,
     perCompany: [
-      { company: 'Anthropic', platform: 'lever', count: 5, error: null, warning: null },
+      {
+        company: 'Anthropic',
+        platform: 'lever',
+        rawCount: 5,
+        afterFilterCount: 5,
+        newCount: 5,
+        error: null,
+        warning: null,
+      },
       {
         company: 'Vercel',
         platform: 'ashby',
-        count: 0,
+        rawCount: 0,
+        afterFilterCount: 0,
+        newCount: 0,
         error: null,
         warning: 'board live but empty — possibly wrong slug',
       },
@@ -623,4 +633,135 @@ test('scan CLI — missing portals.yml exits 2 with clean message', () => {
     fs.rmSync(cfgDir, { recursive: true, force: true });
     fs.rmSync(dataDir, { recursive: true, force: true });
   }
+});
+
+test('runScan — perCompany expose rawCount, afterFilterCount, newCount', async () => {
+  const portalsConfig = {
+    title_filter: {
+      positive: ['Intern', 'Stage'],
+      negative: ['Senior'],
+    },
+    tracked_companies: [
+      { name: 'Mistral AI', careers_url: 'https://jobs.lever.co/mistral', enabled: true },
+    ],
+  };
+  const profile = {
+    min_start_date: '2026-08-24',
+    blacklist_companies: [],
+    target_locations: ['France', 'Paris', 'Remote'],
+  };
+
+  const leverJson = [
+    {
+      hostedUrl: 'https://jobs.lever.co/mistral/job1',
+      text: 'Research Intern',
+      categories: { location: 'Paris' },
+      descriptionPlain: 'Stage 6 mois Paris France September 2026.',
+    },
+    {
+      hostedUrl: 'https://jobs.lever.co/mistral/job2',
+      text: 'Senior Engineer',
+      categories: { location: 'Paris' },
+      descriptionPlain: 'Senior Paris France.',
+    },
+    {
+      hostedUrl: 'https://jobs.lever.co/mistral/job3',
+      text: 'Data Intern',
+      categories: { location: 'Paris' },
+      descriptionPlain: 'Stage Paris France September 2026.',
+    },
+  ];
+
+  const restore = installMockFetch({
+    'https://api.lever.co/v0/postings/mistral?mode=json': leverJson,
+  });
+
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-counts-'));
+  const pipelinePath = path.join(tmpDir, 'pipeline.md');
+  const historyPath = path.join(tmpDir, 'scan-history.tsv');
+  const filteredPath = path.join(tmpDir, 'filtered-out.tsv');
+  const applicationsPath = path.join(tmpDir, 'applications.md');
+  fs.writeFileSync(applicationsPath, '# Apps\n');
+
+  try {
+    const result = await runScan({
+      portalsConfig,
+      profile,
+      pipelinePath,
+      historyPath,
+      filteredPath,
+      applicationsPath,
+      dryRun: false,
+    });
+
+    assert.equal(result.perCompany.length, 1);
+    const [entry] = result.perCompany;
+    assert.equal(entry.rawCount, 3, 'rawCount should be total ATS offers');
+    assert.equal(entry.afterFilterCount, 2, 'afterFilterCount: 2 pass prefilter (Senior rejected)');
+    assert.equal(entry.newCount, 2, 'newCount: both passed, none are dups');
+  } finally {
+    restore();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test('formatSummary — cas filtre actif affiche raw → after filter → new', () => {
+  const result = {
+    scanned: 1,
+    raw: 10,
+    perCompany: [
+      {
+        company: 'Anthropic',
+        platform: 'lever',
+        rawCount: 10,
+        afterFilterCount: 3,
+        newCount: 1,
+        error: null,
+        warning: null,
+      },
+    ],
+    filtered: {
+      skipped_dup: 2,
+      skipped_title: 7,
+      skipped_blacklist: 0,
+      skipped_location: 0,
+      skipped_date: 0,
+    },
+    added: [{ company: 'Anthropic', title: 'ML Intern', url: 'https://jobs.lever.co/a/1' }],
+    errors: [],
+    historyWrites: 3,
+  };
+  const out = formatSummary(result, false);
+  assert.match(out, /10 raw → 3 after filter → 1 new/);
+});
+
+test('formatSummary — cas simplifié quand afterFilterCount === rawCount', () => {
+  const result = {
+    scanned: 1,
+    raw: 5,
+    perCompany: [
+      {
+        company: 'Mistral AI',
+        platform: 'lever',
+        rawCount: 5,
+        afterFilterCount: 5,
+        newCount: 0,
+        error: null,
+        warning: null,
+      },
+    ],
+    filtered: {
+      skipped_dup: 5,
+      skipped_title: 0,
+      skipped_blacklist: 0,
+      skipped_location: 0,
+      skipped_date: 0,
+    },
+    added: [],
+    errors: [],
+    historyWrites: 0,
+  };
+  const out = formatSummary(result, false);
+  assert.match(out, /5 raw, 0 new/);
+  assert.doesNotMatch(out, /after filter/);
 });
