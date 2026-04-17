@@ -565,7 +565,7 @@ test('formatSummary — renders ⚠ for a company with a warning', () => {
   assert.match(out, /✓ Anthropic/);
 });
 
-test('scan CLI — missing candidate-profile.yml fails with ProfileMissingError', () => {
+test('scan CLI — missing candidate-profile.yml exits 2 with clean message', () => {
   const cfgDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-cfg-'));
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-data-'));
   try {
@@ -588,13 +588,37 @@ test('scan CLI — missing candidate-profile.yml fails with ProfileMissingError'
       }
     );
 
-    assert.notEqual(res.status, 0, 'expected non-zero exit when profile missing');
-    assert.match(
-      res.stderr,
-      /candidate-profile\.yml/,
-      `expected stderr to mention candidate-profile.yml, got: ${res.stderr}`
+    assert.equal(res.status, 2, `expected exit 2, got ${res.status}`);
+    assert.match(res.stderr, /candidate-profile\.yml/);
+    assert.match(res.stderr, /\/apply-onboard/);
+    assert.doesNotMatch(res.stderr, /\bat async\b|\bat Object\./);
+  } finally {
+    fs.rmSync(cfgDir, { recursive: true, force: true });
+    fs.rmSync(dataDir, { recursive: true, force: true });
+  }
+});
+
+test('scan CLI — missing portals.yml exits 2 with clean message', () => {
+  const cfgDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-cfg-'));
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-data-'));
+  try {
+    const res = spawnSync(
+      process.execPath,
+      [path.join(REPO_ROOT, 'src', 'scan', 'index.mjs'), '--dry-run', '--json'],
+      {
+        env: {
+          ...process.env,
+          CLAUDE_APPLY_CONFIG_DIR: cfgDir,
+          CLAUDE_APPLY_DATA_DIR: dataDir,
+        },
+        encoding: 'utf8',
+      }
     );
-    assert.match(res.stderr, /\/apply-onboard/, `expected stderr to mention /apply-onboard`);
+
+    assert.equal(res.status, 2, `expected exit 2, got ${res.status}`);
+    assert.match(res.stderr, /portals\.yml/);
+    assert.match(res.stderr, /\/apply-onboard/);
+    assert.doesNotMatch(res.stderr, /\bat async\b|\bat Object\./);
   } finally {
     fs.rmSync(cfgDir, { recursive: true, force: true });
     fs.rmSync(dataDir, { recursive: true, force: true });
