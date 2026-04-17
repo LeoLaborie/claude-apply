@@ -44,6 +44,33 @@ Create `config/cv.md` as a clean markdown version of the CV. This file is read b
 
 Detect the language from the CV content (usually `fr` or `en`) and copy the source PDF to `config/cv.<lang>.pdf`. Use this absolute path as `cv_fr_path` or `cv_en_path` later.
 
+## 2.5. Confirm extracted job-search fields
+
+If step 1 extracted **at least one** of the four job-search fields (`job_type`, `target_start`, `duration_months`, `target_role`), show this confirmation **before** the step-3 question block:
+
+Use `AskUserQuestion` with a single question:
+
+- **Question header (in the body)**: `I extracted these from your CV. Confirm or edit?`
+- **Body** — one line per field. Use the extracted value if set, or `<not found>` for `null`:
+
+  ```
+  - Job type:      <value or "<not found>">
+  - Target start:  <value or "<not found>">
+  - Duration:      <value or "<not found>" — only show this line if job_type is internship/apprenticeship>
+  - Target role:   <value or "<not found>">
+  ```
+
+- **Options**:
+  - `confirm` — "Use these values"
+  - `edit` — "Re-ask all four"
+
+Behaviour:
+
+- `confirm` → the extracted values are locked. Treat them as already-answered for step 3.
+- `edit` → reset **all four** extracted values to `null`. Step 3 will re-ask the entire "Job search" sub-block. (Per-field correction is intentionally not offered — the all-or-nothing reset keeps the UX one click and reuses step 3 verbatim.)
+
+If step 1 extracted **zero** of the four fields, skip this section entirely and go straight to step 3.
+
 ## 3. One question block
 
 Use **`AskUserQuestion`** once with everything you could not extract, grouped logically. Do not loop back with follow-ups unless the user's answer is internally inconsistent.
