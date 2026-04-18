@@ -14,6 +14,7 @@ import path from 'node:path';
 import { spawnSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { buildPrompt } from './prompt-builder.mjs';
+import { extractLocation } from './location-extractor.mjs';
 import { appendJsonl, appendFilteredOut } from '../lib/jsonl-writer.mjs';
 import { writeTrackerTsv } from '../lib/tsv-writer.mjs';
 import { detectClosedPage } from '../lib/page-liveness.mjs';
@@ -54,24 +55,31 @@ async function fetchOfferBody(url) {
     const finalUrl = page.url();
 
     const pageTitle = await page.title();
-    const body = await page.evaluate(() => document.body?.innerText || '');
-    const scrapedCompany =
-      (await page.evaluate(() => {
-        const og = document.querySelector('meta[property="og:site_name"]')?.getAttribute('content');
-        if (og) return og;
-        return document.querySelector('h1')?.innerText || '';
-      })) || '';
-    const scrapedLocation = await page.evaluate(() => {
-      const el = document.querySelector('[class*="location" i], [data-testid*="location" i]');
-      return el?.innerText || '';
+    const signals = await page.evaluate(() => {
+      const body = document.body?.innerText || '';
+      const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+      const ldJsonBlocks = scripts.map((s) => s.textContent || '');
+      const ogEl = document.querySelector('meta[property="og:location"], meta[name="location"]');
+      const ogLocation = ogEl?.getAttribute('content') || '';
+      const companyOg = document
+        .querySelector('meta[property="og:site_name"]')
+        ?.getAttribute('content');
+      const scrapedCompany = companyOg || document.querySelector('h1')?.innerText || '';
+      const cssEl = document.querySelector('[class*="location" i], [data-testid*="location" i]');
+      const cssLocation = cssEl?.innerText || '';
+      return { body, ldJsonBlocks, ogLocation, scrapedCompany, cssLocation };
     });
+    const { body, ldJsonBlocks, ogLocation, scrapedCompany, cssLocation } = signals;
     return {
       finalUrl,
       status,
       body,
       scrapedTitle: pageTitle,
       scrapedCompany,
-      scrapedLocation,
+      scrapedLocation: cssLocation,
+      ldJsonBlocks,
+      ogLocation,
+      cssLocation,
     };
   } finally {
     await browser.close();
@@ -81,26 +89,25 @@ async function fetchOfferBody(url) {
 async function buildOffer(url, overrides = {}) {
   const { company, title, location, source } = overrides;
   const fetched = await fetchOfferBody(url);
-  if (source === 'scrape') {
-    return {
-      url,
-      finalUrl: fetched.finalUrl,
-      status: fetched.status,
-      body: fetched.body,
-      title: fetched.scrapedTitle || '',
-      company: extractCompanyFromUrl(url) || fetched.scrapedCompany || '',
-      location: fetched.scrapedLocation || '',
-      metadata_source: 'scrape',
-    };
-  }
+  const extracted = extractLocation({
+    ldJsonBlocks: fetched.ldJsonBlocks,
+    ogLocation: fetched.ogLocation,
+    cssLocation: fetched.cssLocation,
+    bodyText: fetched.body,
+  });
+  const overrideLocation = trimLoc(location);
+  const resolvedLocation = overrideLocation || extracted.location;
   return {
     url,
     finalUrl: fetched.finalUrl,
     status: fetched.status,
     body: fetched.body,
-    title: title ?? '',
-    company: company ?? '',
-    location: location ?? '',
+    title: source === 'scrape' ? fetched.scrapedTitle || '' : (title ?? ''),
+    company:
+      source === 'scrape'
+        ? extractCompanyFromUrl(url) || fetched.scrapedCompany || ''
+        : (company ?? ''),
+    location: resolvedLocation,
     metadata_source: source,
   };
 }
@@ -177,6 +184,20 @@ export function callClaudeAsync(system, user) {
     proc.stdin.write(user);
     proc.stdin.end();
   });
+}
+
+function trimLoc(v) {
+  return typeof v === 'string' ? v.trim() : '';
+}
+
+function hasLocationSignals(offer) {
+  if (!offer || typeof offer !== 'object') return false;
+  const blocks = offer.ldJsonBlocks;
+  if (Array.isArray(blocks) && blocks.length > 0) return true;
+  if (typeof offer.ogLocation === 'string' && offer.ogLocation.trim()) return true;
+  if (typeof offer.cssLocation === 'string' && offer.cssLocation.trim()) return true;
+  if (typeof offer.body === 'string' && offer.body.trim()) return true;
+  return false;
 }
 
 export const DEFAULT_AUTO_APPLY_MIN_SCORE = 7;
@@ -372,11 +393,19 @@ async function main() {
       return limit(async () => {
         try {
           const fetched = await fetchOfferBody(offer.url);
+          const extracted = extractLocation({
+            ldJsonBlocks: fetched.ldJsonBlocks,
+            ogLocation: fetched.ogLocation,
+            cssLocation: fetched.cssLocation,
+            bodyText: fetched.body,
+          });
+          const pipelineLoc = trimLoc(offer.location);
           const fullOffer = {
             ...offer,
             finalUrl: fetched.finalUrl,
             status: fetched.status,
             body: fetched.body,
+            location: pipelineLoc || extracted.location,
             metadata_source: 'pipeline',
           };
 
@@ -416,7 +445,7 @@ async function main() {
             company: fullOffer.company || 'unknown',
             role: fullOffer.title || 'unknown',
             url: fullOffer.url || '',
-            location: fullOffer.location || '',
+            location: fullOffer.location ?? null,
             metadata_source: 'pipeline',
             score: scoredResult.score,
             verdict,
@@ -471,6 +500,15 @@ async function main() {
   if (flags.jsonInput) {
     offer = JSON.parse(fs.readFileSync(flags.jsonInput, 'utf8'));
     if (!offer.metadata_source) offer.metadata_source = 'json-input';
+    if (!trimLoc(offer.location) && hasLocationSignals(offer)) {
+      const { location } = extractLocation({
+        ldJsonBlocks: offer.ldJsonBlocks,
+        ogLocation: offer.ogLocation,
+        cssLocation: offer.cssLocation,
+        bodyText: offer.body,
+      });
+      if (location) offer.location = location;
+    }
   } else {
     if (!flags.url) {
       console.error(
@@ -549,7 +587,7 @@ async function main() {
     company: offer.company || 'unknown',
     role: offer.title || 'unknown',
     url: offer.url || '',
-    location: offer.location || '',
+    location: offer.location ?? null,
     metadata_source: offer.metadata_source || 'unknown',
     score: scored.score,
     verdict,
