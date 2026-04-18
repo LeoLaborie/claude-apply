@@ -44,6 +44,7 @@ The three metadata flags are **all-or-nothing**: pass all three or none. Mixing 
 - `--company "..."` `--role "..."` `--location "..."` — authoritative metadata overrides. Must be passed together.
 - `--id NNN` — force the evaluation id (default: auto-increment from the last line of `evaluations.jsonl`).
 - `--json-input <path>` — bypass URL fetch; read a pre-built offer JSON blob (used by tests and agent pipelines).
+- `--re-score` — re-evaluate an offer already present in `data/evaluations.jsonl`. Preserves the existing `id`; refreshes `score`, `reason`, `date`, `verdict`, `company`, `role`, `location`. Compatible with single URL, `--from-pipeline`, and `--batch`. `--id` is ignored when `--re-score` is used.
 
 ## Output
 
@@ -86,6 +87,29 @@ node src/score/index.mjs --batch [--parallel N]
 Progress is logged to stderr. Each scored record is printed to stdout as a JSON line.
 
 Idempotent: re-running `--batch` only scores offers not yet in `evaluations.jsonl`.
+
+## Re-scoring existing evaluations
+
+Use `--re-score` after updating `config/cv.md`, changing the scoring prompt, or noticing a stale score. It re-fetches the page and rewrites the matching entry in `data/evaluations.jsonl` in place.
+
+```bash
+# Single URL (must already be in evaluations.jsonl)
+node src/score/index.mjs <url> --re-score
+
+# Preferred: pull metadata from pipeline.md
+node src/score/index.mjs <url> --from-pipeline --re-score
+
+# Batch: re-score every offer in pipeline.md.
+# Already-scored offers are overwritten; offers not yet scored are scored for the first time.
+node src/score/index.mjs --batch --re-score
+```
+
+Behaviour:
+
+- The `id` of the existing entry is preserved so report links do not break.
+- The old `data/tracker-additions/<id>-*.tsv` files are deleted before a new TSV is written (useful when company/role — hence the slug — change).
+- If the page is now closed/broken during a re-score, the existing entry is **kept** (not overwritten, not moved to `filtered-out.tsv`). A warning is logged.
+- Single-URL re-score exits 2 if the URL is absent from `evaluations.jsonl`.
 
 ## Next step
 
