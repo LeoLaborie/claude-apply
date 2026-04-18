@@ -3,7 +3,7 @@
 // title_filter / blacklist / location / start-date rules.
 //
 // Usage:
-//   node src/scan/explain.mjs "Some Job Title" [--company "Foo"]
+//   node src/scan/explain.mjs "Some Job Title" [--company "Foo"] [--location "<location>"]
 //
 // Reads config/portals.yml and (optionally) config/candidate-profile.yml from
 // CLAUDE_APPLY_CONFIG_DIR or the repo's ./config dir. Inlines a tiny YAML
