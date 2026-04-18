@@ -887,3 +887,26 @@ test('formatSummary — shows scanned/eligibleTotal ratio (item 4)', () => {
   const out = formatSummary(result, true);
   assert.match(out, /Entreprises scannées : 1\/3/);
 });
+
+test('formatSummary — lists filtered-out.tsv in updated files block (item 5)', () => {
+  const result = {
+    scanned: 1,
+    eligibleTotal: 1,
+    raw: 1,
+    perCompany: [],
+    filtered: {
+      skipped_dup: 0,
+      skipped_title: 1,
+      skipped_blacklist: 0,
+      skipped_location: 0,
+      skipped_date: 0,
+    },
+    added: [],
+    errors: [],
+    historyWrites: 1,
+    filteredWrites: 1,
+  };
+  const out = formatSummary(result, false);
+  assert.match(out, /Fichiers mis à jour/);
+  assert.match(out, /filtered-out\.tsv\s+\(\+1 lignes?\)/);
+});
