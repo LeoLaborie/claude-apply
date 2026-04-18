@@ -213,3 +213,27 @@ test('parseScoreArgs — --parallel without value defaults to 5', () => {
 test('parseScoreArgs — --batch + --from-pipeline throws', () => {
   assert.throws(() => parseScoreArgs(['--batch', '--from-pipeline']), /mutually exclusive/);
 });
+
+test('parseScoreArgs — --re-score flag (single URL)', () => {
+  const f = parseScoreArgs(['https://jobs.example.com/a', '--re-score']);
+  assert.equal(f.reScore, true);
+  assert.equal(f.url, 'https://jobs.example.com/a');
+  assert.equal(f.batch, false);
+});
+
+test('parseScoreArgs — --re-score + --batch', () => {
+  const f = parseScoreArgs(['--batch', '--re-score']);
+  assert.equal(f.reScore, true);
+  assert.equal(f.batch, true);
+});
+
+test('parseScoreArgs — --re-score + --from-pipeline', () => {
+  const f = parseScoreArgs(['https://jobs.example.com/a', '--from-pipeline', '--re-score']);
+  assert.equal(f.reScore, true);
+  assert.equal(f.fromPipeline, true);
+});
+
+test('parseScoreArgs — --re-score absent → false par défaut', () => {
+  const f = parseScoreArgs(['https://jobs.example.com/a']);
+  assert.equal(f.reScore, false);
+});

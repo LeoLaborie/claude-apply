@@ -276,6 +276,7 @@ export function parseScoreArgs(argv) {
     fromPipeline: false,
     batch: false,
     parallel: 5,
+    reScore: false,
   };
 
   function take(name) {
@@ -306,6 +307,11 @@ export function parseScoreArgs(argv) {
   if (fpIdx !== -1) {
     flags.fromPipeline = true;
     args.splice(fpIdx, 1);
+  }
+  const rsIdx = args.indexOf('--re-score');
+  if (rsIdx !== -1) {
+    flags.reScore = true;
+    args.splice(rsIdx, 1);
   }
   flags.url = args.find((a) => !a.startsWith('--')) || null;
 
