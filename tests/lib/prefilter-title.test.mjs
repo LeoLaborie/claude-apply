@@ -79,21 +79,9 @@ test('checkTitle: required_any uses word-boundary (regression guard)', () => {
   assert.match(r.reason, /required_any/);
 });
 
-test('checkTitle: required_any matches keyword in body (issue #40 regression)', () => {
+test('checkTitle: required_any fails when keyword absent from title', () => {
   const wl = { positive: ['intern'], negative: [], required_any: ['machine learning'] };
-  const offer = {
-    title: 'Software Engineering Intern - Data Platform',
-    body: 'You will work on our machine learning infrastructure team.',
-  };
-  assert.deepEqual(checkTitle(offer, wl), { pass: true });
-});
-
-test('checkTitle: required_any fails when keyword absent from both title and body', () => {
-  const wl = { positive: ['intern'], negative: [], required_any: ['machine learning'] };
-  const offer = {
-    title: 'Marketing Intern',
-    body: 'Help us plan social media campaigns and write blog posts.',
-  };
+  const offer = { title: 'Marketing Intern' };
   const r = checkTitle(offer, wl);
   assert.equal(r.pass, false);
   assert.match(r.reason, /missing required_any keyword/);
@@ -104,9 +92,20 @@ test('checkTitle: required_any still matches when keyword is only in title', () 
   assert.deepEqual(checkTitle({ title: 'ML Intern', body: '' }, wl), { pass: true });
 });
 
-test('checkTitle: required_any fails cleanly on empty body (Workday case)', () => {
+test('checkTitle: required_any checks title only', () => {
   const wl = { positive: ['intern'], negative: [], required_any: ['ml'] };
   const r = checkTitle({ title: 'Software Engineering Intern', body: '' }, wl);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /missing required_any keyword/);
+});
+
+test('checkTitle: required_any rejects non-tech title even when body mentions tech keyword (issue #62 regression)', () => {
+  const wl = { positive: ['intern'], negative: [], required_any: ['software', 'engineer', 'AI'] };
+  const offer = {
+    title: 'General Secretary Associate intern',
+    body: 'You will use our software platform to manage documents.',
+  };
+  const r = checkTitle(offer, wl);
   assert.equal(r.pass, false);
   assert.match(r.reason, /missing required_any keyword/);
 });
