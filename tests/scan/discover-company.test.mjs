@@ -46,6 +46,17 @@ test('slugCandidates — multi-mots produit noSpace, hyphen et alnum', () => {
   assert.ok(cands.includes('scale-ai'));
 });
 
+test('slugCandidates — aucun candidat ne contient un espace', () => {
+  for (const platform of ['lever', 'greenhouse', 'ashby']) {
+    const cands = slugCandidates('Hugging Face', platform);
+    for (const slug of cands) {
+      assert.ok(!slug.includes(' '), `slug contient un espace : "${slug}" (platform: ${platform})`);
+    }
+    assert.ok(cands.includes('huggingface'));
+    assert.ok(cands.includes('hugging-face'));
+  }
+});
+
 test('discoverCompany — bascule sur Greenhouse quand Lever échoue', async () => {
   restore = installMockFetch({
     'https://api.lever.co/v0/postings/doctolib?mode=json': { status: 404, body: {} },
