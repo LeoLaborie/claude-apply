@@ -638,9 +638,7 @@ async function main() {
       process.exit(2);
     }
     if (flags.id) {
-      console.error(
-        `[re-score] --id ignored: preserving existing id ${existingRescore.id}`
-      );
+      console.error(`[re-score] --id ignored: preserving existing id ${existingRescore.id}`);
     }
   }
 

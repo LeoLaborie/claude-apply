@@ -57,14 +57,18 @@ test('updateJsonlEntry — remplace la première ligne correspondante', () => {
   appendJsonl(p, { id: '002', url: 'https://a/2', score: 4.0 });
   appendJsonl(p, { id: '003', url: 'https://a/3', score: 5.0 });
 
-  const prev = updateJsonlEntry(
-    p,
-    (e) => e.url === 'https://a/2',
-    { id: '002', url: 'https://a/2', score: 4.5 }
-  );
+  const prev = updateJsonlEntry(p, (e) => e.url === 'https://a/2', {
+    id: '002',
+    url: 'https://a/2',
+    score: 4.5,
+  });
 
   assert.deepEqual(prev, { id: '002', url: 'https://a/2', score: 4.0 });
-  const lines = fs.readFileSync(p, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+  const lines = fs
+    .readFileSync(p, 'utf8')
+    .trim()
+    .split('\n')
+    .map((l) => JSON.parse(l));
   assert.equal(lines.length, 3);
   assert.deepEqual(lines[0], { id: '001', url: 'https://a/1', score: 3.0 });
   assert.deepEqual(lines[1], { id: '002', url: 'https://a/2', score: 4.5 });
