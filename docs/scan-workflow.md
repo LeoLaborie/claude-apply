@@ -61,6 +61,26 @@ tracked_companies:
 
 When set, `positive` and `negative` filters still apply — only `required_any` is skipped.
 
+### Per-company override: `target_locations`
+
+For companies where the acceptable locations differ from your global preference (e.g. a remote-first employer where "Berlin" is de-facto Remote, or a dream company where you'd accept a specific foreign city), declare a per-company `target_locations` array:
+
+```yaml
+tracked_companies:
+  - name: DeepMind
+    careers_url: https://boards.greenhouse.io/deepmind
+    target_locations:
+      - London
+      - Remote
+      - France
+```
+
+Semantics:
+
+- **Key absent** → the global `target_locations` from `candidate-profile.yml` applies (default, unchanged behavior).
+- **Array present** → strict override; the global list is ignored for this company.
+- **Empty array `[]`** → treated as a deliberate strict override with zero accepted locations — every offer is rejected on the location check. Omit the key instead if you want the global fallback.
+
 ## Deduplication
 
 `data/scan-history.tsv` is the source of truth. Every offer ever seen is recorded with its URL, title, company, and `first_seen` timestamp. On subsequent scans, known URLs are dropped before writing anything. `data/applications.md` is also consulted — if you already tracked an offer (manually or via `/apply`), it won't be re-added to the pipeline.
