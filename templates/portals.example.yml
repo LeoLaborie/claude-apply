@@ -15,6 +15,12 @@ tracked_companies:
   - name: Anthropic
     careers_url: https://jobs.lever.co/Anthropic
     enabled: true
+    # Optional per-company override: accept roles located in London or Remote
+    # for this company only, regardless of the global target_locations.
+    # Omit the key entirely to fall back to the global list.
+    # target_locations:
+    #   - London
+    #   - Remote
   - name: Photoroom
     careers_url: https://jobs.lever.co/photoroom
     enabled: true
