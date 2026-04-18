@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { getScoredUrls, getAllPipelineOffers } from '../../src/score/index.mjs';
+import {
+  getScoredUrls,
+  getAllPipelineOffers,
+  findEvaluationByUrl,
+} from '../../src/score/index.mjs';
 
 function mkTmp() {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'score-batch-'));
@@ -98,4 +102,30 @@ test('batch ID pre-allocation — sequential from last ID', () => {
   const startId = max + 1;
   const ids = Array.from({ length: 3 }, (_, i) => String(startId + i).padStart(3, '0'));
   assert.deepEqual(ids, ['006', '007', '008']);
+});
+
+test("findEvaluationByUrl — retourne l'entrée quand l'URL existe", () => {
+  const tmp = mkTmp();
+  const evalPath = path.join(tmp, 'data', 'evaluations.jsonl');
+  fs.writeFileSync(
+    evalPath,
+    [
+      JSON.stringify({ id: '001', url: 'https://a/1', score: 3 }),
+      JSON.stringify({ id: '002', url: 'https://a/2', score: 4 }),
+    ].join('\n') + '\n'
+  );
+  const hit = findEvaluationByUrl(evalPath, 'https://a/2');
+  assert.equal(hit.id, '002');
+  assert.equal(hit.score, 4);
+});
+
+test("findEvaluationByUrl — null quand l'URL est absente", () => {
+  const tmp = mkTmp();
+  const evalPath = path.join(tmp, 'data', 'evaluations.jsonl');
+  fs.writeFileSync(evalPath, JSON.stringify({ id: '001', url: 'https://a/1' }) + '\n');
+  assert.equal(findEvaluationByUrl(evalPath, 'https://missing'), null);
+});
+
+test("findEvaluationByUrl — null quand le fichier n'existe pas", () => {
+  assert.equal(findEvaluationByUrl('/tmp/nonexistent-evals-abc123.jsonl', 'https://x'), null);
 });
