@@ -765,3 +765,103 @@ test('formatSummary — cas simplifié quand afterFilterCount === rawCount', () 
   assert.match(out, /5 raw, 0 new/);
   assert.doesNotMatch(out, /after filter/);
 });
+
+test('runScan — per-company target_locations overrides global', async () => {
+  const portalsConfig = {
+    title_filter: { positive: ['Intern'], negative: [] },
+    tracked_companies: [
+      {
+        name: 'DeepMind',
+        careers_url: 'https://boards.greenhouse.io/deepmind',
+        enabled: true,
+        target_locations: ['London', 'Remote'],
+      },
+      {
+        name: 'Mistral AI',
+        careers_url: 'https://jobs.lever.co/mistral',
+        enabled: true,
+        target_locations: [], // empty array = strict override (not fallback to global)
+      },
+      {
+        name: 'Photoroom',
+        careers_url: 'https://jobs.ashbyhq.com/photoroom',
+        enabled: true,
+      },
+    ],
+  };
+  const profile = {
+    min_start_date: '2026-08-24',
+    blacklist_companies: [],
+    target_locations: ['Paris', 'France', 'Remote'],
+  };
+
+  const greenhouseJson = {
+    jobs: [
+      {
+        id: 1,
+        absolute_url: 'https://boards.greenhouse.io/deepmind/jobs/1',
+        title: 'Research Intern',
+        location: { name: 'London, UK' },
+        content: 'Internship in London starting September 2026.',
+        updated_at: '2026-04-01T00:00:00Z',
+      },
+    ],
+  };
+  const leverJson = [
+    {
+      hostedUrl: 'https://jobs.lever.co/mistral/job-x',
+      text: 'Research Intern',
+      categories: { location: 'Paris' },
+      descriptionPlain: 'Paris, France, September 2026.',
+    },
+  ];
+  const ashbyJson = {
+    jobs: [
+      {
+        jobUrl: 'https://jobs.ashbyhq.com/photoroom/job-y',
+        title: 'ML Intern',
+        location: 'London, UK',
+        descriptionPlain: 'London September 2026.',
+      },
+    ],
+  };
+
+  const restore = installMockFetch({
+    'https://boards-api.greenhouse.io/v1/boards/deepmind/jobs?content=true': greenhouseJson,
+    'https://api.lever.co/v0/postings/mistral?mode=json': leverJson,
+    'https://api.ashbyhq.com/posting-api/job-board/photoroom?includeCompensation=false': ashbyJson,
+  });
+
+  const pipelinePath = path.join(tmp, 'pipeline.md');
+  const historyPath = path.join(tmp, 'scan-history.tsv');
+  const filteredPath = path.join(tmp, 'filtered-out.tsv');
+  const applicationsPath = path.join(tmp, 'applications.md');
+  fs.writeFileSync(applicationsPath, '# Apps\n');
+
+  const result = await runScan({
+    portalsConfig,
+    profile,
+    pipelinePath,
+    historyPath,
+    filteredPath,
+    applicationsPath,
+    dryRun: false,
+  });
+
+  restore();
+
+  const addedCompanies = result.added.map((o) => o.company).sort();
+  assert.deepEqual(
+    addedCompanies,
+    ['DeepMind'],
+    `expected only DeepMind offer to pass, got ${JSON.stringify(addedCompanies)}`
+  );
+  assert.equal(
+    result.filtered.skipped_location,
+    2,
+    'Mistral (empty override rejects Paris) + Photoroom (no override, London not in global) both rejected on location'
+  );
+  assert.equal(result.filtered.skipped_title, 0);
+  assert.equal(result.filtered.skipped_date, 0);
+  assert.equal(result.filtered.skipped_blacklist, 0);
+});
