@@ -100,14 +100,14 @@ export async function runScan(opts) {
     .filter((c) => c.enabled !== false)
     .filter((c) => detectPlatform(c.careers_url) !== null);
 
-  const eligibleTotal = companies.length;
-
   if (onlySlug) {
     companies = companies.filter((c) => {
       const d = detectPlatform(c.careers_url);
       return d && d.slug === onlySlug;
     });
   }
+
+  const eligibleTotal = companies.length;
 
   const companyByName = new Map(companies.map((c) => [c.name, c]));
   const fetchResults = await Promise.all(companies.map((c) => fetchCompanyOffers(c, whitelist)));
