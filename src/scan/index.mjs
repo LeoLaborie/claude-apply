@@ -151,7 +151,9 @@ export async function runScan(opts) {
       perCompany.push({
         company: result.company,
         platform: result.platform,
-        count: 0,
+        rawCount: 0,
+        afterFilterCount: 0,
+        newCount: 0,
         error: result.error,
         warning: null,
       });
@@ -162,7 +164,8 @@ export async function runScan(opts) {
           total: fetchResults.length,
           company: result.company,
           platform: result.platform,
-          count: 0,
+          rawCount: 0,
+          afterFilterCount: 0,
           newCount: 0,
           error: result.error,
         });
@@ -170,15 +173,6 @@ export async function runScan(opts) {
       continue;
     }
 
-    const warning =
-      result.offers.length === 0 ? 'board live but empty — possibly wrong slug' : null;
-    perCompany.push({
-      company: result.company,
-      platform: result.platform,
-      count: result.offers.length,
-      error: null,
-      warning,
-    });
     raw += result.offers.length;
 
     const companyConfig = companyByName.get(result.company);
@@ -186,23 +180,17 @@ export async function runScan(opts) {
       ? { ...prefilterConfig, whitelist: { ...whitelist, required_any: [] } }
       : prefilterConfig;
 
+    let companyAfterFilter = 0;
     let companyNew = 0;
     for (const offer of result.offers) {
-      if (seen.has(offer.url)) {
-        // URL already in scan-history or applications.md — no need to re-log
-        // (it already has a row with its original status). Just count it.
-        filtered.skipped_dup++;
-        continue;
-      }
-      seen.add(offer.url); // prevent intra-run duplicates
-
       let check;
       try {
         check = runPrefilter(offer, effectiveConfig);
       } catch (err) {
         filtered.skipped_other = (filtered.skipped_other || 0) + 1;
         errors.push({ company: offer.company, error: `prefilter: ${err.message}` });
-        if (!dryRun) {
+        if (!dryRun && !seen.has(offer.url)) {
+          seen.add(offer.url);
           appendHistoryRow(historyPath, {
             url: offer.url,
             first_seen: today,
@@ -215,10 +203,12 @@ export async function runScan(opts) {
         }
         continue;
       }
+
       if (!check.pass) {
         const status = reasonToStatus(check.reason);
         filtered[status] = (filtered[status] || 0) + 1;
-        if (!dryRun) {
+        if (!dryRun && !seen.has(offer.url)) {
+          seen.add(offer.url);
           appendHistoryRow(historyPath, {
             url: offer.url,
             first_seen: today,
@@ -239,6 +229,15 @@ export async function runScan(opts) {
         continue;
       }
 
+      // Offer passed prefilter — count it before dedup check
+      companyAfterFilter++;
+
+      if (seen.has(offer.url)) {
+        filtered.skipped_dup++;
+        continue;
+      }
+      seen.add(offer.url);
+
       added.push(offer);
       companyNew++;
       appendOffer(doc, offer);
@@ -255,6 +254,18 @@ export async function runScan(opts) {
       }
     }
 
+    const warning =
+      result.offers.length === 0 ? 'board live but empty — possibly wrong slug' : null;
+    perCompany.push({
+      company: result.company,
+      platform: result.platform,
+      rawCount: result.offers.length,
+      afterFilterCount: companyAfterFilter,
+      newCount: companyNew,
+      error: null,
+      warning,
+    });
+
     progressIndex++;
     if (onProgress) {
       onProgress({
@@ -262,7 +273,8 @@ export async function runScan(opts) {
         total: fetchResults.length,
         company: result.company,
         platform: result.platform,
-        count: result.offers.length,
+        rawCount: result.offers.length,
+        afterFilterCount: companyAfterFilter,
         newCount: companyNew,
         error: null,
       });
@@ -290,7 +302,11 @@ export function formatSummary(result, dryRun) {
       : c.warning
         ? `(${c.platform} — ${c.warning})`
         : `(${c.platform})`;
-    lines.push(`  ${mark} ${c.company.padEnd(18)} ${String(c.count).padStart(3)} offres ${note}`);
+    const counts =
+      c.error || c.rawCount === c.afterFilterCount
+        ? `${c.rawCount} raw, ${c.newCount} new`
+        : `${c.rawCount} raw → ${c.afterFilterCount} after filter → ${c.newCount} new`;
+    lines.push(`  ${mark} ${c.company.padEnd(18)} ${counts} ${note}`);
   }
   lines.push('');
   lines.push('Filtrage :');
@@ -357,13 +373,16 @@ async function main() {
     applicationsPath: path.join(DATA_DIR, 'applications.md'),
     dryRun,
     onlySlug,
-    onProgress: ({ index, total, company, count, newCount, error }) => {
+    onProgress: ({ index, total, company, rawCount, afterFilterCount, newCount, error }) => {
       if (error) {
         process.stderr.write(`[${index}/${total}] \u2717 ${company} \u2014 ${error}\n`);
       } else {
-        process.stderr.write(
-          `[${index}/${total}] \u2713 ${company} \u2014 ${count} raw, ${newCount} new\n`
-        );
+        const alreadySeen = afterFilterCount - newCount;
+        const line =
+          afterFilterCount === rawCount
+            ? `${rawCount} raw, ${newCount} new`
+            : `${rawCount} raw \u2192 ${afterFilterCount} after filter \u2192 ${newCount} new (${alreadySeen} already seen)`;
+        process.stderr.write(`[${index}/${total}] \u2713 ${company} \u2014 ${line}\n`);
       }
     },
   });

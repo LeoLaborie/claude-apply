@@ -86,7 +86,7 @@ test('onProgress is called once per company with correct shape', async () => {
   assert.equal(calls[0].total, 2);
   assert.equal(calls[0].company, 'Acme Corp');
   assert.equal(calls[0].platform, 'lever');
-  assert.equal(calls[0].count, 2);
+  assert.equal(calls[0].rawCount, 2);
   assert.equal(calls[0].newCount, 1);
   assert.equal(calls[0].error, null);
 
@@ -95,7 +95,7 @@ test('onProgress is called once per company with correct shape', async () => {
   assert.equal(calls[1].total, 2);
   assert.equal(calls[1].company, 'Beta Inc');
   assert.equal(calls[1].platform, 'ashby');
-  assert.equal(calls[1].count, 1);
+  assert.equal(calls[1].rawCount, 1);
   assert.equal(calls[1].newCount, 1);
   assert.equal(calls[1].error, null);
 });
@@ -138,7 +138,7 @@ test('onProgress reports errors for failing companies', async () => {
   assert.equal(calls[0].index, 1);
   assert.equal(calls[0].total, 1);
   assert.equal(calls[0].company, 'Broken Co');
-  assert.equal(calls[0].count, 0);
+  assert.equal(calls[0].rawCount, 0);
   assert.ok(calls[0].error, 'expected a non-null error');
 });
 
