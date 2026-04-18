@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { appendJsonl, appendFilteredOut } from '../../src/lib/jsonl-writer.mjs';
+import { appendJsonl, appendFilteredOut, updateJsonlEntry } from '../../src/lib/jsonl-writer.mjs';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'co-'));
 
@@ -49,4 +49,62 @@ test('appendFilteredOut échappe les tabs dans les champs', () => {
   });
   const line = fs.readFileSync(p, 'utf8').trim();
   assert.equal(line.split('\t').length, 5);
+});
+
+test('updateJsonlEntry — remplace la première ligne correspondante', () => {
+  const p = path.join(tmp, 'evals.jsonl');
+  appendJsonl(p, { id: '001', url: 'https://a/1', score: 3.0 });
+  appendJsonl(p, { id: '002', url: 'https://a/2', score: 4.0 });
+  appendJsonl(p, { id: '003', url: 'https://a/3', score: 5.0 });
+
+  const prev = updateJsonlEntry(
+    p,
+    (e) => e.url === 'https://a/2',
+    { id: '002', url: 'https://a/2', score: 4.5 }
+  );
+
+  assert.deepEqual(prev, { id: '002', url: 'https://a/2', score: 4.0 });
+  const lines = fs.readFileSync(p, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+  assert.equal(lines.length, 3);
+  assert.deepEqual(lines[0], { id: '001', url: 'https://a/1', score: 3.0 });
+  assert.deepEqual(lines[1], { id: '002', url: 'https://a/2', score: 4.5 });
+  assert.deepEqual(lines[2], { id: '003', url: 'https://a/3', score: 5.0 });
+});
+
+test('updateJsonlEntry — retourne null et ne modifie rien quand rien ne match', () => {
+  const p = path.join(tmp, 'evals.jsonl');
+  appendJsonl(p, { id: '001', url: 'https://a/1', score: 3.0 });
+  const before = fs.readFileSync(p, 'utf8');
+
+  const prev = updateJsonlEntry(p, (e) => e.url === 'https://missing', { id: '999' });
+
+  assert.equal(prev, null);
+  const after = fs.readFileSync(p, 'utf8');
+  assert.equal(before, after);
+});
+
+test('updateJsonlEntry — préserve les lignes JSON invalides sans crasher', () => {
+  const p = path.join(tmp, 'evals.jsonl');
+  fs.writeFileSync(
+    p,
+    [
+      JSON.stringify({ id: '001', url: 'https://a/1' }),
+      'this is not json',
+      JSON.stringify({ id: '002', url: 'https://a/2' }),
+    ].join('\n') + '\n'
+  );
+
+  updateJsonlEntry(p, (e) => e.url === 'https://a/2', { id: '002', url: 'https://a/2', score: 9 });
+
+  const lines = fs.readFileSync(p, 'utf8').trim().split('\n');
+  assert.equal(lines.length, 3);
+  assert.equal(lines[1], 'this is not json');
+  assert.deepEqual(JSON.parse(lines[2]), { id: '002', url: 'https://a/2', score: 9 });
+});
+
+test('updateJsonlEntry — file manquant retourne null', () => {
+  const p = path.join(tmp, 'missing.jsonl');
+  const prev = updateJsonlEntry(p, () => true, {});
+  assert.equal(prev, null);
+  assert.equal(fs.existsSync(p), false);
 });
