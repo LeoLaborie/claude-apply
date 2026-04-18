@@ -100,6 +100,8 @@ export async function runScan(opts) {
     .filter((c) => c.enabled !== false)
     .filter((c) => detectPlatform(c.careers_url) !== null);
 
+  const eligibleTotal = companies.length;
+
   if (onlySlug) {
     companies = companies.filter((c) => {
       const d = detectPlatform(c.careers_url);
@@ -291,7 +293,16 @@ export async function runScan(opts) {
     writePipelineMd(pipelinePath, doc);
   }
 
-  return { scanned: companies.length, raw, perCompany, filtered, added, errors, historyWrites };
+  return {
+    scanned: companies.length,
+    eligibleTotal,
+    raw,
+    perCompany,
+    filtered,
+    added,
+    errors,
+    historyWrites,
+  };
 }
 
 export function formatSummary(result, dryRun) {
@@ -299,7 +310,7 @@ export function formatSummary(result, dryRun) {
   const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
   lines.push(`Portal Scan — ${now}`);
   lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  lines.push(`Entreprises scannées : ${result.scanned}/${result.scanned}`);
+  lines.push(`Entreprises scannées : ${result.scanned}/${result.eligibleTotal ?? result.scanned}`);
   lines.push(`Offres brutes         : ${result.raw}`);
   for (const c of result.perCompany) {
     const mark = c.error ? '✗' : c.warning ? '⚠' : '✓';

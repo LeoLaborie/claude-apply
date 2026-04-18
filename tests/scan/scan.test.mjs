@@ -865,3 +865,25 @@ test('runScan — per-company target_locations overrides global', async () => {
   assert.equal(result.filtered.skipped_date, 0);
   assert.equal(result.filtered.skipped_blacklist, 0);
 });
+
+test('formatSummary — shows scanned/eligibleTotal ratio (item 4)', () => {
+  const result = {
+    scanned: 1,
+    eligibleTotal: 3,
+    raw: 0,
+    perCompany: [],
+    filtered: {
+      skipped_dup: 0,
+      skipped_title: 0,
+      skipped_blacklist: 0,
+      skipped_location: 0,
+      skipped_date: 0,
+    },
+    added: [],
+    errors: [],
+    historyWrites: 0,
+    filteredWrites: 0,
+  };
+  const out = formatSummary(result, true);
+  assert.match(out, /Entreprises scannées : 1\/3/);
+});
