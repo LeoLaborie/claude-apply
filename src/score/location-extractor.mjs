@@ -1,7 +1,7 @@
 export function extractLocation(signals) {
-  const { ldJsonRaw, ogLocation } = signals;
+  const { ldJsonBlocks, ogLocation } = signals;
 
-  const fromJsonLd = tryJsonLd(ldJsonRaw);
+  const fromJsonLd = tryJsonLd(ldJsonBlocks);
   if (fromJsonLd) return { location: fromJsonLd, source: 'jsonld' };
 
   const fromMeta = trimOrNull(ogLocation);
@@ -34,20 +34,35 @@ function tryRegex(bodyText) {
   return null;
 }
 
-function tryJsonLd(raw) {
-  if (!raw || typeof raw !== 'string') return null;
-  // separator injected by fetchOfferBody's page.evaluate
-  const blocks = raw.split('\n---\n');
+function tryJsonLd(blocks) {
+  if (!Array.isArray(blocks) || blocks.length === 0) return null;
   for (const block of blocks) {
-    const obj = safeParse(block);
-    if (!obj) continue;
-    const loc = pickLocalityFromJobPosting(obj);
-    if (loc) return loc;
+    const parsed = safeParse(block);
+    if (!parsed) continue;
+    for (const node of expandJsonLd(parsed)) {
+      const loc = pickLocalityFromJobPosting(node);
+      if (loc) return loc;
+    }
   }
   return null;
 }
 
+function expandJsonLd(parsed) {
+  const roots = Array.isArray(parsed) ? parsed : [parsed];
+  const nodes = [];
+  for (const root of roots) {
+    if (!root || typeof root !== 'object') continue;
+    if (Array.isArray(root['@graph'])) {
+      for (const child of root['@graph']) nodes.push(child);
+    } else {
+      nodes.push(root);
+    }
+  }
+  return nodes;
+}
+
 function safeParse(s) {
+  if (typeof s !== 'string' || s.trim().length === 0) return null;
   try {
     return JSON.parse(s);
   } catch {
@@ -56,7 +71,7 @@ function safeParse(s) {
 }
 
 function pickLocalityFromJobPosting(obj) {
-  if (obj?.['@type'] !== 'JobPosting') return null;
+  if (!isJobPosting(obj)) return null;
   const jobLoc = obj?.jobLocation;
   const locs = Array.isArray(jobLoc) ? jobLoc : [jobLoc];
   for (const jl of locs) {
@@ -66,6 +81,13 @@ function pickLocalityFromJobPosting(obj) {
     if (v) return v;
   }
   return null;
+}
+
+function isJobPosting(obj) {
+  const t = obj?.['@type'];
+  if (typeof t === 'string') return t === 'JobPosting';
+  if (Array.isArray(t)) return t.includes('JobPosting');
+  return false;
 }
 
 function trimOrNull(s) {

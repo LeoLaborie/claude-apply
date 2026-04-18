@@ -58,7 +58,7 @@ async function fetchOfferBody(url) {
     const signals = await page.evaluate(() => {
       const body = document.body?.innerText || '';
       const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
-      const ldJsonRaw = scripts.map((s) => s.innerHTML).join('\n---\n');
+      const ldJsonBlocks = scripts.map((s) => s.textContent || '');
       const ogEl = document.querySelector('meta[property="og:location"], meta[name="location"]');
       const ogLocation = ogEl?.getAttribute('content') || '';
       const companyOg = document
@@ -67,17 +67,17 @@ async function fetchOfferBody(url) {
       const scrapedCompany = companyOg || document.querySelector('h1')?.innerText || '';
       const cssEl = document.querySelector('[class*="location" i], [data-testid*="location" i]');
       const cssLocation = cssEl?.innerText || '';
-      return { body, ldJsonRaw, ogLocation, scrapedCompany, cssLocation };
+      return { body, ldJsonBlocks, ogLocation, scrapedCompany, cssLocation };
     });
-    const { body, ldJsonRaw, ogLocation, scrapedCompany, cssLocation } = signals;
+    const { body, ldJsonBlocks, ogLocation, scrapedCompany, cssLocation } = signals;
     return {
       finalUrl,
       status,
       body,
       scrapedTitle: pageTitle,
       scrapedCompany,
-      scrapedLocation: cssLocation, // backward-compat alias; prefer cssLocation
-      ldJsonRaw,
+      scrapedLocation: cssLocation,
+      ldJsonBlocks,
       ogLocation,
       cssLocation,
     };
@@ -90,7 +90,7 @@ async function buildOffer(url, overrides = {}) {
   const { company, title, location, source } = overrides;
   const fetched = await fetchOfferBody(url);
   const extracted = extractLocation({
-    ldJsonRaw: fetched.ldJsonRaw,
+    ldJsonBlocks: fetched.ldJsonBlocks,
     ogLocation: fetched.ogLocation,
     cssLocation: fetched.cssLocation,
     bodyText: fetched.body,
@@ -188,6 +188,16 @@ export function callClaudeAsync(system, user) {
 
 function trimLoc(v) {
   return typeof v === 'string' ? v.trim() : '';
+}
+
+function hasLocationSignals(offer) {
+  if (!offer || typeof offer !== 'object') return false;
+  const blocks = offer.ldJsonBlocks;
+  if (Array.isArray(blocks) && blocks.length > 0) return true;
+  if (typeof offer.ogLocation === 'string' && offer.ogLocation.trim()) return true;
+  if (typeof offer.cssLocation === 'string' && offer.cssLocation.trim()) return true;
+  if (typeof offer.body === 'string' && offer.body.trim()) return true;
+  return false;
 }
 
 export const DEFAULT_AUTO_APPLY_MIN_SCORE = 7;
@@ -384,7 +394,7 @@ async function main() {
         try {
           const fetched = await fetchOfferBody(offer.url);
           const extracted = extractLocation({
-            ldJsonRaw: fetched.ldJsonRaw,
+            ldJsonBlocks: fetched.ldJsonBlocks,
             ogLocation: fetched.ogLocation,
             cssLocation: fetched.cssLocation,
             bodyText: fetched.body,
@@ -490,6 +500,15 @@ async function main() {
   if (flags.jsonInput) {
     offer = JSON.parse(fs.readFileSync(flags.jsonInput, 'utf8'));
     if (!offer.metadata_source) offer.metadata_source = 'json-input';
+    if (!trimLoc(offer.location) && hasLocationSignals(offer)) {
+      const { location } = extractLocation({
+        ldJsonBlocks: offer.ldJsonBlocks,
+        ogLocation: offer.ogLocation,
+        cssLocation: offer.cssLocation,
+        bodyText: offer.body,
+      });
+      if (location) offer.location = location;
+    }
   } else {
     if (!flags.url) {
       console.error(
