@@ -42,7 +42,7 @@ Anything genuinely missing becomes a question in step 3.
 
 Create `config/cv.md` as a clean markdown version of the CV. This file is read by `/score` and the cover-letter generator — faithful to the PDF, flowing markdown (no tables, `##` for sections). Do not paraphrase or embellish.
 
-Detect the language from the CV content (usually `fr` or `en`) and copy the source PDF to `config/cv.<lang>.pdf`. Record this as a **repo-relative path** (e.g. `cv_fr_path: config/cv.fr.pdf`) so the profile stays portable between machines. Absolute and `~/`-prefixed paths are also accepted if the user already stores their CV elsewhere.
+Copy the source PDF to `config/cv.pdf`. Record this as a **repo-relative path** (`cv_path: config/cv.pdf`) so the profile stays portable between machines. Absolute and `~/`-prefixed paths are also accepted if the user already stores their CV elsewhere.
 
 ## 2.5. Confirm extracted job-search fields
 
@@ -117,7 +117,7 @@ Sources:
 
 - Extracted from the CV: `first_name`, `last_name`, `email`, `phone`, `linkedin_url`, `github_url`, `city`, `country`, `school`, `degree`, `graduation_year`, `education[]`, `experiences[]`, `languages[]`.
 - From the question block: `availability_start`, `internship_duration_months`, `work_authorization`, `requires_sponsorship`, `auto_apply_min_score`, optionally `blacklist_companies` and `min_start_date`.
-- From step 2: `cv_fr_path` and `cv_en_path`.
+- From step 2: `cv_path`.
 - EEO fields default to `null` unless explicitly provided: `gender`, `ethnicity`, `veteran_status`, `disability_status`.
 
 Do NOT write `config/profile.yml` or `config/profile-condensed.md` — those files are no longer read by any command (`/score` reads `config/cv.md` directly).

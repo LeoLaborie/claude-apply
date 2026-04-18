@@ -43,8 +43,7 @@ test('validateProfile accepts optional EEO fields as null', () => {
     requires_sponsorship: false,
     availability_start: '2026-09-01',
     internship_duration_months: 6,
-    cv_fr_path: 'candidate-cv-fr.pdf',
-    cv_en_path: 'candidate-cv-en.pdf',
+    cv_path: 'candidate-cv.pdf',
     auto_apply_min_score: 8,
     gender: null,
     ethnicity: null,
@@ -72,8 +71,7 @@ test('validateProfile accepts blacklist_companies and min_start_date as optional
     requires_sponsorship: false,
     availability_start: '2026-09-01',
     internship_duration_months: 6,
-    cv_fr_path: 'candidate-cv-fr.pdf',
-    cv_en_path: 'candidate-cv-en.pdf',
+    cv_path: 'candidate-cv.pdf',
     auto_apply_min_score: 8,
     blacklist_companies: ['Evil Corp', 'Other Co'],
     min_start_date: '2026-08-24',
@@ -99,8 +97,7 @@ test('validateProfile rejects non-array blacklist_companies', () => {
     requires_sponsorship: false,
     availability_start: '2026-09-01',
     internship_duration_months: 6,
-    cv_fr_path: 'a.pdf',
-    cv_en_path: 'b.pdf',
+    cv_path: 'a.pdf',
     auto_apply_min_score: 8,
     blacklist_companies: 'not an array',
   });
@@ -125,11 +122,56 @@ test('validateProfile rejects badly-formatted min_start_date', () => {
     requires_sponsorship: false,
     availability_start: '2026-09-01',
     internship_duration_months: 6,
-    cv_fr_path: 'a.pdf',
-    cv_en_path: 'b.pdf',
+    cv_path: 'a.pdf',
     auto_apply_min_score: 8,
     min_start_date: '24 August 2026',
   });
   assert.equal(ok, false);
   assert.ok(errors.some((e) => e.includes('min_start_date')));
+});
+
+test('validateProfile accepts profile with cv_path only', () => {
+  const { ok, errors } = validateProfile({
+    first_name: 'Alice',
+    last_name: 'Martin',
+    email: 'alice@example.com',
+    phone: '+33600000000',
+    linkedin_url: 'https://linkedin.com/in/a',
+    github_url: 'https://github.com/a',
+    city: 'Paris',
+    country: 'France',
+    school: 'S',
+    degree: 'D',
+    graduation_year: 2026,
+    work_authorization: 'EU',
+    requires_sponsorship: false,
+    availability_start: '2026-09-01',
+    internship_duration_months: 6,
+    cv_path: 'cv.pdf',
+    auto_apply_min_score: 8,
+  });
+  assert.equal(ok, true, `errors: ${JSON.stringify(errors)}`);
+});
+
+test('validateProfile rejects profile without cv_path', () => {
+  const { ok, errors } = validateProfile({
+    first_name: 'Alice',
+    last_name: 'Martin',
+    email: 'alice@example.com',
+    phone: '+33600000000',
+    linkedin_url: 'https://linkedin.com/in/a',
+    github_url: 'https://github.com/a',
+    city: 'Paris',
+    country: 'France',
+    school: 'S',
+    degree: 'D',
+    graduation_year: 2026,
+    work_authorization: 'EU',
+    requires_sponsorship: false,
+    availability_start: '2026-09-01',
+    internship_duration_months: 6,
+    auto_apply_min_score: 8,
+  });
+  assert.equal(ok, false);
+  assert.ok(errors.some((e) => e.includes('cv_path')));
 });

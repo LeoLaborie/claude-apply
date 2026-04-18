@@ -62,8 +62,7 @@ ethnicity: null
 veteran_status: null
 disability_status: null
 
-cv_fr_path: candidate-cv-fr.pdf
-cv_en_path: candidate-cv-en.pdf
+cv_path: candidate-cv.pdf
 
 auto_apply_min_score: 8
 

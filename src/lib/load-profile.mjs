@@ -13,13 +13,7 @@ export class ProfileInvalidError extends Error {
   }
 }
 
-const PATH_FIELDS = [
-  'cv_fr_path',
-  'cv_en_path',
-  'transcript_path',
-  'portfolio_path',
-  'other_document_path',
-];
+const PATH_FIELDS = ['cv_path', 'transcript_path', 'portfolio_path', 'other_document_path'];
 
 function resolveOnePath(p, repoRoot) {
   if (p == null) return p;
