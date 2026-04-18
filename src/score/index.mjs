@@ -244,6 +244,18 @@ export function getScoredUrls(evaluationsPath) {
   return urls;
 }
 
+export function findEvaluationByUrl(evaluationsPath, url) {
+  if (!fs.existsSync(evaluationsPath)) return null;
+  const lines = fs.readFileSync(evaluationsPath, 'utf8').trim().split('\n').filter(Boolean);
+  for (const line of lines) {
+    try {
+      const obj = JSON.parse(line);
+      if (obj.url === url) return obj;
+    } catch {}
+  }
+  return null;
+}
+
 export function getAllPipelineOffers(pipelinePath) {
   if (!fs.existsSync(pipelinePath)) return [];
   const doc = readPipelineMd(pipelinePath);
