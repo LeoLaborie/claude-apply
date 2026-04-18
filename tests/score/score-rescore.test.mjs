@@ -139,6 +139,43 @@ test("--re-score: URL présente → remplace la ligne, préserve l'id, supprime 
   assert.match(newTsvs[0], /^007-newco\.tsv$/);
 });
 
+test("--re-score: page closed → entry inchangée, pas d'écriture filtered-out", () => {
+  const tmp = mkTmp();
+  const evalPath = path.join(tmp, 'data', 'evaluations.jsonl');
+  const filteredPath = path.join(tmp, 'data', 'filtered-out.tsv');
+  const tsvDir = path.join(tmp, 'data', 'tracker-additions');
+
+  const original = {
+    id: '011',
+    date: '2026-01-01',
+    company: 'C',
+    role: 'R',
+    url: 'https://x/11',
+    score: 3.5,
+    verdict: 'skip',
+    reason: 'original',
+    status: 'Evaluated',
+  };
+  fs.writeFileSync(evalPath, JSON.stringify(original) + '\n');
+  fs.writeFileSync(path.join(tsvDir, '011-c.tsv'), 'original tsv\n');
+
+  const offerPath = writeOfferJson(tmp, {
+    url: 'https://x/11',
+    finalUrl: 'https://x/11',
+    status: 404,
+    body: '',
+  });
+
+  const proc = runScore(['--json-input', offerPath, '--re-score'], tmp);
+
+  assert.equal(proc.status, 0, `stderr: ${proc.stderr}`);
+  assert.match(proc.stderr, /page closed.*keeping existing score/);
+  const line = JSON.parse(fs.readFileSync(evalPath, 'utf8').trim());
+  assert.deepEqual(line, original);
+  assert.equal(fs.existsSync(filteredPath), false);
+  assert.equal(fs.existsSync(path.join(tsvDir, '011-c.tsv')), true);
+});
+
 test('--re-score + --id NNN: --id ignoré, id existant préservé (warning stderr)', () => {
   const tmp = mkTmp();
   const evalPath = path.join(tmp, 'data', 'evaluations.jsonl');
