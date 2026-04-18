@@ -176,9 +176,15 @@ export async function runScan(opts) {
     raw += result.offers.length;
 
     const companyConfig = companyByName.get(result.company);
-    const effectiveConfig = companyConfig?.skip_required_any
-      ? { ...prefilterConfig, whitelist: { ...whitelist, required_any: [] } }
-      : prefilterConfig;
+    const effectiveConfig = {
+      ...prefilterConfig,
+      ...(companyConfig?.skip_required_any && {
+        whitelist: { ...whitelist, required_any: [] },
+      }),
+      ...(Array.isArray(companyConfig?.target_locations) && {
+        targetLocations: companyConfig.target_locations,
+      }),
+    };
 
     let companyAfterFilter = 0;
     let companyNew = 0;
