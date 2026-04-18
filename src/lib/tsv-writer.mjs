@@ -34,3 +34,16 @@ export function writeTrackerTsv(dir, { num, date, company, role, score, notes })
   fs.writeFileSync(filePath, line + '\n', 'utf8');
   return filePath;
 }
+
+export function removeTrackerTsvById(dir, id) {
+  if (!fs.existsSync(dir)) return [];
+  const prefix = `${id}-`;
+  const removed = [];
+  for (const name of fs.readdirSync(dir)) {
+    if (name.startsWith(prefix) && name.endsWith('.tsv')) {
+      fs.unlinkSync(path.join(dir, name));
+      removed.push(name);
+    }
+  }
+  return removed;
+}
