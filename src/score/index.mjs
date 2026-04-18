@@ -28,6 +28,22 @@ import { extractCompanyFromUrl } from '../lib/extract-company.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function fetchOfferBody(url) {
+  if (process.env.CLAUDE_APPLY_STUB_FETCH) {
+    const body =
+      `Stub JD for ${url}. Senior engineer role with a long description ` +
+      'that is long enough to pass the body-length liveness check. '.repeat(10);
+    return {
+      finalUrl: url,
+      status: 200,
+      body,
+      scrapedTitle: 'Stub Title',
+      scrapedCompany: '',
+      scrapedLocation: '',
+      ldJsonBlocks: [],
+      ogLocation: '',
+      cssLocation: '',
+    };
+  }
   const { chromium } = await import('playwright');
   const browser = await chromium.launch({ headless: true });
   try {
@@ -382,39 +398,47 @@ async function main() {
   if (flags.batch) {
     const pipelinePath = path.join(DATA_DIR, 'pipeline.md');
     const evalPath = path.join(DATA_DIR, 'evaluations.jsonl');
+    const tsvDir = path.join(DATA_DIR, 'tracker-additions');
 
     const allOffers = getAllPipelineOffers(pipelinePath);
     const scored = getScoredUrls(evalPath);
-    const pending = allOffers.filter((o) => !scored.has(o.url));
+    const pending = flags.reScore ? allOffers : allOffers.filter((o) => !scored.has(o.url));
 
     if (pending.length === 0) {
-      console.error('[batch] Nothing to score — all offers already evaluated.');
+      console.error(
+        flags.reScore
+          ? '[batch] Nothing in pipeline.md to re-score.'
+          : '[batch] Nothing to score — all offers already evaluated.'
+      );
       return;
     }
 
     requireConfig(path.join(CONFIG_DIR, 'cv.md'));
     const { profile, cvMarkdown } = await loadProfile(CONFIG_DIR);
 
-    const startId = parseInt(nextId(evalPath), 10);
+    let nextAvailId = parseInt(nextId(evalPath), 10);
+    const writeLock = pLimit(1);
     const limit = pLimit(flags.parallel);
     const startTime = Date.now();
 
     let completed = 0;
     let countScored = 0;
+    let countRescored = 0;
     let countFiltered = 0;
+    let countKeptClosed = 0;
     let countError = 0;
     let countApply = 0;
     let countSkip = 0;
 
     console.error(
-      `[batch] Scoring ${pending.length} offers (${flags.parallel} parallel workers)...`
+      `[batch] ${flags.reScore ? 'Re-scoring' : 'Scoring'} ${pending.length} offers (${flags.parallel} parallel workers)...`
     );
 
-    const tasks = pending.map((offer, idx) => {
-      const id = String(startId + idx).padStart(3, '0');
-
+    const tasks = pending.map((offer) => {
       return limit(async () => {
         try {
+          const existing = flags.reScore ? findEvaluationByUrl(evalPath, offer.url) : null;
+          const isRescore = !!existing;
           const fetched = await fetchOfferBody(offer.url);
           const extracted = extractLocation({
             ldJsonBlocks: fetched.ldJsonBlocks,
@@ -434,18 +458,33 @@ async function main() {
 
           const liveness = detectClosedPage(fullOffer);
           if (liveness.closed) {
+            if (isRescore) {
+              completed++;
+              countKeptClosed++;
+              const label = `${offer.company} — ${offer.title}`;
+              console.error(
+                `[batch]  [${completed}/${pending.length}] ⊘ ${label.padEnd(45)} kept (closed: ${liveness.reason})`
+              );
+              return null;
+            }
             const date = new Date().toISOString().slice(0, 10);
-            appendFilteredOut(path.join(DATA_DIR, 'filtered-out.tsv'), {
-              date,
-              url: offer.url,
-              company: offer.company || 'unknown',
-              title: offer.title || '',
-              reason: `liveness: ${liveness.reason}`,
-            });
-            const result = { skipped: true, reason: liveness.reason };
+            await writeLock(async () =>
+              appendFilteredOut(path.join(DATA_DIR, 'filtered-out.tsv'), {
+                date,
+                url: offer.url,
+                company: offer.company || 'unknown',
+                title: offer.title || '',
+                reason: `liveness: ${liveness.reason}`,
+              })
+            );
             completed++;
             countFiltered++;
-            console.error(formatProgress(completed, pending.length, offer, result));
+            console.error(
+              formatProgress(completed, pending.length, offer, {
+                skipped: true,
+                reason: liveness.reason,
+              })
+            );
             return null;
           }
 
@@ -462,6 +501,12 @@ async function main() {
           );
 
           const date = new Date().toISOString().slice(0, 10);
+
+          let id;
+          await writeLock(async () => {
+            id = isRescore ? existing.id : String(nextAvailId++).padStart(3, '0');
+          });
+
           const record = {
             id,
             date,
@@ -476,26 +521,32 @@ async function main() {
             status: 'Evaluated',
           };
 
-          appendJsonl(evalPath, record);
-          const tsvDir = path.join(DATA_DIR, 'tracker-additions');
-          writeTrackerTsv(tsvDir, {
-            num: id,
-            date,
-            company: record.company,
-            role: record.role,
-            score: scoredResult.score,
-            notes: scoredResult.reason,
+          await writeLock(async () => {
+            if (isRescore) {
+              updateJsonlEntry(evalPath, (e) => e.url === record.url, record);
+              removeTrackerTsvById(tsvDir, id);
+            } else {
+              appendJsonl(evalPath, record);
+            }
+            writeTrackerTsv(tsvDir, {
+              num: id,
+              date,
+              company: record.company,
+              role: record.role,
+              score: scoredResult.score,
+              notes: scoredResult.reason,
+            });
           });
 
           completed++;
-          countScored++;
+          if (isRescore) countRescored++;
+          else countScored++;
           if (verdict === 'apply') countApply++;
           else countSkip++;
+          const marker = isRescore ? '↻' : '✓';
+          const label = `${offer.company} — ${offer.title}`;
           console.error(
-            formatProgress(completed, pending.length, offer, {
-              score: scoredResult.score,
-              verdict,
-            })
+            `[batch]  [${completed}/${pending.length}] ${marker} ${label.padEnd(45)} ${scoredResult.score} ${verdict}`
           );
           console.log(JSON.stringify(record));
           return record;
@@ -511,9 +562,15 @@ async function main() {
     await Promise.allSettled(tasks);
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
-    console.error(
-      `[batch] Done: ${countScored} scored, ${countFiltered} filtered, ${countError} error (${pending.length} total)`
-    );
+    if (flags.reScore) {
+      console.error(
+        `[batch] Done: ${countRescored} re-scored, ${countScored} scored, ${countFiltered} filtered, ${countKeptClosed} kept (closed), ${countError} error (${pending.length} total)`
+      );
+    } else {
+      console.error(
+        `[batch] Done: ${countScored} scored, ${countFiltered} filtered, ${countError} error (${pending.length} total)`
+      );
+    }
     console.error(`[batch] Results: ${countApply} apply, ${countSkip} skip`);
     console.error(`[batch] Time: ${elapsed}s (${flags.parallel} parallel workers)`);
     return;

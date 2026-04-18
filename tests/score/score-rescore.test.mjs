@@ -176,6 +176,100 @@ test("--re-score: page closed → entry inchangée, pas d'écriture filtered-out
   assert.equal(fs.existsSync(path.join(tsvDir, '011-c.tsv')), true);
 });
 
+test('--batch --re-score: mélange re-score et score initial, progress distinct', () => {
+  const tmp = mkTmp();
+  const evalPath = path.join(tmp, 'data', 'evaluations.jsonl');
+  const pipePath = path.join(tmp, 'data', 'pipeline.md');
+  const tsvDir = path.join(tmp, 'data', 'tracker-additions');
+
+  fs.writeFileSync(
+    evalPath,
+    [
+      JSON.stringify({
+        id: '001',
+        date: '2026-01-01',
+        company: 'Alpha',
+        role: 'RoleA',
+        url: 'https://a/1',
+        score: 2.0,
+        verdict: 'skip',
+        reason: 'old',
+        status: 'Evaluated',
+      }),
+      JSON.stringify({
+        id: '002',
+        date: '2026-01-01',
+        company: 'Beta',
+        role: 'RoleB',
+        url: 'https://b/1',
+        score: 3.0,
+        verdict: 'skip',
+        reason: 'old',
+        status: 'Evaluated',
+      }),
+    ].join('\n') + '\n'
+  );
+  fs.writeFileSync(path.join(tsvDir, '001-alpha.tsv'), 'old a\n');
+  fs.writeFileSync(path.join(tsvDir, '002-beta.tsv'), 'old b\n');
+  fs.writeFileSync(
+    pipePath,
+    [
+      '# Pipeline',
+      '',
+      '## Alpha (Paris)',
+      '',
+      '- [ ] https://a/1 | Alpha | RoleA',
+      '',
+      '## Beta (Paris)',
+      '',
+      '- [ ] https://b/1 | Beta | RoleB',
+      '',
+      '## Gamma (Paris)',
+      '',
+      '- [ ] https://c/1 | Gamma | RoleC',
+      '',
+    ].join('\n')
+  );
+
+  const proc = runScore(['--batch', '--re-score', '--parallel', '1'], tmp, {
+    CLAUDE_APPLY_STUB_SCORE: '4.0',
+    CLAUDE_APPLY_STUB_REASON: 'refreshed',
+    CLAUDE_APPLY_STUB_FETCH: '1',
+  });
+
+  assert.equal(proc.status, 0, `stderr: ${proc.stderr}`);
+  const lines = fs
+    .readFileSync(evalPath, 'utf8')
+    .trim()
+    .split('\n')
+    .map((l) => JSON.parse(l));
+  assert.equal(lines.length, 3);
+
+  const a = lines.find((l) => l.url === 'https://a/1');
+  const b = lines.find((l) => l.url === 'https://b/1');
+  const c = lines.find((l) => l.url === 'https://c/1');
+
+  assert.equal(a.id, '001');
+  assert.equal(a.score, 4.0);
+  assert.equal(a.reason, 'refreshed');
+  assert.equal(b.id, '002');
+  assert.equal(b.score, 4.0);
+  assert.equal(c.id, '003');
+  assert.equal(c.score, 4.0);
+
+  assert.match(proc.stderr, /↻.*Alpha/);
+  assert.match(proc.stderr, /↻.*Beta/);
+  assert.match(proc.stderr, /✓.*Gamma/);
+  assert.match(proc.stderr, /2 re-scored, 1 scored/);
+
+  const tsvA = fs.readFileSync(path.join(tsvDir, '001-alpha.tsv'), 'utf8');
+  assert.match(tsvA, /refreshed/);
+  assert.doesNotMatch(tsvA, /old a/);
+  const tsvB = fs.readFileSync(path.join(tsvDir, '002-beta.tsv'), 'utf8');
+  assert.match(tsvB, /refreshed/);
+  assert.doesNotMatch(tsvB, /old b/);
+});
+
 test('--re-score + --id NNN: --id ignoré, id existant préservé (warning stderr)', () => {
   const tmp = mkTmp();
   const evalPath = path.join(tmp, 'data', 'evaluations.jsonl');
