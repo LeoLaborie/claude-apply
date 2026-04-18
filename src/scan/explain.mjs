@@ -39,13 +39,19 @@ function loadYamlRequired(filePath) {
 function parseArgs(argv) {
   const args = argv.slice(2);
   if (args.length === 0 || args[0].startsWith('--')) {
-    return { error: 'usage: node src/scan/explain.mjs "<title>" [--company "<company>"]' };
+    return {
+      error:
+        'usage: node src/scan/explain.mjs "<title>" [--company "<company>"] [--location "<location>"]',
+    };
   }
   const title = args[0];
   let company = '';
   const ci = args.indexOf('--company');
   if (ci >= 0) company = args[ci + 1] || '';
-  return { title, company };
+  let location = '';
+  const li = args.indexOf('--location');
+  if (li >= 0) location = args[li + 1] || '';
+  return { title, company, location };
 }
 
 function runTrace(offer, config) {
@@ -53,7 +59,7 @@ function runTrace(offer, config) {
   const steps = [
     { name: 'title', fn: () => checkTitle(offer, config.whitelist) },
     { name: 'blacklist', fn: () => checkBlacklist(offer, config.blacklist) },
-    { name: 'location', fn: () => checkLocation(offer) },
+    { name: 'location', fn: () => checkLocation(offer, config.targetLocations) },
   ];
   if (config.minStartDate) {
     steps.push({ name: 'start_date', fn: () => checkStartDate(offer, config.minStartDate) });
@@ -112,13 +118,21 @@ function main() {
   const profile = loadYamlOptional(path.join(CONFIG_DIR, 'candidate-profile.yml'));
 
   const whitelist = portals.title_filter || { positive: [], negative: [] };
+  const targetLocations =
+    profile.target_locations || [profile.country, profile.city, 'Remote'].filter(Boolean);
   const config = {
     whitelist,
     blacklist: profile.blacklist_companies || [],
     minStartDate: profile.min_start_date || null,
+    targetLocations,
   };
 
-  const offer = { title: parsed.title, company: parsed.company, body: '' };
+  const offer = {
+    title: parsed.title,
+    company: parsed.company,
+    body: '',
+    location: parsed.location || '',
+  };
   const outcome = runTrace(offer, config);
   console.log(formatTrace(offer, outcome, whitelist));
   process.exit(outcome.pass ? 0 : 1);

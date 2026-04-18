@@ -75,3 +75,24 @@ test('explain: exits 2 with a usage error if no title given', () => {
   assert.equal(res.status, 2);
   assert.match(res.stderr, /usage/i);
 });
+
+test('explain: rejects offer whose location is not in target_locations (item 6)', () => {
+  const dir = makeFixtureConfig(
+    'tracked_companies: []\ntitle_filter:\n  positive:\n    - engineer\n  negative: []\n',
+    'target_locations:\n  - Paris\n  - Remote\nmin_start_date: "2026-08-24"\n'
+  );
+  const res = runExplain(['ML Engineer', '--location', 'Tokyo'], dir);
+  assert.equal(res.status, 1, `stderr: ${res.stderr}`);
+  assert.match(res.stdout, /location/i);
+  assert.match(res.stdout, /not in target zones|Tokyo/i);
+});
+
+test('explain: accepts offer matching target_locations (item 6)', () => {
+  const dir = makeFixtureConfig(
+    'tracked_companies: []\ntitle_filter:\n  positive:\n    - engineer\n  negative: []\n',
+    'target_locations:\n  - Paris\n  - Remote\nmin_start_date: "2026-08-24"\n'
+  );
+  const res = runExplain(['ML Engineer', '--location', 'Remote'], dir);
+  assert.equal(res.status, 0, `stderr: ${res.stderr}`);
+  assert.match(res.stdout, /ACCEPTED/);
+});
