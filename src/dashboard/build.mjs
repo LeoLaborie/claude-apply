@@ -147,6 +147,10 @@ export async function buildDashboard({
       if (!r.url && ev.url) r.url = ev.url;
       if (ev.verdict) r.verdict = ev.verdict;
       if (ev.reason && !r.notes) r.notes = ev.reason;
+      if (ev.score != null) {
+        const n = typeof ev.score === 'number' ? ev.score : parseFloat(ev.score);
+        if (Number.isFinite(n)) r.score = n;
+      }
     }
   }
 
