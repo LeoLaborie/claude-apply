@@ -107,3 +107,90 @@ test('buildDashboard includes filtered-out entries when tsv has data', async () 
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+function setupScoreFixture({ appScore, evalEntry }) {
+  const dir = mkdtempSync(join(tmpdir(), 'dash-score-'));
+  mkdirSync(join(dir, 'data'), { recursive: true });
+  mkdirSync(join(dir, 'reports'), { recursive: true });
+
+  writeFileSync(
+    join(dir, 'data', 'applications.md'),
+    [
+      '# Applications Tracker',
+      '',
+      HEADER_LINE,
+      SEPARATOR_LINE,
+      `| 1 | 2026-04-10 | ScoreCo | Engineer | ${appScore} | Applied |  |  |  |`,
+    ].join('\n')
+  );
+
+  writeFileSync(
+    join(dir, 'data', 'evaluations.jsonl'),
+    evalEntry ? JSON.stringify(evalEntry) + '\n' : ''
+  );
+  writeFileSync(join(dir, 'data', 'filtered-out.tsv'), '');
+
+  return dir;
+}
+
+async function runAndRead(dir) {
+  const outPath = join(dir, 'dashboard.html');
+  await buildDashboard({
+    applicationsPath: join(dir, 'data', 'applications.md'),
+    reportsDir: join(dir, 'reports'),
+    evaluationsPath: join(dir, 'data', 'evaluations.jsonl'),
+    filteredOutPath: join(dir, 'data', 'filtered-out.tsv'),
+    outputPath: outPath,
+  });
+  return readFileSync(outPath, 'utf8');
+}
+
+test('buildDashboard uses evaluations.jsonl score when applications.md has —', async () => {
+  const dir = setupScoreFixture({
+    appScore: '—',
+    evalEntry: { id: '001', score: 8.4, reason: 'ok', verdict: 'apply' },
+  });
+  try {
+    const html = await runAndRead(dir);
+    assert.match(html, /<td class="score">8\.4<\/td>/, 'score should be 8.4 from evaluations');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('buildDashboard prefers evaluations.jsonl score over applications.md', async () => {
+  const dir = setupScoreFixture({
+    appScore: '4.2',
+    evalEntry: { id: '001', score: 8.4, reason: 'ok', verdict: 'apply' },
+  });
+  try {
+    const html = await runAndRead(dir);
+    assert.match(html, /<td class="score">8\.4<\/td>/, 'evaluations score wins');
+    assert.doesNotMatch(html, /<td class="score">4\.2<\/td>/, 'stale applications score gone');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('buildDashboard falls back to applications.md score when no evaluations match', async () => {
+  const dir = setupScoreFixture({ appScore: '7.0', evalEntry: null });
+  try {
+    const html = await runAndRead(dir);
+    assert.match(html, /<td class="score">7\.0<\/td>/, 'fallback to applications score');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('buildDashboard ignores malformed evaluations score and uses fallback', async () => {
+  const dir = setupScoreFixture({
+    appScore: '7.0',
+    evalEntry: { id: '001', score: 'not-a-number', reason: 'x', verdict: 'skip' },
+  });
+  try {
+    const html = await runAndRead(dir);
+    assert.match(html, /<td class="score">7\.0<\/td>/, 'malformed score ignored, fallback used');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
