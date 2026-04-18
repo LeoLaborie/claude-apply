@@ -5,8 +5,9 @@
 //   --company X --role Y --location Z   Authoritative metadata overrides (all-or-nothing)
 //   --json-input <path>   Read pre-built offer JSON instead of fetching
 //   --id NNN          Force evaluation id (default: auto-increment)
+//   --re-score        Re-evaluate a URL already in evaluations.jsonl; preserves existing id
 // Builds prompt, calls `claude -p` CLI, parses JSON response,
-// appends to data/evaluations.jsonl + data/tracker-additions/<id>-<slug>.tsv.
+// appends or updates in-place data/evaluations.jsonl + data/tracker-additions/<id>-<slug>.tsv.
 
 import fs from 'node:fs';
 import os from 'node:os';
