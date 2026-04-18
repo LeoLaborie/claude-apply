@@ -15,8 +15,8 @@ import { spawnSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { buildPrompt } from './prompt-builder.mjs';
 import { extractLocation } from './location-extractor.mjs';
-import { appendJsonl, appendFilteredOut } from '../lib/jsonl-writer.mjs';
-import { writeTrackerTsv } from '../lib/tsv-writer.mjs';
+import { appendJsonl, appendFilteredOut, updateJsonlEntry } from '../lib/jsonl-writer.mjs';
+import { writeTrackerTsv, removeTrackerTsvById } from '../lib/tsv-writer.mjs';
 import { detectClosedPage } from '../lib/page-liveness.mjs';
 import { runPrefilter } from '../lib/prefilter-rules.mjs';
 import { loadProfile } from '../lib/load-profile.mjs';
@@ -113,6 +113,11 @@ async function buildOffer(url, overrides = {}) {
 }
 
 export function callClaudeAsync(system, user) {
+  if (process.env.CLAUDE_APPLY_STUB_SCORE) {
+    const score = parseFloat(process.env.CLAUDE_APPLY_STUB_SCORE);
+    const reason = process.env.CLAUDE_APPLY_STUB_REASON || 'stubbed reason';
+    return Promise.resolve(JSON.stringify({ score, reason }));
+  }
   const emptyMcpPath = path.join(os.tmpdir(), 'claude-apply-empty-mcp.json');
   if (!fs.existsSync(emptyMcpPath)) {
     fs.writeFileSync(emptyMcpPath, '{"mcpServers":{}}');
@@ -565,8 +570,34 @@ async function main() {
     }
   }
 
+  const evalPath = path.join(DATA_DIR, 'evaluations.jsonl');
+  const tsvDir = path.join(DATA_DIR, 'tracker-additions');
+
+  let existingRescore = null;
+  if (flags.reScore) {
+    existingRescore = findEvaluationByUrl(evalPath, offer.url);
+    if (!existingRescore) {
+      console.error(`--re-score: url not found in ${evalPath}: ${offer.url}`);
+      process.exit(2);
+    }
+    if (flags.id) {
+      console.error(
+        `[re-score] --id ignored: preserving existing id ${existingRescore.id}`
+      );
+    }
+  }
+
   const liveness = detectClosedPage(offer);
   if (liveness.closed) {
+    if (flags.reScore) {
+      console.error(
+        `[re-score] ${offer.url}: page closed (${liveness.reason}), keeping existing score`
+      );
+      console.log(
+        JSON.stringify({ skipped: true, reason: liveness.reason, url: offer.url, kept: true })
+      );
+      return;
+    }
     const date = new Date().toISOString().slice(0, 10);
     appendFilteredOut(path.join(DATA_DIR, 'filtered-out.tsv'), {
       date,
@@ -596,8 +627,7 @@ async function main() {
     profile?.auto_apply_min_score ?? DEFAULT_AUTO_APPLY_MIN_SCORE
   );
 
-  const evalPath = path.join(DATA_DIR, 'evaluations.jsonl');
-  const id = flags.id || nextId(evalPath);
+  const id = flags.reScore ? existingRescore.id : flags.id || nextId(evalPath);
   const date = new Date().toISOString().slice(0, 10);
   const record = {
     id,
@@ -612,9 +642,14 @@ async function main() {
     reason: scored.reason,
     status: 'Evaluated',
   };
-  appendJsonl(evalPath, record);
 
-  const tsvDir = path.join(DATA_DIR, 'tracker-additions');
+  if (flags.reScore) {
+    updateJsonlEntry(evalPath, (e) => e.url === record.url, record);
+    removeTrackerTsvById(tsvDir, id);
+  } else {
+    appendJsonl(evalPath, record);
+  }
+
   writeTrackerTsv(tsvDir, {
     num: id,
     date,
