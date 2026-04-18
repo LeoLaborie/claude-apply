@@ -29,7 +29,7 @@ function parseRow(line) {
  * @property {string}        date      — YYYY-MM-DD
  * @property {string}        company   — company name
  * @property {string}        role      — job title / position
- * @property {string}        score     — e.g. "4.2/5"
+ * @property {string}        score     — e.g. "8.4/10"
  * @property {string}        status    — canonical status
  * @property {string}        pdf       — emoji or link
  * @property {string}        report    — markdown link e.g. [001](reports/001-...)
