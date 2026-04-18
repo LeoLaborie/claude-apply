@@ -22,6 +22,7 @@ import { loadProfile } from '../lib/load-profile.mjs';
 import { MissingConfigError, requireConfig } from '../lib/config-loader.mjs';
 import { readPipelineMd, findOfferByUrl, parseOfferLine } from '../lib/pipeline-md.mjs';
 import { pLimit } from '../lib/p-limit.mjs';
+import { extractCompanyFromUrl } from '../lib/extract-company.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -87,7 +88,7 @@ async function buildOffer(url, overrides = {}) {
       status: fetched.status,
       body: fetched.body,
       title: fetched.scrapedTitle || '',
-      company: fetched.scrapedCompany || '',
+      company: extractCompanyFromUrl(url) || fetched.scrapedCompany || '',
       location: fetched.scrapedLocation || '',
       metadata_source: 'scrape',
     };
