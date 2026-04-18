@@ -19,7 +19,7 @@ export function writeTrackerTsv(dir, { num, date, company, role, score, notes })
     company,
     role,
     'Evaluated',
-    `${score.toFixed(1)}/5`,
+    `${score.toFixed(1)}/10`,
     '❌',
     reportLink,
     notes,

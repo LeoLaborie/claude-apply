@@ -107,6 +107,8 @@ export async function runScan(opts) {
     });
   }
 
+  const eligibleTotal = companies.length;
+
   const companyByName = new Map(companies.map((c) => [c.name, c]));
   const fetchResults = await Promise.all(companies.map((c) => fetchCompanyOffers(c, whitelist)));
 
@@ -127,6 +129,7 @@ export async function runScan(opts) {
   };
   let raw = 0;
   let historyWrites = 0;
+  let filteredWrites = 0;
   const perCompany = [];
   let progressIndex = 0;
 
@@ -231,6 +234,7 @@ export async function runScan(opts) {
             title: offer.title,
             reason: check.reason,
           });
+          filteredWrites++;
         }
         continue;
       }
@@ -291,7 +295,17 @@ export async function runScan(opts) {
     writePipelineMd(pipelinePath, doc);
   }
 
-  return { scanned: companies.length, raw, perCompany, filtered, added, errors, historyWrites };
+  return {
+    scanned: companies.length,
+    eligibleTotal,
+    raw,
+    perCompany,
+    filtered,
+    added,
+    errors,
+    historyWrites,
+    filteredWrites,
+  };
 }
 
 export function formatSummary(result, dryRun) {
@@ -299,7 +313,7 @@ export function formatSummary(result, dryRun) {
   const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
   lines.push(`Portal Scan — ${now}`);
   lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  lines.push(`Entreprises scannées : ${result.scanned}/${result.scanned}`);
+  lines.push(`Entreprises scannées : ${result.scanned}/${result.eligibleTotal ?? result.scanned}`);
   lines.push(`Offres brutes         : ${result.raw}`);
   for (const c of result.perCompany) {
     const mark = c.error ? '✗' : c.warning ? '⚠' : '✓';
@@ -333,6 +347,7 @@ export function formatSummary(result, dryRun) {
     lines.push('Fichiers mis à jour :');
     lines.push(`  pipeline.md           (+${result.added.length} lignes)`);
     lines.push(`  scan-history.tsv      (+${result.historyWrites ?? 0} lignes)`);
+    lines.push(`  filtered-out.tsv      (+${result.filteredWrites ?? 0} lignes)`);
   }
   if (result.errors.length > 0) {
     lines.push('');
