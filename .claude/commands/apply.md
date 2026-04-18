@@ -325,6 +325,7 @@ If 20 s elapsed with no definitive result → status `Submitted (unconfirmed)`, 
    - Find an existing row matching company + role.
    - If found: update the `Status` column in place.
    - If not: append a new row: `# | Date | Company | Role | Score | Status | PDF | Report | Notes` with today's date and status.
+   - **Score column**: write `X.X/10` (look up the URL in `data/evaluations.jsonl` and format the `score` field with one decimal). If no evaluation exists, write `—`.
    - Use `Edit` with exact old/new content.
 
 2. **Append to `data/apply-log.jsonl`** via `appendApplyLog` from `src/apply/apply-log.mjs`:
