@@ -16,7 +16,9 @@
     "score": "node src/score/index.mjs",
     "score:batch": "node src/score/index.mjs --batch",
     "dashboard": "node src/dashboard/build.mjs",
-    "explain": "node src/scan/explain.mjs"
+    "explain": "node src/scan/explain.mjs",
+    "workday:seed": "node scripts/seed-workday-slugs.mjs",
+    "workday:validate": "node scripts/validate-workday-slugs.mjs"
   },
   "keywords": [
     "claude-code",

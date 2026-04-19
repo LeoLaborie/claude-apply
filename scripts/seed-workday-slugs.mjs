@@ -117,10 +117,10 @@ async function main() {
   writeTemplate(registry);
   fs.writeFileSync(
     UNRESOLVED_PATH,
-    unresolved.map((u) => `${u.name}\t${u.url}\t${u.reason}`).join('\n') + '\n',
+    unresolved.map((u) => `${u.name}\t${u.url}\t${u.reason}`).join('\n') + '\n'
   );
   console.log(
-    `\n${Object.keys(registry).length} entries in ${TEMPLATE_PATH}, ${unresolved.length} unresolved (see ${UNRESOLVED_PATH})`,
+    `\n${Object.keys(registry).length} entries in ${TEMPLATE_PATH}, ${unresolved.length} unresolved (see ${UNRESOLVED_PATH})`
   );
 }
 
