@@ -1,6 +1,8 @@
 // Pure functions for deterministic pre-filtering of job offers.
 // Each function returns {pass: true} or {pass: false, reason: string}.
 
+import { detectRequiredLanguages, levelRank, MIN_LANGUAGE_LEVEL } from './language-detect.mjs';
+
 const LOCATION_FR_RE =
   /\b(france|paris|lyon|toulouse|marseille|bordeaux|lille|nantes|grenoble|sophia[- ]antipolis|rennes|compi[eè]gne|strasbourg|montpellier|nice|remote.*france|t[eé]l[eé]travail|full.remote.eu)\b/i;
 const LOCATION_FOREIGN_RE =
@@ -160,6 +162,26 @@ export function checkTitle(offer, whitelist) {
     }
     throw err;
   }
+}
+
+export function checkLanguages(offer, profileLanguages) {
+  if (!Array.isArray(profileLanguages) || profileLanguages.length === 0) {
+    return { pass: true };
+  }
+  const required = detectRequiredLanguages(offer.title || '');
+  if (required.length === 0) return { pass: true };
+  const minRank = levelRank(MIN_LANGUAGE_LEVEL);
+  const byCode = new Map(profileLanguages.map((l) => [l.code, l.level]));
+  for (const code of required) {
+    const have = byCode.get(code);
+    if (!have || levelRank(have) < minRank) {
+      return {
+        pass: false,
+        reason: `language: requires ${code} (have ${have ?? 'none'})`,
+      };
+    }
+  }
+  return { pass: true };
 }
 
 export function checkBlacklist(offer, blacklist) {

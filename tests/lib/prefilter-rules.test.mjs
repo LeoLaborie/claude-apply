@@ -5,6 +5,7 @@ import {
   checkStartDate,
   checkTitle,
   checkBlacklist,
+  checkLanguages,
   runPrefilter,
 } from '../../src/lib/prefilter-rules.mjs';
 
@@ -167,6 +168,71 @@ test('checkBlacklist: pass si entreprise non listée', () => {
 test('checkBlacklist: reject case-insensitive', () => {
   const r = checkBlacklist({ company: 'ACME Inc' }, ['acme']);
   assert.equal(r.pass, false);
+});
+
+// ---------- checkLanguages ----------
+test('checkLanguages: pass when candidate has required language at C1', () => {
+  const offer = { title: 'Data Scientist - Spanish speaker' };
+  const profileLangs = [
+    { code: 'fr', level: 'native' },
+    { code: 'en', level: 'C1' },
+    { code: 'es', level: 'C1' },
+  ];
+  assert.deepEqual(checkLanguages(offer, profileLangs), { pass: true });
+});
+
+test('checkLanguages: reject when candidate has language below B2', () => {
+  const offer = { title: 'Data Scientist - Spanish speaker' };
+  const profileLangs = [
+    { code: 'en', level: 'C1' },
+    { code: 'es', level: 'A2' },
+  ];
+  const r = checkLanguages(offer, profileLangs);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /language: requires es/);
+  assert.match(r.reason, /A2/);
+});
+
+test('checkLanguages: reject when candidate lacks language entirely', () => {
+  const offer = { title: 'Deutschsprachig Analyst' };
+  const profileLangs = [{ code: 'en', level: 'C1' }];
+  const r = checkLanguages(offer, profileLangs);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /language: requires de/);
+  assert.match(r.reason, /none/);
+});
+
+test('checkLanguages: multi-language title needs ALL at B2+', () => {
+  const offer = { title: 'Bilingual German/Spanish Analyst' };
+  const profileLangs = [
+    { code: 'en', level: 'C1' },
+    { code: 'de', level: 'B2' },
+  ];
+  const r = checkLanguages(offer, profileLangs);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /es/);
+});
+
+test('checkLanguages: pass when no language marker in title', () => {
+  const offer = { title: 'Machine Learning Engineer' };
+  const profileLangs = [{ code: 'en', level: 'C1' }];
+  assert.deepEqual(checkLanguages(offer, profileLangs), { pass: true });
+});
+
+test('checkLanguages: pass when profileLanguages undefined', () => {
+  const offer = { title: 'Spanish speaker Sales' };
+  assert.deepEqual(checkLanguages(offer, undefined), { pass: true });
+});
+
+test('checkLanguages: pass when profileLanguages empty array', () => {
+  const offer = { title: 'Machine Learning Engineer' };
+  assert.deepEqual(checkLanguages(offer, []), { pass: true });
+});
+
+test('checkLanguages: B2 candidate level passes threshold', () => {
+  const offer = { title: 'Spanish speaker Analyst' };
+  const profileLangs = [{ code: 'es', level: 'B2' }];
+  assert.deepEqual(checkLanguages(offer, profileLangs), { pass: true });
 });
 
 // ---------- runPrefilter (intégration) ----------
