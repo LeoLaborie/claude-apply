@@ -21,7 +21,7 @@ export async function fetchOfferBody(offer) {
   if (platform === 'workday') {
     if (!warnedWorkday) {
       process.stderr.write(
-        '[fetchOfferBody] Workday detail-fetch not implemented; soft-match disabled for Workday offers\n',
+        '[fetchOfferBody] Workday detail-fetch not implemented; soft-match disabled for Workday offers\n'
       );
       warnedWorkday = true;
     }
