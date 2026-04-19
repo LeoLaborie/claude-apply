@@ -1,0 +1,33 @@
+{
+  "name": "Hugging Face",
+  "description": "Here at Hugging Face, we're on a journey to advance and democratize machine learning for everyone.",
+  "jobs": [
+    {
+      "title": "Open-Source Machine Learning Engineer, AI for Robotics - Paris Office",
+      "shortcode": "E787796A71",
+      "url": "https://apply.workable.com/j/E787796A71",
+      "shortlink": "https://apply.workable.com/j/E787796A71",
+      "telecommuting": false,
+      "city": "Paris",
+      "country": "France"
+    },
+    {
+      "title": "Cloud Machine Learning Engineer - EMEA remote",
+      "shortcode": "0CE9E806CC",
+      "url": "https://apply.workable.com/j/0CE9E806CC",
+      "shortlink": "https://apply.workable.com/j/0CE9E806CC",
+      "telecommuting": true,
+      "city": "Paris",
+      "country": "France"
+    },
+    {
+      "title": "Wild Card",
+      "shortcode": "0BD8C06DB3",
+      "url": "https://apply.workable.com/j/0BD8C06DB3",
+      "shortlink": "https://apply.workable.com/j/0BD8C06DB3",
+      "telecommuting": true,
+      "city": "",
+      "country": ""
+    }
+  ]
+}
