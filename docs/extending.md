@@ -114,3 +114,29 @@ npm run lint                # prettier
 ```
 
 If you add a dependency, prefer pure Node standard library. The only runtime deps currently shipped are `js-yaml` and `playwright` — new ones need a strong justification.
+
+## Maintaining the Workday registry
+
+`templates/known-workday-slugs.example.json` ships with ~30 pre-verified FR/EU Workday tenants. `scripts/setup.sh` copies it to `data/known-workday-slugs.json` on first run so `/apply-onboard:companies` step 4 can resolve companies whose Workday tenant name is not guessable from the company name (e.g. Renault → `alliancewd.wd3`, Airbus → `ag.wd3`).
+
+### Adding an entry
+
+Build a one-line TSV with `<company-name>\t<workday-url>` and merge it in:
+
+```bash
+printf "Decathlon\thttps://decathlon.wd3.myworkdayjobs.com/Decathlon_Careers\n" \
+  | npm run workday:seed -- --merge
+```
+
+The script parses the URL, calls `verifyCompany`, and adds the entry to `templates/known-workday-slugs.example.json` if the board is live. Failures land in `/tmp/workday-unresolved.txt`.
+
+### Re-validating the registry
+
+Before a release — or whenever a user reports that a Workday slug returns 404 — re-verify every entry:
+
+```bash
+npm run workday:validate          # exit 1 if any entry is dead
+npm run workday:validate -- --fix # rewrite the template with live entries only
+```
+
+Both subcommands call `verifyCompany` against each entry, with a 100 ms pause between calls and one retry on 5xx/network errors. Validation is intentionally **not** run in CI — it depends on live HTTP calls to third-party tenants and would make the build flaky.
