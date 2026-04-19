@@ -26,3 +26,52 @@ test('levelRank: case-insensitive', () => {
 test('MIN_LANGUAGE_LEVEL constant equals B2', () => {
   assert.equal(MIN_LANGUAGE_LEVEL, 'B2');
 });
+
+import { detectRequiredLanguages } from '../../src/lib/language-detect.mjs';
+
+test('detectRequiredLanguages: "Spanish speaker" → [es]', () => {
+  assert.deepEqual(detectRequiredLanguages('Data Scientist - Spanish speaker'), ['es']);
+});
+
+test('detectRequiredLanguages: "Deutschsprachig" → [de]', () => {
+  assert.deepEqual(detectRequiredLanguages('Senior Deutschsprachig Engineer'), ['de']);
+});
+
+test('detectRequiredLanguages: "Nederlandstalig" → [nl]', () => {
+  assert.deepEqual(detectRequiredLanguages('Nederlandstalig Analyst'), ['nl']);
+});
+
+test('detectRequiredLanguages: Italian marker → [it]', () => {
+  assert.deepEqual(detectRequiredLanguages('Italian speaking Data Engineer'), ['it']);
+});
+
+test('detectRequiredLanguages: Portuguese marker → [pt]', () => {
+  assert.deepEqual(detectRequiredLanguages('Portuguese speaker - LATAM'), ['pt']);
+});
+
+test('detectRequiredLanguages: accent support "español" → [es]', () => {
+  assert.deepEqual(detectRequiredLanguages('Español native required'), ['es']);
+});
+
+test('detectRequiredLanguages: multi-language bilingual title', () => {
+  const res = detectRequiredLanguages('Bilingual German/Spanish Analyst');
+  assert.deepEqual(res.sort(), ['de', 'es']);
+});
+
+test('detectRequiredLanguages: no language marker → []', () => {
+  assert.deepEqual(detectRequiredLanguages('Machine Learning Engineer'), []);
+});
+
+test('detectRequiredLanguages: country name without language marker does not match', () => {
+  assert.deepEqual(detectRequiredLanguages('Argentinian Data Scientist'), []);
+});
+
+test('detectRequiredLanguages: empty / null input → []', () => {
+  assert.deepEqual(detectRequiredLanguages(''), []);
+  assert.deepEqual(detectRequiredLanguages(null), []);
+  assert.deepEqual(detectRequiredLanguages(undefined), []);
+});
+
+test('detectRequiredLanguages: Japanese marker → [ja]', () => {
+  assert.deepEqual(detectRequiredLanguages('Japanese speaking Sales Engineer'), ['ja']);
+});
