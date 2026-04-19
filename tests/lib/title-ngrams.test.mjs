@@ -43,3 +43,59 @@ test('ngrams caps at token length', () => {
   assert.deepEqual(ngrams(['only'], 3), ['only']);
   assert.deepEqual(ngrams([], 3), []);
 });
+
+import { suggestNgrams } from '../../src/lib/title-ngrams.mjs';
+
+const STOP = new Set(['the', 'and', 'of', 'in', 'for', 'a', 'to', 'at']);
+
+test('suggestNgrams ranks by count desc with lift, filters stop-words', () => {
+  const titles = [
+    'Research Engineer - LLM',
+    'Research Engineer - Safety',
+    'Applied Scientist LLM',
+    'Applied Scientist Safety',
+    'Software Engineer',
+  ];
+  const out = suggestNgrams(titles, {
+    maxN: 2,
+    minCount: 2,
+    stopWords: STOP,
+    existingTerms: [],
+  });
+  const ngramsOnly = out.map((e) => e.ngram);
+  assert.ok(ngramsOnly.includes('research engineer'));
+  assert.ok(ngramsOnly.includes('applied scientist'));
+  const rResearch = out.find((e) => e.ngram === 'research engineer');
+  assert.equal(rResearch.count, 2);
+  assert.equal(rResearch.lift, 2 / 5);
+});
+
+test('suggestNgrams excludes existingTerms (case-insensitive, whole ngram)', () => {
+  const out = suggestNgrams(['Applied Scientist', 'Applied Scientist'], {
+    maxN: 2,
+    minCount: 2,
+    stopWords: new Set(),
+    existingTerms: ['Applied Scientist'],
+  });
+  assert.ok(!out.some((e) => e.ngram === 'applied scientist'));
+});
+
+test('suggestNgrams drops ngrams below minCount', () => {
+  const out = suggestNgrams(['alpha beta', 'gamma delta'], {
+    maxN: 2,
+    minCount: 2,
+    stopWords: new Set(),
+    existingTerms: [],
+  });
+  assert.deepEqual(out, []);
+});
+
+test('suggestNgrams drops ngrams that are entirely stop-words', () => {
+  const out = suggestNgrams(['the and', 'the and', 'the and'], {
+    maxN: 2,
+    minCount: 2,
+    stopWords: STOP,
+    existingTerms: [],
+  });
+  assert.deepEqual(out, []);
+});
