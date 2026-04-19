@@ -47,7 +47,7 @@ test('slugCandidates — multi-mots produit noSpace, hyphen et alnum', () => {
 });
 
 test('slugCandidates — aucun candidat ne contient un espace', () => {
-  for (const platform of ['lever', 'greenhouse', 'ashby']) {
+  for (const platform of ['lever', 'greenhouse', 'ashby', 'workable']) {
     const cands = slugCandidates('Hugging Face', platform);
     for (const slug of cands) {
       assert.ok(!slug.includes(' '), `slug contient un espace : "${slug}" (platform: ${platform})`);
@@ -55,6 +55,14 @@ test('slugCandidates — aucun candidat ne contient un espace', () => {
     assert.ok(cands.includes('huggingface'));
     assert.ok(cands.includes('hugging-face'));
   }
+});
+
+test('slugCandidates — variations Workable incluent -careers, hq et -hq', () => {
+  const cands = slugCandidates('Hugging Face', 'workable');
+  assert.ok(cands.includes('huggingface'));
+  assert.ok(cands.includes('huggingface-careers'));
+  assert.ok(cands.includes('huggingfacehq'));
+  assert.ok(cands.includes('huggingface-hq'));
 });
 
 test('discoverCompany — bascule sur Greenhouse quand Lever échoue', async () => {
@@ -174,6 +182,10 @@ test('discoverCompany — aucune correspondance renvoie ok:false', async () => {
       status: 404,
       body: {},
     },
+    'https://apply.workable.com/api/v1/widget/accounts/ghost': { status: 404, body: {} },
+    'https://apply.workable.com/api/v1/widget/accounts/ghost-careers': { status: 404, body: {} },
+    'https://apply.workable.com/api/v1/widget/accounts/ghosthq': { status: 404, body: {} },
+    'https://apply.workable.com/api/v1/widget/accounts/ghost-hq': { status: 404, body: {} },
   });
   const r = await discoverCompany('ghost', { delayMs: 0 });
   assert.equal(r.ok, false);
