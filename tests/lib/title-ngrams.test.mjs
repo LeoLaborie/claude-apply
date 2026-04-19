@@ -20,3 +20,26 @@ test('tokenize returns [] for empty input', () => {
   assert.deepEqual(tokenize(''), []);
   assert.deepEqual(tokenize(null), []);
 });
+
+import { ngrams } from '../../src/lib/title-ngrams.mjs';
+
+test('ngrams produces joined unigrams through maxN-grams', () => {
+  assert.deepEqual(ngrams(['research', 'engineer', 'intern'], 1), [
+    'research',
+    'engineer',
+    'intern',
+  ]);
+  assert.deepEqual(ngrams(['research', 'engineer', 'intern'], 2), [
+    'research',
+    'engineer',
+    'intern',
+    'research engineer',
+    'engineer intern',
+  ]);
+  assert.deepEqual(ngrams(['a', 'b', 'c'], 3), ['a', 'b', 'c', 'a b', 'b c', 'a b c']);
+});
+
+test('ngrams caps at token length', () => {
+  assert.deepEqual(ngrams(['only'], 3), ['only']);
+  assert.deepEqual(ngrams([], 3), []);
+});
