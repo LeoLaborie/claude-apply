@@ -16,6 +16,7 @@ curl -s "https://apply.workable.com/api/v1/widget/accounts/huggingface" | python
 ```
 
 Key questions to answer before writing code:
+
 - What is the exact endpoint URL? (do **not** trust issue descriptions without verifying)
 - Does the response include job descriptions? (Workable's does not — `body` is left empty)
 - Is there pagination? (probe large boards; Workable has none as of 2026-04-19)
@@ -78,6 +79,7 @@ curl -s "https://apply.workable.com/api/v1/widget/accounts/huggingface" \
 ```
 
 Create `tests/scan/ats-<name>.test.mjs` using `installMockFetch` (see `tests/helpers.mjs`). Cover:
+
 1. Full fixture maps to correct `Offer[]` with `platform='workable'` and `body=''`
 2. `telecommuting: true` produces `'Remote — City, Country'` prefix
 3. `verifySlug` returns `{ ok: true, count: N }` on success and `{ ok: false, status: 404, reason: 'HTTP 404' }` on 404
