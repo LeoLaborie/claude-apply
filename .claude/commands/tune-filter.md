@@ -1,6 +1,6 @@
 ---
 description: Interactive calibration of portals.yml title_filter against cached scan-history
-argument-hint: ""
+argument-hint: ''
 ---
 
 # /tune-filter
@@ -22,7 +22,7 @@ If `data/scan-history.tsv` is missing or empty, **stop** and say:
 - `currentFilter`: `{ positive, negative, required_any, blacklist }` — starts as a copy of what you read from `portals.yml` (positive/negative/required_any) and `candidate-profile.yml` (`blacklist_companies` → `blacklist`).
 - `lastStats`: result of the most recent simulation against `currentFilter`.
 
-Never write to disk except on an explicit *Save*.
+Never write to disk except on an explicit _Save_.
 
 ## Loop
 
@@ -96,6 +96,7 @@ For the chosen list, offer:
   ```
 
   If the process exits non-zero, surface the term as invalid and re-prompt. Do not add invalid terms.
+
 - **Clear** → confirm via `AskUserQuestion` yes/no; on yes, empty the list.
 - **Done** → return to step 1 (re-simulate with the mutated `currentFilter`).
 
@@ -169,7 +170,6 @@ Return to step 3 with `currentFilter` unchanged.
 2. `AskUserQuestion` yes/no: "Write changes to `config/portals.yml` and `config/candidate-profile.yml`?". On no, return to step 3.
 
 3. Apply the writes:
-
    - For `title_filter.*` changes, call the writer:
 
      ```bash
