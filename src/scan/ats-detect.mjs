@@ -21,13 +21,14 @@ export function detectPlatform(careersUrl) {
   return null;
 }
 
-const VERIFIABLE_PLATFORMS = new Set(['lever', 'greenhouse', 'ashby', 'workday']);
+const VERIFIABLE_PLATFORMS = new Set(['lever', 'greenhouse', 'ashby', 'workable', 'workday']);
 
 const SUPPORTED_HOSTS = [
   'https://jobs.lever.co/*',
   'https://boards.greenhouse.io/*',
   'https://job-boards.greenhouse.io/*',
   'https://jobs.ashbyhq.com/*',
+  'https://apply.workable.com/*',
   'https://*.myworkdayjobs.com/*',
 ];
 
