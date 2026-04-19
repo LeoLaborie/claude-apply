@@ -289,7 +289,7 @@ test('checkLanguages: B2 candidate level passes threshold', () => {
 });
 
 // ---------- runPrefilter (intégration) ----------
-test('runPrefilter: court-circuit sur la première règle qui échoue', () => {
+test('runPrefilter: court-circuit sur la première règle qui échoue', async () => {
   const offer = { title: 'Senior Dev', body: 'Paris', company: 'Foo', location: '' };
   const config = {
     minStartDate: '2026-08-24',
@@ -297,12 +297,12 @@ test('runPrefilter: court-circuit sur la première règle qui échoue', () => {
     whitelist: wl,
     targetLocations: ['France', 'Paris', 'Remote'],
   };
-  const r = runPrefilter(offer, config);
+  const r = await runPrefilter(offer, config);
   assert.equal(r.pass, false);
   assert.match(r.reason, /negative|title/);
 });
 
-test('runPrefilter: pass offre valide', () => {
+test('runPrefilter: pass offre valide', async () => {
   const offer = {
     title: 'ML Engineer Intern',
     body: 'Paris office, starting September 2026',
@@ -315,5 +315,179 @@ test('runPrefilter: pass offre valide', () => {
     whitelist: wl,
     targetLocations: ['France', 'Paris', 'Remote'],
   };
-  assert.deepEqual(runPrefilter(offer, config), { pass: true });
+  assert.deepEqual(await runPrefilter(offer, config), { pass: true });
+});
+
+// ---------- runPrefilter async + soft-match short-circuit ----------
+test('runPrefilter: returns promise (async)', () => {
+  const offer = {
+    title: 'ML Engineer Intern',
+    body: 'Paris office, starting September 2026',
+    company: 'Mistral',
+    location: 'Paris, France',
+  };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: wl,
+    targetLocations: ['France', 'Paris', 'Remote'],
+  };
+  const result = runPrefilter(offer, config);
+  assert.ok(result instanceof Promise, 'expected runPrefilter to return a Promise');
+  return result.then((r) => assert.deepEqual(r, { pass: true }));
+});
+
+test('runPrefilter: soft-match fetches body when required_any missing in title', async () => {
+  let fetchBodyCalled = 0;
+  const offer = {
+    title: 'Research Scientist Intern',
+    company: 'Mistral',
+    location: 'Paris, France',
+    body: '',
+  };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: {
+      positive: ['Research', 'Scientist', 'Intern'],
+      negative: [],
+      required_any: ['AI', 'ML'],
+      required_any_in: ['title', 'description'],
+    },
+    targetLocations: ['France', 'Paris', 'Remote'],
+    fetchBody: async () => {
+      fetchBodyCalled++;
+      return 'We build Machine Learning systems (ML at scale).';
+    },
+  };
+  const r = await runPrefilter(offer, config);
+  assert.deepEqual(r, { pass: true });
+  assert.equal(fetchBodyCalled, 1);
+});
+
+test('runPrefilter: soft-match reject when body lacks keyword too', async () => {
+  const offer = {
+    title: 'Research Scientist Intern',
+    company: 'Mistral',
+    location: 'Paris, France',
+    body: '',
+  };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: {
+      positive: ['Research', 'Scientist', 'Intern'],
+      negative: [],
+      required_any: ['AI', 'ML'],
+      required_any_in: ['title', 'description'],
+    },
+    targetLocations: ['France', 'Paris', 'Remote'],
+    fetchBody: async () => 'We build distributed systems only.',
+  };
+  const r = await runPrefilter(offer, config);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /title.*required_any.*title\+description/);
+});
+
+test('runPrefilter: no fetchBody call when required_any_in is [title]', async () => {
+  let fetchBodyCalled = 0;
+  const offer = {
+    title: 'Research Scientist Intern',
+    company: 'Mistral',
+    location: 'Paris, France',
+    body: '',
+  };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: {
+      positive: ['Research', 'Scientist', 'Intern'],
+      negative: [],
+      required_any: ['AI', 'ML'],
+      required_any_in: ['title'],
+    },
+    targetLocations: ['France', 'Paris', 'Remote'],
+    fetchBody: async () => {
+      fetchBodyCalled++;
+      return 'ML everywhere';
+    },
+  };
+  const r = await runPrefilter(offer, config);
+  assert.equal(r.pass, false);
+  assert.equal(fetchBodyCalled, 0);
+});
+
+test('runPrefilter: no fetchBody call when title passes required_any', async () => {
+  let fetchBodyCalled = 0;
+  const offer = {
+    title: 'ML Engineer Intern',
+    company: 'Mistral',
+    location: 'Paris, France',
+    body: '',
+  };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: {
+      positive: ['ML', 'Intern'],
+      negative: [],
+      required_any: ['ML', 'AI'],
+      required_any_in: ['title', 'description'],
+    },
+    targetLocations: ['France', 'Paris', 'Remote'],
+    fetchBody: async () => {
+      fetchBodyCalled++;
+      return '';
+    },
+  };
+  const r = await runPrefilter(offer, config);
+  assert.deepEqual(r, { pass: true });
+  assert.equal(fetchBodyCalled, 0);
+});
+
+test('runPrefilter: fetchBody returns null → reject with soft-match reason', async () => {
+  const offer = {
+    title: 'Research Scientist Intern',
+    company: 'Mistral',
+    location: 'Paris, France',
+    body: '',
+  };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: {
+      positive: ['Research', 'Scientist', 'Intern'],
+      negative: [],
+      required_any: ['AI', 'ML'],
+      required_any_in: ['title', 'description'],
+    },
+    targetLocations: ['France', 'Paris', 'Remote'],
+    fetchBody: async () => null,
+  };
+  const r = await runPrefilter(offer, config);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /title.*required_any.*title\+description/);
+});
+
+test('runPrefilter: includes language check in chain', async () => {
+  const offer = {
+    title: 'ML Engineer Intern - Spanish speaker',
+    company: 'Mistral',
+    location: 'Paris, France',
+    body: 'Paris',
+  };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: wl,
+    targetLocations: ['France', 'Paris', 'Remote'],
+    profileLanguages: [
+      { code: 'fr', level: 'native' },
+      { code: 'en', level: 'C1' },
+      { code: 'es', level: 'A2' },
+    ],
+  };
+  const r = await runPrefilter(offer, config);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /language.*es/);
 });

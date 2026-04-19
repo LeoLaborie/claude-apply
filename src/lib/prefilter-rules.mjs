@@ -196,16 +196,42 @@ export function checkBlacklist(offer, blacklist) {
   return { pass: true };
 }
 
-export function runPrefilter(offer, config) {
-  const checks = [
-    () => checkTitle(offer, config.whitelist),
-    () => checkBlacklist(offer, config.blacklist),
-    () => checkLocation(offer, config.targetLocations),
-    () => checkStartDate(offer, config.minStartDate),
-  ];
-  for (const fn of checks) {
-    const r = fn();
-    if (!r.pass) return r;
+export async function runPrefilter(offer, config) {
+  const whitelist = config.whitelist || { positive: [], negative: [] };
+  const wantsSoftMatch =
+    Array.isArray(whitelist.required_any_in) &&
+    whitelist.required_any_in.includes('description') &&
+    typeof config.fetchBody === 'function';
+
+  let titleResult = checkTitle(offer, whitelist);
+  if (
+    !titleResult.pass &&
+    titleResult.reason === 'title: missing required_any keyword' &&
+    wantsSoftMatch
+  ) {
+    const body = await config.fetchBody(offer);
+    if (body && body.length > 0) {
+      titleResult = checkTitle(offer, whitelist, { body });
+    } else {
+      titleResult = {
+        pass: false,
+        reason: 'title: missing required_any (title+description)',
+      };
+    }
   }
+  if (!titleResult.pass) return titleResult;
+
+  const blacklistResult = checkBlacklist(offer, config.blacklist);
+  if (!blacklistResult.pass) return blacklistResult;
+
+  const langResult = checkLanguages(offer, config.profileLanguages);
+  if (!langResult.pass) return langResult;
+
+  const locResult = checkLocation(offer, config.targetLocations);
+  if (!locResult.pass) return locResult;
+
+  const dateResult = checkStartDate(offer, config.minStartDate);
+  if (!dateResult.pass) return dateResult;
+
   return { pass: true };
 }
