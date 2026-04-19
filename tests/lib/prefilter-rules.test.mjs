@@ -170,6 +170,59 @@ test('checkBlacklist: reject case-insensitive', () => {
   assert.equal(r.pass, false);
 });
 
+// ---------- checkTitle with body (required_any soft match) ----------
+const wlReq = {
+  positive: ['Research', 'Scientist', 'Intern'],
+  negative: ['Senior'],
+  required_any: ['AI', 'ML', 'Machine Learning'],
+};
+
+test('checkTitle: required_any misses title but matches body', () => {
+  const offer = {
+    title: 'Research Scientist Intern',
+    body: 'You will work on Machine Learning research.',
+  };
+  const r = checkTitle(offer, wlReq, { body: offer.body });
+  assert.deepEqual(r, { pass: true });
+});
+
+test('checkTitle: required_any misses both title and body → reject', () => {
+  const offer = {
+    title: 'Research Scientist Intern',
+    body: 'You will work on distributed systems.',
+  };
+  const r = checkTitle(offer, wlReq, { body: offer.body });
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /title.*required_any/);
+});
+
+test('checkTitle: body does NOT rescue negative match', () => {
+  const offer = {
+    title: 'Senior ML Researcher',
+    body: 'ML, AI, Research, Intern',
+  };
+  const r = checkTitle(offer, wlReq, { body: offer.body });
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /negative/);
+});
+
+test('checkTitle: body does NOT rescue missing positive match', () => {
+  const offer = {
+    title: 'Designer UX',
+    body: 'We love Research and Science here.',
+  };
+  const r = checkTitle(offer, wlReq, { body: offer.body });
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /no positive/);
+});
+
+test('checkTitle: no body arg behaves like before (title-only required_any)', () => {
+  const offer = { title: 'Research Scientist Intern' };
+  const r = checkTitle(offer, wlReq);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /required_any/);
+});
+
 // ---------- checkLanguages ----------
 test('checkLanguages: pass when candidate has required language at C1', () => {
   const offer = { title: 'Data Scientist - Spanish speaker' };

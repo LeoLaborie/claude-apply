@@ -140,20 +140,25 @@ function findMatch(terms, title) {
   return null;
 }
 
-export function checkTitle(offer, whitelist) {
+export function checkTitle(offer, whitelist, opts = {}) {
   const title = offer.title || '';
+  const body = opts.body || '';
   try {
     const neg = findMatch(whitelist.negative, title);
     if (neg) return { pass: false, reason: `title: negative match "${neg}"` };
     const pos = findMatch(whitelist.positive, title);
     if (!pos) return { pass: false, reason: 'title: no positive match' };
     if (Array.isArray(whitelist.required_any) && whitelist.required_any.length > 0) {
-      const req = findMatch(whitelist.required_any, title);
-      if (!req)
+      const haystack = body ? `${title}\n${body}` : title;
+      const req = findMatch(whitelist.required_any, haystack);
+      if (!req) {
         return {
           pass: false,
-          reason: 'title: missing required_any keyword',
+          reason: body
+            ? 'title: missing required_any (title+description)'
+            : 'title: missing required_any keyword',
         };
+      }
     }
     return { pass: true };
   } catch (err) {
