@@ -35,3 +35,79 @@ test('fetchWorkable — maps fixture to Offer[] with platform=workable and body=
     assert.equal(o.platform, 'workable');
   }
 });
+
+test('fetchWorkable — prefixes "Remote — " when telecommuting=true', async () => {
+  restore = installMockFetch({
+    'https://apply.workable.com/api/v1/widget/accounts/acme': {
+      name: 'Acme',
+      description: '',
+      jobs: [
+        {
+          title: 'Staff Engineer',
+          shortcode: 'ABC123',
+          url: 'https://apply.workable.com/j/ABC123',
+          shortlink: 'https://apply.workable.com/j/ABC123',
+          telecommuting: true,
+          city: 'Paris',
+          country: 'France',
+        },
+      ],
+    },
+  });
+
+  const offers = await fetchWorkable('acme', 'Acme');
+  assert.equal(offers.length, 1);
+  assert.equal(offers[0].location, 'Remote — Paris, France');
+});
+
+test('fetchWorkable — location is "Remote" alone when telecommuting=true and no city/country', async () => {
+  restore = installMockFetch({
+    'https://apply.workable.com/api/v1/widget/accounts/acme': {
+      name: 'Acme',
+      description: '',
+      jobs: [
+        {
+          title: 'Anywhere Engineer',
+          shortcode: 'XYZ',
+          url: 'https://apply.workable.com/j/XYZ',
+          telecommuting: true,
+          city: '',
+          country: '',
+        },
+      ],
+    },
+  });
+
+  const offers = await fetchWorkable('acme', 'Acme');
+  assert.equal(offers[0].location, 'Remote');
+});
+
+test('verifySlug — returns count on success', async () => {
+  restore = installMockFetch({
+    'https://apply.workable.com/api/v1/widget/accounts/acme': {
+      name: 'Acme',
+      description: '',
+      jobs: [{ title: 'a' }, { title: 'b' }, { title: 'c' }],
+    },
+  });
+  const r = await verifySlug('acme');
+  assert.equal(r.ok, true);
+  assert.equal(r.count, 3);
+});
+
+test('verifySlug — returns ok:false with status on 404', async () => {
+  restore = installMockFetch({
+    'https://apply.workable.com/api/v1/widget/accounts/nope': { status: 404, body: {} },
+  });
+  const r = await verifySlug('nope');
+  assert.equal(r.ok, false);
+  assert.equal(r.status, 404);
+  assert.match(r.reason, /HTTP 404/);
+});
+
+test('fetchWorkable — throws on non-2xx', async () => {
+  restore = installMockFetch({
+    'https://apply.workable.com/api/v1/widget/accounts/nope': { status: 500, body: {} },
+  });
+  await assert.rejects(() => fetchWorkable('nope', 'Nope'), /Workable API nope: HTTP 500/);
+});
