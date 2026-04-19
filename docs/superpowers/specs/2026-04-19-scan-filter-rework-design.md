@@ -45,12 +45,11 @@ Rejected alternatives:
 - `LEVEL_RANK: Record<string, number>` — `A1=1, A2=2, B1=3, B2=4, C1=5, C2=6, native=7`, unknown = 0.
 - `levelRank(level: string): number`.
 
-**`src/scan/fetch-offer-body.mjs`** (~40 LOC)
-- `fetchOfferBody(offer): Promise<string | null>` — dispatch by `offer.platform`:
-  - **Lever / Ashby**: return `offer.body` if already populated (no network call).
-  - **Greenhouse**: GET `offer.url`, parse HTML, strip tags via `/<[^>]+>/g`, return text.
-  - **Workday**: similar to Greenhouse; best-effort HTTP GET.
-  - Network or parse error → return `null`, log warning to stderr.
+**`src/scan/fetch-offer-body.mjs`** (~20 LOC)
+- `fetchOfferBody(offer): Promise<string | null>` — lightweight wrapper:
+  - **Lever / Greenhouse / Ashby**: all three fetchers already populate `offer.body` in the listing (Lever `descriptionPlain`, Greenhouse `stripHtml(content)`, Ashby `descriptionPlain`). Return `offer.body || null`.
+  - **Workday**: the listing endpoint returns titles only (`body: ''`). Fetching full details requires a second POST per offer to `/wday/cxs/.../job/{externalPath}` which is complex and out of scope for v1. Return `null` with a single stderr warning on first encounter.
+- No HTTP calls in this module for v1 — it's a platform dispatcher that reads the pre-populated body. The name and `async` signature anticipate future Workday detail-fetch support.
 - Purely additive — does not mutate `offer`.
 
 ### Modified files
@@ -148,9 +147,10 @@ per offer:
 - Chain order validated via `runPrefilter` fixture.
 
 **`tests/scan/fetch-offer-body.test.mjs`**
-- Lever offer with `offer.body` already populated → no `fetch()` call, returns body as-is
-- Greenhouse offer: mocked `fetch` returns HTML → body stripped of tags
-- Network error (500) → returns `null`
+- Lever / Greenhouse / Ashby offer with body populated → returns body as-is
+- Lever / Greenhouse / Ashby offer with empty body → returns `null`
+- Workday offer → returns `null`, emits a single warning the first time
+- Unknown platform → returns `null`
 
 ### Modified existing tests
 
