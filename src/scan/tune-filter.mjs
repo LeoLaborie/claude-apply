@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 import { checkTitle, checkBlacklist } from '../lib/prefilter-rules.mjs';
 
 const SAMPLE_PER_REASON = 10;
@@ -58,4 +61,92 @@ export function simulate(filter, rows) {
     sampleRejected,
     byCompany,
   };
+}
+
+function parseHistory(text) {
+  const lines = text.split('\n').filter(Boolean);
+  if (lines.length === 0) return [];
+  const header = lines[0].split('\t');
+  const idx = {
+    url: header.indexOf('url'),
+    first_seen: header.indexOf('first_seen'),
+    portal: header.indexOf('portal'),
+    title: header.indexOf('title'),
+    company: header.indexOf('company'),
+    status: header.indexOf('status'),
+  };
+  return lines.slice(1).map((line) => {
+    const cols = line.split('\t');
+    return {
+      url: cols[idx.url] || '',
+      first_seen: cols[idx.first_seen] || '',
+      portal: cols[idx.portal] || '',
+      title: cols[idx.title] || '',
+      company: cols[idx.company] || '',
+      status: cols[idx.status] || '',
+    };
+  });
+}
+
+function readStdin() {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    process.stdin.setEncoding('utf8');
+    process.stdin.on('data', (c) => (data += c));
+    process.stdin.on('end', () => resolve(data));
+    process.stdin.on('error', reject);
+  });
+}
+
+function argVal(argv, flag) {
+  const i = argv.indexOf(flag);
+  return i >= 0 ? argv[i + 1] : undefined;
+}
+
+function statsToJson(stats) {
+  return {
+    total: stats.total,
+    accepted: stats.accepted,
+    ratio: stats.ratio,
+    rejectedByReason: [...stats.rejectedByReason.entries()].map(([reason, count]) => ({
+      reason,
+      count,
+    })),
+    sampleRejected: [...stats.sampleRejected.entries()].map(([reason, samples]) => ({
+      reason,
+      samples,
+    })),
+    byCompany: stats.byCompany,
+  };
+}
+
+async function main() {
+  const historyPath = argVal(process.argv, '--history');
+  if (!historyPath) {
+    console.error('usage: tune-filter.mjs --history <path> < filter.json');
+    process.exit(2);
+  }
+  if (!fs.existsSync(historyPath)) {
+    console.error(`scan-history not found: ${historyPath}`);
+    process.exit(2);
+  }
+  const rawFilter = await readStdin();
+  let filter;
+  try {
+    filter = JSON.parse(rawFilter);
+  } catch (err) {
+    console.error(`invalid filter JSON on stdin: ${err.message}`);
+    process.exit(2);
+  }
+  const rows = parseHistory(fs.readFileSync(historyPath, 'utf8'));
+  const stats = simulate(filter, rows);
+  process.stdout.write(JSON.stringify(statsToJson(stats), null, 2));
+}
+
+const isMain = import.meta.url === `file://${process.argv[1]}`;
+if (isMain) {
+  main().catch((err) => {
+    console.error(err.message);
+    process.exit(1);
+  });
 }

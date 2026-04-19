@@ -63,3 +63,43 @@ test('simulate handles empty rows', () => {
   assert.equal(res.accepted, 0);
   assert.equal(res.ratio, 0);
 });
+
+import { spawn } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const CLI = path.join(__dirname, '..', '..', 'src', 'scan', 'tune-filter.mjs');
+const FIXTURE = path.join(__dirname, '..', 'fixtures', 'scan-history-sample.tsv');
+
+function runCli(input, args) {
+  return new Promise((resolve, reject) => {
+    const p = spawn('node', [CLI, ...args], { stdio: ['pipe', 'pipe', 'pipe'] });
+    let out = '';
+    let err = '';
+    p.stdout.on('data', (c) => (out += c.toString()));
+    p.stderr.on('data', (c) => (err += c.toString()));
+    p.on('error', reject);
+    p.on('exit', (code) => resolve({ code, out, err }));
+    p.stdin.write(input);
+    p.stdin.end();
+  });
+}
+
+test('CLI reads filter JSON on stdin, emits stats JSON on stdout', async () => {
+  const filter = { positive: ['Intern'], negative: [], required_any: ['ML'], blacklist: [] };
+  const { code, out } = await runCli(JSON.stringify(filter), ['--history', FIXTURE]);
+  assert.equal(code, 0);
+  const parsed = JSON.parse(out);
+  assert.equal(parsed.total, 3);
+  assert.equal(parsed.accepted, 1);
+  assert.ok(Array.isArray(parsed.rejectedByReason));
+  assert.ok(Array.isArray(parsed.sampleRejected));
+  assert.ok(Array.isArray(parsed.byCompany));
+});
+
+test('CLI errors with exit code 2 when history missing', async () => {
+  const { code, err } = await runCli('{}', ['--history', '/nonexistent']);
+  assert.equal(code, 2);
+  assert.match(err, /scan-history/);
+});
