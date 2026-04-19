@@ -9,7 +9,8 @@ export function write(portalsPath, mutations) {
     const tf = mutations.title_filter;
     if (Array.isArray(tf.positive)) doc.setIn(['title_filter', 'positive'], tf.positive);
     if (Array.isArray(tf.negative)) doc.setIn(['title_filter', 'negative'], tf.negative);
-    if (Array.isArray(tf.required_any)) doc.setIn(['title_filter', 'required_any'], tf.required_any);
+    if (Array.isArray(tf.required_any))
+      doc.setIn(['title_filter', 'required_any'], tf.required_any);
   }
 
   if (Array.isArray(mutations.blacklist)) {

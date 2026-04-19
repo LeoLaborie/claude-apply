@@ -4,11 +4,41 @@ import assert from 'node:assert/strict';
 import { simulate } from '../../src/scan/tune-filter.mjs';
 
 const rows = [
-  { url: 'u1', title: 'Software Engineer Intern', company: 'OpenAI', portal: 'lever', first_seen: '2026-04-19' },
-  { url: 'u2', title: 'ML Engineer Intern', company: 'Anthropic', portal: 'greenhouse', first_seen: '2026-04-19' },
-  { url: 'u3', title: 'Senior Backend Engineer', company: 'Stripe', portal: 'greenhouse', first_seen: '2026-04-19' },
-  { url: 'u4', title: 'Applied Scientist Intern - ML', company: 'DeepMind', portal: 'greenhouse', first_seen: '2026-04-19' },
-  { url: 'u5', title: 'Research Engineer Intern', company: 'BlacklistedCorp', portal: 'lever', first_seen: '2026-04-19' },
+  {
+    url: 'u1',
+    title: 'Software Engineer Intern',
+    company: 'OpenAI',
+    portal: 'lever',
+    first_seen: '2026-04-19',
+  },
+  {
+    url: 'u2',
+    title: 'ML Engineer Intern',
+    company: 'Anthropic',
+    portal: 'greenhouse',
+    first_seen: '2026-04-19',
+  },
+  {
+    url: 'u3',
+    title: 'Senior Backend Engineer',
+    company: 'Stripe',
+    portal: 'greenhouse',
+    first_seen: '2026-04-19',
+  },
+  {
+    url: 'u4',
+    title: 'Applied Scientist Intern - ML',
+    company: 'DeepMind',
+    portal: 'greenhouse',
+    first_seen: '2026-04-19',
+  },
+  {
+    url: 'u5',
+    title: 'Research Engineer Intern',
+    company: 'BlacklistedCorp',
+    portal: 'lever',
+    first_seen: '2026-04-19',
+  },
 ];
 
 test('simulate returns totals and ratio', () => {
@@ -39,7 +69,10 @@ test('simulate caps sampleRejected at 10 per reason', () => {
     portal: 'lever',
     first_seen: '2026-04-19',
   }));
-  const res = simulate({ positive: ['Intern'], negative: [], required_any: [], blacklist: [] }, many);
+  const res = simulate(
+    { positive: ['Intern'], negative: [], required_any: [], blacklist: [] },
+    many
+  );
   for (const sample of res.sampleRejected.values()) {
     assert.ok(sample.length <= 10);
   }
@@ -47,11 +80,29 @@ test('simulate caps sampleRejected at 10 per reason', () => {
 
 test('simulate byCompany ranks top 20 by accepted desc', () => {
   const many = [
-    ...Array.from({ length: 3 }, (_, i) => ({ url: `a${i}`, title: 'Intern', company: 'Alpha', portal: 'lever' })),
-    ...Array.from({ length: 5 }, (_, i) => ({ url: `b${i}`, title: 'Intern', company: 'Beta', portal: 'lever' })),
-    ...Array.from({ length: 1 }, (_, i) => ({ url: `c${i}`, title: 'Staff Engineer', company: 'Gamma', portal: 'lever' })),
+    ...Array.from({ length: 3 }, (_, i) => ({
+      url: `a${i}`,
+      title: 'Intern',
+      company: 'Alpha',
+      portal: 'lever',
+    })),
+    ...Array.from({ length: 5 }, (_, i) => ({
+      url: `b${i}`,
+      title: 'Intern',
+      company: 'Beta',
+      portal: 'lever',
+    })),
+    ...Array.from({ length: 1 }, (_, i) => ({
+      url: `c${i}`,
+      title: 'Staff Engineer',
+      company: 'Gamma',
+      portal: 'lever',
+    })),
   ];
-  const res = simulate({ positive: ['Intern'], negative: [], required_any: [], blacklist: [] }, many);
+  const res = simulate(
+    { positive: ['Intern'], negative: [], required_any: [], blacklist: [] },
+    many
+  );
   assert.equal(res.byCompany[0].company, 'Beta');
   assert.equal(res.byCompany[0].accepted, 5);
   assert.equal(res.byCompany[1].company, 'Alpha');

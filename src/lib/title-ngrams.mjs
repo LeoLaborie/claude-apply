@@ -40,8 +40,5 @@ export function suggestNgrams(titles, { maxN, minCount, stopWords, existingTerms
 
 export function tokenize(title) {
   if (!title) return [];
-  return String(title)
-    .toLowerCase()
-    .split(WORD_SPLIT_RE)
-    .filter(Boolean);
+  return String(title).toLowerCase().split(WORD_SPLIT_RE).filter(Boolean);
 }
