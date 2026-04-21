@@ -3,12 +3,17 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { installMockFetch } from '../helpers.mjs';
 import {
   discoverCompany,
   slugCandidates,
   loadKnownSlugs,
 } from '../../src/scan/discover-company.mjs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.join(__dirname, '..', '..');
 
 let restore;
 let tmpDir;
@@ -222,4 +227,41 @@ test('discoverCompany — aucune correspondance renvoie ok:false', async () => {
   assert.equal(r.ok, false);
   assert.ok(Array.isArray(r.tried));
   assert.ok(r.tried.length >= 9);
+});
+
+test('discoverCompany — accepts injected verifiers, bypasses VERIFIERS constant', async () => {
+  const r = await discoverCompany('Acme', {
+    delayMs: 0,
+    verifiers: {
+      lever: async (slug) => (slug === 'acme' ? { ok: true, count: 7 } : { ok: false }),
+      greenhouse: async () => ({ ok: false }),
+      ashby: async () => ({ ok: false }),
+      workable: async () => ({ ok: false }),
+    },
+  });
+  assert.equal(r.ok, true);
+  assert.equal(r.platform, 'lever');
+  assert.equal(r.slug, 'acme');
+  assert.equal(r.count, 7);
+});
+
+test('discover-company CLI — exits 1 with usage message when no name given', () => {
+  const result = spawnSync(
+    'node',
+    [path.join(REPO_ROOT, 'src/scan/discover-company.mjs')],
+    { encoding: 'utf8' }
+  );
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /usage/i);
+});
+
+test('discover-company CLI — exits 1 and prints JSON ok:false when slug not found', () => {
+  const result = spawnSync(
+    'node',
+    [path.join(REPO_ROOT, 'src/scan/discover-company.mjs'), 'XYZNoSuchCompanyEver'],
+    { encoding: 'utf8', env: { ...process.env, DISCOVER_DELAY_MS: '0' } }
+  );
+  assert.equal(result.status, 1);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.ok, false);
 });
