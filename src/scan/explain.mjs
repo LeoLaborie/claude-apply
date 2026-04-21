@@ -104,7 +104,31 @@ function formatTrace(offer, outcome, whitelist) {
   return lines.join('\n');
 }
 
+function printExplainHelp() {
+  console.log(`Usage: /explain "<title>" [--company <name>] [--location <loc>]
+
+Trace which prefilter rule accepts or rejects a given title.
+
+Flags:
+  --company <name>    Apply blacklist check against this company.
+  --location <loc>    Apply location check against this string.
+  --help, -h          Show this help and exit.
+
+Files:
+  reads:  config/portals.yml, config/candidate-profile.yml
+  writes: (nothing)
+
+Exit codes: 0 = ACCEPTED, 1 = REJECTED, 2 = usage error.
+
+See also: /scan
+          docs/scan-workflow.md#title-filter`);
+}
+
 function main() {
+  if (process.argv.slice(2).some((a) => a === '--help' || a === '-h')) {
+    printExplainHelp();
+    process.exit(0);
+  }
   const parsed = parseArgs(process.argv);
   if (parsed.error) {
     console.error(parsed.error);
