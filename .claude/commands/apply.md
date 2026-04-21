@@ -3,6 +3,32 @@ description: Fill and submit a job application on the URL provided via claude-in
 argument-hint: <job-url>
 ---
 
+## `--help` / `-h`
+
+**Si `$ARGUMENTS` commence par `--help` ou `-h`, imprime uniquement le bloc ci-dessous et arrête-toi. N'ouvre pas Chrome, ne lis aucun fichier de `config/` ou `data/`.**
+
+```
+Usage: /apply <url>
+
+Open the URL in Chrome (CDP on port 9222), classify the form,
+fill from config/candidate-profile.yml, upload the CV, submit,
+and update data/applications.md + data/apply-log.jsonl.
+
+Stops and asks the user on: captcha, login wall,
+unknown required field.
+
+Prerequisites:
+  - chrome-apply alias launched (CDP port 9222 up)
+  - claude-in-chrome extension installed with host permissions
+
+Files:
+  reads:  config/candidate-profile.yml, config/cv.<lang>.pdf
+  writes: data/applications.md, data/apply-log.jsonl
+
+See also: /scan, /score, /dashboard
+          docs/apply-workflow.md, docs/cdp-setup.md
+```
+
 # /apply $ARGUMENTS
 
 You will apply automatically to the offer at `$ARGUMENTS`. Follow this playbook **step by step**. At the slightest anomaly (login wall, captcha, unknown required field, submit error), **STOP and ask the user** before continuing.
