@@ -35,6 +35,7 @@ export function slugCandidates(name, platform) {
 
   const extras = new Set();
   for (const b of base) {
+    extras.add(`${b}-`);
     if (platform === 'lever') {
       extras.add(`${b}-ai`);
       extras.add(`${b}ai`);

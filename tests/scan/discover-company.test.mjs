@@ -68,6 +68,7 @@ test('slugCandidates — variations Workable incluent -careers, hq et -hq', () =
 test('discoverCompany — bascule sur Greenhouse quand Lever échoue', async () => {
   restore = installMockFetch({
     'https://api.lever.co/v0/postings/doctolib?mode=json': { status: 404, body: {} },
+    'https://api.lever.co/v0/postings/doctolib-?mode=json': { status: 404, body: {} },
     'https://api.lever.co/v0/postings/doctolib-ai?mode=json': { status: 404, body: {} },
     'https://api.lever.co/v0/postings/doctolibai?mode=json': { status: 404, body: {} },
     'https://boards-api.greenhouse.io/v1/boards/doctolib/jobs?content=true': {
@@ -85,9 +86,14 @@ test('discoverCompany — bascule sur Greenhouse quand Lever échoue', async () 
 test('discoverCompany — bascule sur Ashby quand Lever et Greenhouse échouent', async () => {
   restore = installMockFetch({
     'https://api.lever.co/v0/postings/cohere?mode=json': { status: 404, body: {} },
+    'https://api.lever.co/v0/postings/cohere-?mode=json': { status: 404, body: {} },
     'https://api.lever.co/v0/postings/cohere-ai?mode=json': { status: 404, body: {} },
     'https://api.lever.co/v0/postings/cohereai?mode=json': { status: 404, body: {} },
     'https://boards-api.greenhouse.io/v1/boards/cohere/jobs?content=true': {
+      status: 404,
+      body: {},
+    },
+    'https://boards-api.greenhouse.io/v1/boards/cohere-/jobs?content=true': {
       status: 404,
       body: {},
     },
@@ -137,12 +143,32 @@ test('discoverCompany — cache écrit puis relu sans fetch', async () => {
   assert.equal(r2.platform, 'lever');
 });
 
+test('slugCandidates — includes trailing-dash variant for lever', () => {
+  const out = slugCandidates('QuantCo', 'lever');
+  assert.ok(out.includes('quantco-'), `expected 'quantco-' in ${JSON.stringify(out)}`);
+});
+
+test('slugCandidates — includes trailing-dash variant for greenhouse', () => {
+  const out = slugCandidates('QuantCo', 'greenhouse');
+  assert.ok(out.includes('quantco-'), `expected 'quantco-' in ${JSON.stringify(out)}`);
+});
+
+test('slugCandidates — includes trailing-dash variant for ashby', () => {
+  const out = slugCandidates('QuantCo', 'ashby');
+  assert.ok(out.includes('quantco-'), `expected 'quantco-' in ${JSON.stringify(out)}`);
+});
+
 test('discoverCompany — aucune correspondance renvoie ok:false', async () => {
   restore = installMockFetch({
     'https://api.lever.co/v0/postings/ghost?mode=json': { status: 404, body: {} },
+    'https://api.lever.co/v0/postings/ghost-?mode=json': { status: 404, body: {} },
     'https://api.lever.co/v0/postings/ghost-ai?mode=json': { status: 404, body: {} },
     'https://api.lever.co/v0/postings/ghostai?mode=json': { status: 404, body: {} },
     'https://boards-api.greenhouse.io/v1/boards/ghost/jobs?content=true': {
+      status: 404,
+      body: {},
+    },
+    'https://boards-api.greenhouse.io/v1/boards/ghost-/jobs?content=true': {
       status: 404,
       body: {},
     },
@@ -159,6 +185,10 @@ test('discoverCompany — aucune correspondance renvoie ok:false', async () => {
       body: {},
     },
     'https://api.ashbyhq.com/posting-api/job-board/ghost?includeCompensation=false': {
+      status: 404,
+      body: {},
+    },
+    'https://api.ashbyhq.com/posting-api/job-board/ghost-?includeCompensation=false': {
       status: 404,
       body: {},
     },
@@ -183,6 +213,7 @@ test('discoverCompany — aucune correspondance renvoie ok:false', async () => {
       body: {},
     },
     'https://apply.workable.com/api/v1/widget/accounts/ghost': { status: 404, body: {} },
+    'https://apply.workable.com/api/v1/widget/accounts/ghost-': { status: 404, body: {} },
     'https://apply.workable.com/api/v1/widget/accounts/ghost-careers': { status: 404, body: {} },
     'https://apply.workable.com/api/v1/widget/accounts/ghosthq': { status: 404, body: {} },
     'https://apply.workable.com/api/v1/widget/accounts/ghost-hq': { status: 404, body: {} },
