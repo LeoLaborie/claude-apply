@@ -111,7 +111,7 @@ Trigger when **at least one** of `city`, `graduation_year` is `null` after extra
 - **City**: _"Your CV didn't state a residential city. Please provide one (used for form pre-fill on Workday/Greenhouse)."_
 - **Graduation year**: _"Your CV didn't state a graduation year. Based on your degree start year N, a typical 5-year cycle ends in N+5 — correct? Or enter a different year."_
 
-Anything the user declines in optional fields → `null`. Required fields (city, graduation_year, locations, remote_preference, work_authorization, requires_sponsorship, auto_apply_min_score) cannot be skipped — if the user refuses, stop and ask again clearly.
+Anything the user declines in optional fields → `null`. Required fields for `candidate-profile.yml` (city, graduation_year, work_authorization, requires_sponsorship, auto_apply_min_score) cannot be skipped — if the user refuses, stop and ask again clearly. Note: `locations` and `remote_preference` are required for `.onboard-state.json` (not `candidate-profile.yml`) and are collected in step 2.5.
 
 ## 4. Ensure npm dependencies are installed
 
