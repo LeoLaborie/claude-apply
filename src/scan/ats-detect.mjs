@@ -55,8 +55,11 @@ export async function verifyCompany(careersUrl) {
   }
   const mod = await import(`./ats/${platform}.mjs`);
   const result = await mod.verifySlug(slug);
-  if (result.ok && result.count === 0) {
-    return { ...result, warning: 'board live but empty — possibly wrong slug' };
+  const extras = {};
+  if (det.hasLocale) {
+    extras.warning = 'locale filter detected in URL; API scan returns all locales';
+  } else if (result.ok && result.count === 0) {
+    extras.warning = 'board live but empty — possibly wrong slug';
   }
-  return result;
+  return { ...result, ...extras };
 }

@@ -80,7 +80,7 @@ test('verifyCompany — dispatches Workday URL to workday.verifySlug', async () 
       'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers'
     );
     assert.equal(r.ok, true);
-    assert.equal(r.count, 1);
+    assert.equal(r.count, 5); // data.total=5 per fixture
   } finally {
     restore();
   }
@@ -121,5 +121,35 @@ test('verifyCompany — count>0 does not add warning', async () => {
 test('verifyCompany — ok:false (unknown platform) does not add warning', async () => {
   const r = await verifyCompany('https://careers.example.com/jobs');
   assert.equal(r.ok, false);
+  assert.equal(r.warning, undefined);
+});
+
+test('verifyCompany — emits locale warning for Workday URL with locale segment', async () => {
+  restore = installMockFetch({
+    'https://interdigital.wd5.myworkdayjobs.com/wday/cxs/interdigital/InterDigital_Intern/jobs': {
+      total: 42,
+      jobPostings: [{ title: 'x' }],
+    },
+  });
+  const r = await verifyCompany(
+    'https://interdigital.wd5.myworkdayjobs.com/en-US/InterDigital_Intern'
+  );
+  assert.equal(r.ok, true);
+  assert.equal(r.count, 42);
+  assert.ok(
+    typeof r.warning === 'string' && r.warning.includes('locale filter detected'),
+    `expected locale-filter warning, got ${JSON.stringify(r.warning)}`
+  );
+});
+
+test('verifyCompany — no locale warning when URL has no locale segment', async () => {
+  restore = installMockFetch({
+    'https://totalenergies.wd3.myworkdayjobs.com/wday/cxs/totalenergies/TotalEnergies_careers/jobs':
+      { total: 10, jobPostings: [] },
+  });
+  const r = await verifyCompany(
+    'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers'
+  );
+  assert.equal(r.ok, true);
   assert.equal(r.warning, undefined);
 });
