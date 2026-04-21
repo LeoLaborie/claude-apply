@@ -134,8 +134,36 @@ async function resolveByUrl(url, doc, deps) {
 }
 
 async function resolveByName(name, doc, deps) {
-  // Name branch implemented in Task 6.
-  return { status: 'not-found', form: 'name', input: name, tried: [] };
+  if (!name) {
+    return { status: 'not-found', form: 'name', input: name, reason: 'empty input', tried: [] };
+  }
+
+  const result = await deps.discoverCompany(name);
+  if (!result.ok) {
+    return {
+      status: 'not-found',
+      form: 'name',
+      input: name,
+      reason: result.reason ?? 'no slug matched',
+      tried: result.tried ?? [],
+    };
+  }
+
+  const dup = duplicateStatus(doc, result.careersUrl);
+  if (dup) {
+    return { ...dup, form: 'name', input: name, platform: result.platform, slug: result.slug, careersUrl: result.careersUrl };
+  }
+
+  return {
+    status: 'ok',
+    form: 'name',
+    input: name,
+    platform: result.platform,
+    slug: result.slug,
+    careersUrl: result.careersUrl,
+    count: result.count ?? null,
+    suggestedName: name,
+  };
 }
 
 export function toggleEnabled(doc, careersUrl) {

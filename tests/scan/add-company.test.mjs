@@ -248,3 +248,75 @@ test('resolveCompany — missing portals.yml returns no-portals', async () => {
   });
   assert.equal(out.status, 'no-portals');
 });
+
+test('resolveCompany — name form returns ok when discoverCompany succeeds', async () => {
+  const { path: p } = copyFixture('portals.rich-comments.yml');
+  const out = await resolveCompany({
+    input: 'Poolside',
+    portalsPath: p,
+    deps: makeDeps({
+      discoverCompany: async () => ({
+        ok: true,
+        platform: 'ashby',
+        slug: 'poolside',
+        careersUrl: 'https://jobs.ashbyhq.com/poolside',
+        count: 11,
+      }),
+    }),
+  });
+  assert.equal(out.status, 'ok');
+  assert.equal(out.form, 'name');
+  assert.equal(out.platform, 'ashby');
+  assert.equal(out.slug, 'poolside');
+  assert.equal(out.careersUrl, 'https://jobs.ashbyhq.com/poolside');
+  assert.equal(out.count, 11);
+  assert.equal(out.suggestedName, 'Poolside');
+});
+
+test('resolveCompany — name form returns not-found with tried candidates', async () => {
+  const { path: p } = copyFixture('portals.rich-comments.yml');
+  const out = await resolveCompany({
+    input: 'Unknown Corp',
+    portalsPath: p,
+    deps: makeDeps({
+      discoverCompany: async () => ({
+        ok: false,
+        reason: 'no slug matched',
+        tried: [{ platform: 'lever', slug: 'unknowncorp' }],
+      }),
+    }),
+  });
+  assert.equal(out.status, 'not-found');
+  assert.equal(out.form, 'name');
+  assert.deepEqual(out.tried, [{ platform: 'lever', slug: 'unknowncorp' }]);
+});
+
+test('resolveCompany — name form empty input returns not-found', async () => {
+  const { path: p } = copyFixture('portals.rich-comments.yml');
+  const out = await resolveCompany({
+    input: '   ',
+    portalsPath: p,
+    deps: makeDeps(),
+  });
+  assert.equal(out.status, 'not-found');
+  assert.equal(out.reason, 'empty input');
+});
+
+test('resolveCompany — name form duplicate when discovered URL is already present', async () => {
+  const { path: p } = copyFixture('portals.rich-comments.yml');
+  const out = await resolveCompany({
+    input: 'Mistral',
+    portalsPath: p,
+    deps: makeDeps({
+      discoverCompany: async () => ({
+        ok: true,
+        platform: 'lever',
+        slug: 'mistral',
+        careersUrl: 'https://jobs.lever.co/mistral',
+        count: 42,
+      }),
+    }),
+  });
+  assert.equal(out.status, 'duplicate');
+  assert.equal(out.duplicateOf.name, 'Mistral AI');
+});
