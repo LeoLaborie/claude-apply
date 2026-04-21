@@ -317,8 +317,29 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
+function printDashboardHelp() {
+  console.log(`Usage: /dashboard
+
+Regenerate dashboard.html from data/ and reports/.
+
+Flags:
+  --help, -h    Show this help and exit.
+
+Files:
+  reads:  data/pipeline.md, data/evaluations.jsonl, data/applications.md,
+          data/apply-log.jsonl, reports/
+  writes: dashboard.html  (at repo root)
+
+See also: /scan, /score`);
+}
+
 // CLI guard — run directly as a script
 if (import.meta.url === `file://${process.argv[1]}`) {
+  const args = process.argv.slice(2);
+  if (args.includes('--help') || args.includes('-h')) {
+    printDashboardHelp();
+    process.exit(0);
+  }
   const dataDir = process.env.CLAUDE_APPLY_DATA_DIR || './data';
   const reportsDir = process.env.CLAUDE_APPLY_REPORTS_DIR || './reports';
   await buildDashboard({
