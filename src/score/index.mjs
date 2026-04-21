@@ -383,7 +383,41 @@ function formatProgress(index, total, offer, result) {
   return `[batch]  ${num} ✓ ${label.padEnd(45)} ${result.score} ${result.verdict}`;
 }
 
+function printScoreHelp() {
+  console.log(`Usage: /score <url> [options]
+       /score --from-pipeline [--batch] [--parallel <n>]
+       /score --json-input <path>
+
+LLM-evaluate one or more offers against config/cv.md.
+
+Flags:
+  --re-score             Re-evaluate a URL already in evaluations.jsonl
+                         (preserves the existing id).
+  --batch                Score multiple offers from data/pipeline.md.
+  --parallel <n>         With --batch, run <n> evaluations concurrently.
+                         Implies --batch. Default: 5.
+  --from-pipeline        Take the offer URL from data/pipeline.md.
+  --json-input <path>    Read a pre-built offer JSON instead of fetching.
+  --id <id>              Override the generated id for this entry.
+  --company <name>       With --role and --location, override offer metadata
+                         (all three required together).
+  --role <title>         (see --company)
+  --location <loc>       (see --company)
+  --help, -h             Show this help and exit.
+
+Files:
+  reads:  config/cv.md, config/candidate-profile.yml
+  writes: data/evaluations.jsonl  (one JSON line per invocation)
+
+See also: /explain, /dashboard
+          docs/score-workflow.md`);
+}
+
 async function main() {
+  if (process.argv.slice(2).some((a) => a === '--help' || a === '-h')) {
+    printScoreHelp();
+    process.exit(0);
+  }
   const CONFIG_DIR =
     process.env.CLAUDE_APPLY_CONFIG_DIR || path.join(__dirname, '..', '..', 'config');
   const DATA_DIR = process.env.CLAUDE_APPLY_DATA_DIR || path.join(__dirname, '..', '..', 'data');
