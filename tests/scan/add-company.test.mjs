@@ -5,7 +5,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseDocument } from 'yaml';
 import os from 'node:os';
-import { AddCompanyError, appendCompany, findByCareersUrl, toggleEnabled } from '../../src/scan/add-company.mjs';
+import {
+  AddCompanyError,
+  appendCompany,
+  findByCareersUrl,
+  toggleEnabled,
+  resolveCompany,
+} from '../../src/scan/add-company.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURES = path.join(__dirname, '..', 'fixtures', 'add-company');
@@ -138,4 +144,107 @@ test('toggleEnabled — returns null when careers_url is not found', () => {
   const { path: p } = copyFixture('portals.disabled-entry.yml');
   const doc = parseDocument(fs.readFileSync(p, 'utf8'));
   assert.equal(toggleEnabled(doc, 'https://nope'), null);
+});
+
+function makeDeps({ verifyCompany, discoverCompany } = {}) {
+  return {
+    verifyCompany: verifyCompany ?? (async () => ({ ok: true, count: 5 })),
+    discoverCompany:
+      discoverCompany ?? (async () => ({ ok: false, reason: 'no slug matched', tried: [] })),
+  };
+}
+
+test('resolveCompany — URL form happy path returns status ok with platform/slug', async () => {
+  const { path: p } = copyFixture('portals.rich-comments.yml');
+  const out = await resolveCompany({
+    input: 'https://jobs.ashbyhq.com/poolside',
+    portalsPath: p,
+    deps: makeDeps({ verifyCompany: async () => ({ ok: true, count: 11 }) }),
+  });
+  assert.equal(out.status, 'ok');
+  assert.equal(out.form, 'url');
+  assert.equal(out.platform, 'ashby');
+  assert.equal(out.slug, 'poolside');
+  assert.equal(out.careersUrl, 'https://jobs.ashbyhq.com/poolside');
+  assert.equal(out.count, 11);
+  assert.equal(out.suggestedName, 'Poolside');
+});
+
+test('resolveCompany — URL form with count 0 sets warning empty board', async () => {
+  const { path: p } = copyFixture('portals.rich-comments.yml');
+  const out = await resolveCompany({
+    input: 'https://jobs.ashbyhq.com/poolside',
+    portalsPath: p,
+    deps: makeDeps({ verifyCompany: async () => ({ ok: true, count: 0 }) }),
+  });
+  assert.equal(out.status, 'ok');
+  assert.equal(out.warning, 'empty board');
+});
+
+test('resolveCompany — URL form unknown host returns supportedHosts list', async () => {
+  const { path: p } = copyFixture('portals.rich-comments.yml');
+  const out = await resolveCompany({
+    input: 'https://careers.example.com/company',
+    portalsPath: p,
+    deps: makeDeps(),
+  });
+  assert.equal(out.status, 'unknown-host');
+  assert.ok(Array.isArray(out.supportedHosts));
+  assert.ok(out.supportedHosts.length > 0);
+});
+
+test('resolveCompany — URL form workable returns unsupported-platform with knownHost', async () => {
+  const { path: p } = copyFixture('portals.rich-comments.yml');
+  const out = await resolveCompany({
+    input: 'https://apply.workable.com/huggingface',
+    portalsPath: p,
+    deps: makeDeps(),
+  });
+  assert.equal(out.status, 'unsupported-platform');
+  assert.equal(out.knownHost, 'workable');
+});
+
+test('resolveCompany — URL form verify failure returns not-found', async () => {
+  const { path: p } = copyFixture('portals.rich-comments.yml');
+  const out = await resolveCompany({
+    input: 'https://jobs.lever.co/does-not-exist',
+    portalsPath: p,
+    deps: makeDeps({ verifyCompany: async () => ({ ok: false, reason: 'slug 404' }) }),
+  });
+  assert.equal(out.status, 'not-found');
+  assert.equal(out.platform, 'lever');
+  assert.equal(out.slug, 'does-not-exist');
+});
+
+test('resolveCompany — URL form duplicate on exact careers_url match', async () => {
+  const { path: p } = copyFixture('portals.rich-comments.yml');
+  const out = await resolveCompany({
+    input: 'https://jobs.lever.co/mistral',
+    portalsPath: p,
+    deps: makeDeps({ verifyCompany: async () => ({ ok: true, count: 42 }) }),
+  });
+  assert.equal(out.status, 'duplicate');
+  assert.equal(out.duplicateOf.name, 'Mistral AI');
+  assert.equal(out.duplicateOf.enabled, true);
+});
+
+test('resolveCompany — URL form disabled-duplicate when existing entry is enabled false', async () => {
+  const { path: p } = copyFixture('portals.disabled-entry.yml');
+  const out = await resolveCompany({
+    input: 'https://jobs.lever.co/oldco',
+    portalsPath: p,
+    deps: makeDeps({ verifyCompany: async () => ({ ok: true, count: 1 }) }),
+  });
+  assert.equal(out.status, 'disabled-duplicate');
+  assert.equal(out.duplicateOf.name, 'OldCo');
+  assert.equal(out.duplicateOf.enabled, false);
+});
+
+test('resolveCompany — missing portals.yml returns no-portals', async () => {
+  const out = await resolveCompany({
+    input: 'https://jobs.ashbyhq.com/poolside',
+    portalsPath: '/tmp/definitely-not-here-xyz/portals.yml',
+    deps: makeDeps(),
+  });
+  assert.equal(out.status, 'no-portals');
 });
