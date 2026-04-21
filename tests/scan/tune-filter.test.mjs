@@ -115,6 +115,28 @@ test('simulate handles empty rows', () => {
   assert.equal(res.ratio, 0);
 });
 
+test('simulate honours per-company skip_required_any', () => {
+  const filter = { positive: ['Intern'], negative: [], required_any: ['ML'], blacklist: [] };
+  const rowsSkip = [
+    { url: 's1', title: 'Research Intern', company: 'Mistral AI', portal: 'lever' },
+  ];
+  const withOverride = simulate(filter, rowsSkip, {
+    companies: [{ name: 'Mistral AI', skip_required_any: true }],
+  });
+  const withoutOverride = simulate(filter, rowsSkip);
+  assert.equal(withOverride.accepted, 1);
+  assert.equal(withoutOverride.accepted, 0);
+});
+
+test('simulate sampleRejected uses normalized company and portal', () => {
+  const res = simulate({ positive: ['Intern'], negative: [], required_any: [], blacklist: [] }, [
+    { url: 'u', title: 'Senior Engineer', company: '', portal: undefined },
+  ]);
+  const [sample] = res.sampleRejected.values().next().value;
+  assert.equal(sample.company, '(unknown)');
+  assert.equal(sample.portal, '(unknown)');
+});
+
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';

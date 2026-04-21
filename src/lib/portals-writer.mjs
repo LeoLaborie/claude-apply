@@ -13,8 +13,8 @@ export function write(portalsPath, mutations) {
       doc.setIn(['title_filter', 'required_any'], tf.required_any);
   }
 
-  if (Array.isArray(mutations.blacklist)) {
-    doc.setIn(['blacklist'], mutations.blacklist);
+  if (Array.isArray(mutations.blacklist_companies)) {
+    doc.setIn(['blacklist_companies'], mutations.blacklist_companies);
   }
 
   fs.writeFileSync(portalsPath, doc.toString());

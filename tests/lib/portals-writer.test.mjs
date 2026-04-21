@@ -6,13 +6,13 @@ import path from 'node:path';
 
 import { write } from '../../src/lib/portals-writer.mjs';
 
-function copyFixture() {
+function copyFixture(name = 'with-comments.yml') {
   const src = path.join(
     path.dirname(new URL(import.meta.url).pathname),
     '..',
     'fixtures',
     'portals',
-    'with-comments.yml'
+    name
   );
   const dst = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'portals-')), 'portals.yml');
   fs.copyFileSync(src, dst);
@@ -51,4 +51,15 @@ test('write round-trips without losing comments when mutations is empty', () => 
 
 test('write throws when portals file missing', () => {
   assert.throws(() => write('/nonexistent/portals.yml', { title_filter: { positive: ['X'] } }));
+});
+
+test('write replaces blacklist_companies and preserves profile comments', () => {
+  const file = copyFixture('profile-with-comments.yml');
+  write(file, { blacklist_companies: ['BadCorp', 'EvilInc'] });
+  const after = fs.readFileSync(file, 'utf8');
+  assert.match(after, /# Candidate profile — minimal fixture/);
+  assert.match(after, /# Companies to exclude from scans\./);
+  assert.match(after, /- BadCorp/);
+  assert.match(after, /- EvilInc/);
+  assert.doesNotMatch(after, /^blacklist:/m);
 });

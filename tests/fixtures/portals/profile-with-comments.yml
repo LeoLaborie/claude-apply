@@ -1,0 +1,11 @@
+# Candidate profile — minimal fixture for portals-writer tests.
+identity:
+  first_name: Alice
+  last_name: Martin
+
+# Companies to exclude from scans.
+blacklist_companies:
+  - BadCorp
+
+# Earliest date the candidate can start.
+min_start_date: '2026-08-24'

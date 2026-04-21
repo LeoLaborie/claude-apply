@@ -19,7 +19,7 @@ If `data/scan-history.tsv` is missing or empty, **stop** and say:
 
 ## State you track in-memory during the loop
 
-- `currentFilter`: `{ positive, negative, required_any, blacklist }` — starts as a copy of what you read from `portals.yml` (positive/negative/required_any) and `candidate-profile.yml` (`blacklist_companies` → `blacklist`).
+- `currentFilter`: `{ positive, negative, required_any, blacklist, companies }` — starts as a copy of what you read from `portals.yml` (positive/negative/required_any, plus the full `tracked_companies` list as `companies` so the simulator can honour per-company `skip_required_any`) and `candidate-profile.yml` (`blacklist_companies` → `blacklist`).
 - `lastStats`: result of the most recent simulation against `currentFilter`.
 
 Never write to disk except on an explicit _Save_.
@@ -185,14 +185,12 @@ Return to step 3 with `currentFilter` unchanged.
      ```bash
      node -e '
        import("./src/lib/portals-writer.mjs").then(({ write }) => {
-         write("config/candidate-profile.yml", { blacklist: <JSON array> });
+         write("config/candidate-profile.yml", { blacklist_companies: <JSON array> });
        });
      '
      ```
 
-     Note: the writer mutates the `blacklist_companies` key on the profile file. Until the writer supports a configurable key name, skip blacklist persistence for v1 and print:
-
-     > "Blacklist changes are v1.1 — update `blacklist_companies` in `candidate-profile.yml` manually for now."
+     The writer replaces the `blacklist_companies` list in-place and preserves surrounding comments.
 
    - If either `node -e` exits non-zero, surface the error, write the candidate YAML to `config/portals.yml.tune-proposal`, print:
 

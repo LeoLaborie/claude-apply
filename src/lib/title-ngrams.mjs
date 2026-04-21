@@ -11,8 +11,13 @@ export function ngrams(tokens, maxN) {
   return out;
 }
 
-export function suggestNgrams(titles, { maxN, minCount, stopWords, existingTerms }) {
-  const existing = new Set((existingTerms || []).map((t) => String(t).toLowerCase()));
+export function suggestNgrams(titles, options = {}) {
+  const maxN = Number.isInteger(options.maxN) && options.maxN >= 1 ? options.maxN : 3;
+  const minCount =
+    Number.isInteger(options.minCount) && options.minCount >= 1 ? options.minCount : 2;
+  const stopWords =
+    options.stopWords instanceof Set ? options.stopWords : new Set(options.stopWords || []);
+  const existing = new Set((options.existingTerms || []).map((t) => String(t).toLowerCase()));
   const counts = new Map();
   const total = titles.length || 1;
 

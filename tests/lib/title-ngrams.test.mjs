@@ -99,3 +99,16 @@ test('suggestNgrams drops ngrams that are entirely stop-words', () => {
   });
   assert.deepEqual(out, []);
 });
+
+test('suggestNgrams accepts array stopWords and applies sane defaults', () => {
+  const titles = ['Research Engineer', 'Research Engineer', 'Software Engineer'];
+  const out = suggestNgrams(titles, { stopWords: ['software'] });
+  const ngramsOnly = out.map((e) => e.ngram);
+  assert.ok(ngramsOnly.includes('research engineer'));
+  assert.ok(!ngramsOnly.includes('software'));
+});
+
+test('suggestNgrams returns results with no options provided', () => {
+  const out = suggestNgrams(['alpha beta', 'alpha beta', 'alpha beta']);
+  assert.ok(out.some((e) => e.ngram === 'alpha beta'));
+});

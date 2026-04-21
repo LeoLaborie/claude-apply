@@ -6,12 +6,24 @@ import { checkTitle, checkBlacklist } from '../lib/prefilter-rules.mjs';
 const SAMPLE_PER_REASON = 10;
 const TOP_COMPANIES = 20;
 
-export function simulate(filter, rows) {
-  const whitelist = {
+function buildSkipRequiredAny(companies) {
+  const set = new Set();
+  for (const c of companies || []) {
+    if (c && c.skip_required_any && typeof c.name === 'string') {
+      set.add(c.name.toLowerCase());
+    }
+  }
+  return set;
+}
+
+export function simulate(filter, rows, { companies } = {}) {
+  const baseWhitelist = {
     positive: filter.positive || [],
     negative: filter.negative || [],
     required_any: filter.required_any || [],
   };
+  const skipWhitelist = { ...baseWhitelist, required_any: [] };
+  const skipSet = buildSkipRequiredAny(companies);
   const blacklist = filter.blacklist || [];
 
   const rejectedByReason = new Map();
@@ -20,7 +32,10 @@ export function simulate(filter, rows) {
 
   let accepted = 0;
   for (const row of rows) {
+    const co = row.company || '(unknown)';
+    const portal = row.portal || '(unknown)';
     const offer = { title: row.title || '', company: row.company || '' };
+    const whitelist = skipSet.has(co.toLowerCase()) ? skipWhitelist : baseWhitelist;
     let reason = null;
 
     const t = checkTitle(offer, whitelist);
@@ -31,7 +46,6 @@ export function simulate(filter, rows) {
       if (!b.pass) reason = b.reason;
     }
 
-    const co = row.company || '(unknown)';
     const agg = companyAgg.get(co) || { company: co, accepted: 0, rejected: 0 };
     if (reason === null) {
       accepted += 1;
@@ -41,7 +55,7 @@ export function simulate(filter, rows) {
       rejectedByReason.set(reason, (rejectedByReason.get(reason) || 0) + 1);
       const list = sampleRejected.get(reason) || [];
       if (list.length < SAMPLE_PER_REASON) {
-        list.push({ title: row.title, company: row.company, portal: row.portal });
+        list.push({ title: row.title || '', company: co, portal });
         sampleRejected.set(reason, list);
       }
     }
@@ -139,7 +153,7 @@ async function main() {
     process.exit(2);
   }
   const rows = parseHistory(fs.readFileSync(historyPath, 'utf8'));
-  const stats = simulate(filter, rows);
+  const stats = simulate(filter, rows, { companies: filter.companies });
   process.stdout.write(JSON.stringify(statsToJson(stats), null, 2));
 }
 
