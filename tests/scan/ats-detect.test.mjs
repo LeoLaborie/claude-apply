@@ -64,6 +64,32 @@ test('getSupportedHosts — includes myworkdayjobs wildcard', () => {
   assert.ok(hosts.some((h) => h.includes('myworkdayjobs.com')));
 });
 
+test('detectPlatform — Workday URL with locale returns canonicalUrl stripped and hasLocale=true', () => {
+  const r = detectPlatform('https://interdigital.wd5.myworkdayjobs.com/en-US/InterDigital_Intern');
+  assert.equal(r.platform, 'workday');
+  assert.equal(r.hasLocale, true);
+  assert.equal(
+    r.canonicalUrl,
+    'https://interdigital.wd5.myworkdayjobs.com/InterDigital_Intern'
+  );
+});
+
+test('detectPlatform — Workday URL without locale has hasLocale=false and canonicalUrl equals slug', () => {
+  const r = detectPlatform('https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers');
+  assert.equal(r.platform, 'workday');
+  assert.equal(r.hasLocale, false);
+  assert.equal(
+    r.canonicalUrl,
+    'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers'
+  );
+});
+
+test('detectPlatform — non-Workday platforms still return bare {platform, slug}', () => {
+  const r = detectPlatform('https://jobs.lever.co/mistral');
+  assert.equal(r.hasLocale, undefined);
+  assert.equal(r.canonicalUrl, undefined);
+});
+
 test('detectPlatform — Workday URL avec préfixe locale (en-US, fr-FR) reste valide', () => {
   // Workday surfaces locale-prefixed URLs in the browser address bar.
   // The captured slug must contain the real site segment so that

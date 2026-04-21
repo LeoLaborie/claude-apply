@@ -1,5 +1,8 @@
 // Detect ATS platform and slug from a careers URL.
 // Returns {platform, slug} or null if URL is not recognized.
+// For Workday, also returns {canonicalUrl, hasLocale}.
+
+const LOCALE_SEGMENT_RE = /\/[a-z]{2}-[A-Z]{2}(?=\/)/;
 
 const PATTERNS = [
   { platform: 'lever', re: /^https?:\/\/jobs\.lever\.co\/([^\/?#]+)/i },
@@ -16,7 +19,14 @@ export function detectPlatform(careersUrl) {
   if (!careersUrl || typeof careersUrl !== 'string') return null;
   for (const { platform, re } of PATTERNS) {
     const m = careersUrl.match(re);
-    if (m) return { platform, slug: m[1] };
+    if (!m) continue;
+    if (platform === 'workday') {
+      const full = m[1];
+      const hasLocale = LOCALE_SEGMENT_RE.test(full);
+      const canonicalUrl = hasLocale ? full.replace(LOCALE_SEGMENT_RE, '') : full;
+      return { platform, slug: full, canonicalUrl, hasLocale };
+    }
+    return { platform, slug: m[1] };
   }
   return null;
 }
