@@ -5,6 +5,7 @@ import {
   checkStartDate,
   checkTitle,
   checkBlacklist,
+  checkLanguages,
   runPrefilter,
 } from '../../src/lib/prefilter-rules.mjs';
 
@@ -169,8 +170,126 @@ test('checkBlacklist: reject case-insensitive', () => {
   assert.equal(r.pass, false);
 });
 
+// ---------- checkTitle with body (required_any soft match) ----------
+const wlReq = {
+  positive: ['Research', 'Scientist', 'Intern'],
+  negative: ['Senior'],
+  required_any: ['AI', 'ML', 'Machine Learning'],
+};
+
+test('checkTitle: required_any misses title but matches body', () => {
+  const offer = {
+    title: 'Research Scientist Intern',
+    body: 'You will work on Machine Learning research.',
+  };
+  const r = checkTitle(offer, wlReq, { body: offer.body });
+  assert.deepEqual(r, { pass: true });
+});
+
+test('checkTitle: required_any misses both title and body → reject', () => {
+  const offer = {
+    title: 'Research Scientist Intern',
+    body: 'You will work on distributed systems.',
+  };
+  const r = checkTitle(offer, wlReq, { body: offer.body });
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /title.*required_any/);
+});
+
+test('checkTitle: body does NOT rescue negative match', () => {
+  const offer = {
+    title: 'Senior ML Researcher',
+    body: 'ML, AI, Research, Intern',
+  };
+  const r = checkTitle(offer, wlReq, { body: offer.body });
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /negative/);
+});
+
+test('checkTitle: body does NOT rescue missing positive match', () => {
+  const offer = {
+    title: 'Designer UX',
+    body: 'We love Research and Science here.',
+  };
+  const r = checkTitle(offer, wlReq, { body: offer.body });
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /no positive/);
+});
+
+test('checkTitle: no body arg behaves like before (title-only required_any)', () => {
+  const offer = { title: 'Research Scientist Intern' };
+  const r = checkTitle(offer, wlReq);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /required_any/);
+});
+
+// ---------- checkLanguages ----------
+test('checkLanguages: pass when candidate has required language at C1', () => {
+  const offer = { title: 'Data Scientist - Spanish speaker' };
+  const profileLangs = [
+    { code: 'fr', level: 'native' },
+    { code: 'en', level: 'C1' },
+    { code: 'es', level: 'C1' },
+  ];
+  assert.deepEqual(checkLanguages(offer, profileLangs), { pass: true });
+});
+
+test('checkLanguages: reject when candidate has language below B2', () => {
+  const offer = { title: 'Data Scientist - Spanish speaker' };
+  const profileLangs = [
+    { code: 'en', level: 'C1' },
+    { code: 'es', level: 'A2' },
+  ];
+  const r = checkLanguages(offer, profileLangs);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /language: requires es/);
+  assert.match(r.reason, /A2/);
+});
+
+test('checkLanguages: reject when candidate lacks language entirely', () => {
+  const offer = { title: 'Deutschsprachig Analyst' };
+  const profileLangs = [{ code: 'en', level: 'C1' }];
+  const r = checkLanguages(offer, profileLangs);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /language: requires de/);
+  assert.match(r.reason, /none/);
+});
+
+test('checkLanguages: multi-language title needs ALL at B2+', () => {
+  const offer = { title: 'Bilingual German/Spanish Analyst' };
+  const profileLangs = [
+    { code: 'en', level: 'C1' },
+    { code: 'de', level: 'B2' },
+  ];
+  const r = checkLanguages(offer, profileLangs);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /es/);
+});
+
+test('checkLanguages: pass when no language marker in title', () => {
+  const offer = { title: 'Machine Learning Engineer' };
+  const profileLangs = [{ code: 'en', level: 'C1' }];
+  assert.deepEqual(checkLanguages(offer, profileLangs), { pass: true });
+});
+
+test('checkLanguages: pass when profileLanguages undefined', () => {
+  const offer = { title: 'Spanish speaker Sales' };
+  assert.deepEqual(checkLanguages(offer, undefined), { pass: true });
+});
+
+test('checkLanguages: pass when profileLanguages empty array', () => {
+  const offer = { title: 'Machine Learning Engineer' };
+  assert.deepEqual(checkLanguages(offer, []), { pass: true });
+});
+
+test('checkLanguages: B2 candidate level passes threshold', () => {
+  const offer = { title: 'Spanish speaker Analyst' };
+  const profileLangs = [{ code: 'es', level: 'B2' }];
+  assert.deepEqual(checkLanguages(offer, profileLangs), { pass: true });
+});
+
 // ---------- runPrefilter (intégration) ----------
-test('runPrefilter: court-circuit sur la première règle qui échoue', () => {
+test('runPrefilter: court-circuit sur la première règle qui échoue', async () => {
   const offer = { title: 'Senior Dev', body: 'Paris', company: 'Foo', location: '' };
   const config = {
     minStartDate: '2026-08-24',
@@ -178,12 +297,12 @@ test('runPrefilter: court-circuit sur la première règle qui échoue', () => {
     whitelist: wl,
     targetLocations: ['France', 'Paris', 'Remote'],
   };
-  const r = runPrefilter(offer, config);
+  const r = await runPrefilter(offer, config);
   assert.equal(r.pass, false);
   assert.match(r.reason, /negative|title/);
 });
 
-test('runPrefilter: pass offre valide', () => {
+test('runPrefilter: pass offre valide', async () => {
   const offer = {
     title: 'ML Engineer Intern',
     body: 'Paris office, starting September 2026',
@@ -196,5 +315,179 @@ test('runPrefilter: pass offre valide', () => {
     whitelist: wl,
     targetLocations: ['France', 'Paris', 'Remote'],
   };
-  assert.deepEqual(runPrefilter(offer, config), { pass: true });
+  assert.deepEqual(await runPrefilter(offer, config), { pass: true });
+});
+
+// ---------- runPrefilter async + soft-match short-circuit ----------
+test('runPrefilter: returns promise (async)', () => {
+  const offer = {
+    title: 'ML Engineer Intern',
+    body: 'Paris office, starting September 2026',
+    company: 'Mistral',
+    location: 'Paris, France',
+  };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: wl,
+    targetLocations: ['France', 'Paris', 'Remote'],
+  };
+  const result = runPrefilter(offer, config);
+  assert.ok(result instanceof Promise, 'expected runPrefilter to return a Promise');
+  return result.then((r) => assert.deepEqual(r, { pass: true }));
+});
+
+test('runPrefilter: soft-match fetches body when required_any missing in title', async () => {
+  let fetchBodyCalled = 0;
+  const offer = {
+    title: 'Research Scientist Intern',
+    company: 'Mistral',
+    location: 'Paris, France',
+    body: '',
+  };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: {
+      positive: ['Research', 'Scientist', 'Intern'],
+      negative: [],
+      required_any: ['AI', 'ML'],
+      required_any_in: ['title', 'description'],
+    },
+    targetLocations: ['France', 'Paris', 'Remote'],
+    fetchBody: async () => {
+      fetchBodyCalled++;
+      return 'We build Machine Learning systems (ML at scale).';
+    },
+  };
+  const r = await runPrefilter(offer, config);
+  assert.deepEqual(r, { pass: true });
+  assert.equal(fetchBodyCalled, 1);
+});
+
+test('runPrefilter: soft-match reject when body lacks keyword too', async () => {
+  const offer = {
+    title: 'Research Scientist Intern',
+    company: 'Mistral',
+    location: 'Paris, France',
+    body: '',
+  };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: {
+      positive: ['Research', 'Scientist', 'Intern'],
+      negative: [],
+      required_any: ['AI', 'ML'],
+      required_any_in: ['title', 'description'],
+    },
+    targetLocations: ['France', 'Paris', 'Remote'],
+    fetchBody: async () => 'We build distributed systems only.',
+  };
+  const r = await runPrefilter(offer, config);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /title.*required_any.*title\+description/);
+});
+
+test('runPrefilter: no fetchBody call when required_any_in is [title]', async () => {
+  let fetchBodyCalled = 0;
+  const offer = {
+    title: 'Research Scientist Intern',
+    company: 'Mistral',
+    location: 'Paris, France',
+    body: '',
+  };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: {
+      positive: ['Research', 'Scientist', 'Intern'],
+      negative: [],
+      required_any: ['AI', 'ML'],
+      required_any_in: ['title'],
+    },
+    targetLocations: ['France', 'Paris', 'Remote'],
+    fetchBody: async () => {
+      fetchBodyCalled++;
+      return 'ML everywhere';
+    },
+  };
+  const r = await runPrefilter(offer, config);
+  assert.equal(r.pass, false);
+  assert.equal(fetchBodyCalled, 0);
+});
+
+test('runPrefilter: no fetchBody call when title passes required_any', async () => {
+  let fetchBodyCalled = 0;
+  const offer = {
+    title: 'ML Engineer Intern',
+    company: 'Mistral',
+    location: 'Paris, France',
+    body: '',
+  };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: {
+      positive: ['ML', 'Intern'],
+      negative: [],
+      required_any: ['ML', 'AI'],
+      required_any_in: ['title', 'description'],
+    },
+    targetLocations: ['France', 'Paris', 'Remote'],
+    fetchBody: async () => {
+      fetchBodyCalled++;
+      return '';
+    },
+  };
+  const r = await runPrefilter(offer, config);
+  assert.deepEqual(r, { pass: true });
+  assert.equal(fetchBodyCalled, 0);
+});
+
+test('runPrefilter: fetchBody returns null → reject with soft-match reason', async () => {
+  const offer = {
+    title: 'Research Scientist Intern',
+    company: 'Mistral',
+    location: 'Paris, France',
+    body: '',
+  };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: {
+      positive: ['Research', 'Scientist', 'Intern'],
+      negative: [],
+      required_any: ['AI', 'ML'],
+      required_any_in: ['title', 'description'],
+    },
+    targetLocations: ['France', 'Paris', 'Remote'],
+    fetchBody: async () => null,
+  };
+  const r = await runPrefilter(offer, config);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /title.*required_any.*title\+description/);
+});
+
+test('runPrefilter: includes language check in chain', async () => {
+  const offer = {
+    title: 'ML Engineer Intern - Spanish speaker',
+    company: 'Mistral',
+    location: 'Paris, France',
+    body: 'Paris',
+  };
+  const config = {
+    minStartDate: '2026-08-24',
+    blacklist: [],
+    whitelist: wl,
+    targetLocations: ['France', 'Paris', 'Remote'],
+    profileLanguages: [
+      { code: 'fr', level: 'native' },
+      { code: 'en', level: 'C1' },
+      { code: 'es', level: 'A2' },
+    ],
+  };
+  const r = await runPrefilter(offer, config);
+  assert.equal(r.pass, false);
+  assert.match(r.reason, /language.*es/);
 });
