@@ -224,6 +224,29 @@ test('validateProfile tolerates internship_duration_months on a senior profile',
   assert.equal(ok, true, `errors: ${JSON.stringify(errors)}`);
 });
 
+test('validateProfile accepts auto_generate_cover_letter as optional', () => {
+  const { ok, errors } = validateProfile({
+    first_name: 'Alice',
+    last_name: 'Martin',
+    email: 'alice@example.com',
+    phone: '+33600000000',
+    linkedin_url: 'https://linkedin.com/in/a',
+    github_url: 'https://github.com/a',
+    city: 'Paris',
+    country: 'France',
+    school: 'S',
+    degree: 'D',
+    graduation_year: 2026,
+    work_authorization: 'EU',
+    requires_sponsorship: false,
+    availability_start: '2026-09-01',
+    cv_path: 'cv.pdf',
+    auto_apply_min_score: 8,
+    auto_generate_cover_letter: true,
+  });
+  assert.equal(ok, true, `errors: ${JSON.stringify(errors)}`);
+});
+
 test('validateProfile rejects profile without cv_path', () => {
   const { ok, errors } = validateProfile({
     first_name: 'Alice',
