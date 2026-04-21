@@ -30,7 +30,20 @@ The sub-skills contain the detailed hard rules for their own phase. You must fol
    - **(c) portals only** → skip phase 1, run phase 2, then skip phase 3 (Chrome is already set up from a previous run). If `node_modules/` is missing, run `bash scripts/setup.sh --yes --no-clone-chrome-profile` first.
 2. If `config/candidate-profile.yml` does **not** exist, run all three phases.
 
+After picking a mode, print this plan so the user knows what's coming:
+
+```
+Onboarding plan:
+  ▶ Phase 1/3 — Profile
+  ▶ Phase 2/3 — Companies
+  ▶ Phase 3/3 — Setup
+```
+
+For mode (c) ("portals only"), print the same plan with `(skip)` next to phases 1 and 3.
+
 ## 1. Phase 1 — profile (`/apply-onboard:profile`)
+
+Print `▶ Phase 1/3 — Profile` before delegating, and `✓ Phase 1/3 done` after the sub-skill returns.
 
 Follow the instructions in `.claude/commands/apply-onboard/profile.md` end-to-end. Pass `$ARGUMENTS` through as the CV path if the user provided one.
 
@@ -38,11 +51,15 @@ Phase 1 writes `config/cv.md`, `config/cv.<lang>.pdf`, `config/candidate-profile
 
 ## 2. Phase 2 — companies (`/apply-onboard:companies`)
 
+Print `▶ Phase 2/3 — Companies` before delegating, and `✓ Phase 2/3 done` after the sub-skill returns.
+
 Follow the instructions in `.claude/commands/apply-onboard/companies.md` end-to-end.
 
 Phase 2 reads `data/.onboard-state.json` for the user's job-type and domain answers, builds `title_filter`, runs WebSearch + `verifyCompany`, gets the user's approval on the final list, and writes `config/portals.yml`. Do not proceed until the file is written.
 
 ## 3. Phase 3 — setup (`/apply-onboard:setup`)
+
+Print `▶ Phase 3/3 — Setup` before delegating, and `✓ Phase 3/3 done` after the sub-skill returns.
 
 Follow the instructions in `.claude/commands/apply-onboard/setup.md` end-to-end.
 
@@ -50,7 +67,7 @@ Phase 3 runs `scripts/setup.sh`, launches Chrome in CDP mode, and prints the ext
 
 ## Absolute rules (recap)
 
-- **One question block per phase** — never pepper the user with follow-ups.
+- **Up to 3 question blocks in phase 1** (+ 1 conditional Block D for CV fields missing from extraction), one each in phases 2 and 3 — never pepper the user with follow-ups.
 - **Approve before writing `portals.yml`** — always.
 - **Validate the profile** before writing it — never write an invalid YAML.
 - **Never guess PII** — `null` is always a valid answer.
