@@ -73,35 +73,45 @@ Behaviour:
 
 If step 1 extracted **zero** of the four fields, skip this section entirely and go straight to step 3.
 
-## 3. One question block
+## 3. Question blocks (up to 3, plus one conditional)
 
-Use **`AskUserQuestion`** once with everything you could not extract, grouped logically. Do not loop back with follow-ups unless the user's answer is internally inconsistent.
+Use **`AskUserQuestion`** up to **3** times, grouping questions logically (Block A job search / Block B location+admin / Block C setup+scoring). A 4th call (Block D) is only allowed to fill required fields missing from the CV. Never loop back with follow-ups unless the user's answer is internally inconsistent.
 
-**Job search** (skip the entire sub-block if step 2.5 confirmed all four fields. Otherwise, only include the bullets whose value is still `null`.)
+Each `AskUserQuestion` call accepts at most 4 questions.
+
+**Block A — Job search** (skip the entire block if step 2.5 confirmed all four fields; otherwise include only the bullets whose value is still `null`; max 4 questions total)
 
 - **Job type**: internship / apprenticeship / entry-level / mid-level / senior / other
 - **Target start date** (ISO date)
 - **Duration** (if internship/apprenticeship): months
 - **Target role / domain keywords**: free text — drives both `title_filter` and company discovery (phase 2). Example: "AI/ML engineering", "backend Python", "devtools".
 
-**Location & remote**
+**Block B — Location + admin core** (4 questions)
 
 - **Locations**: cities or regions, comma-separated
 - **Remote preference**: onsite / hybrid / remote
-
-**Admin**
-
-- **Date of birth** (may skip if user refuses)
-- **Nationality**
 - **Work authorization** — free text (e.g. "EU citizen — no sponsorship needed")
 - **Requires visa sponsorship**: yes / no
 
-**Setup choices** (used later by `/apply-onboard:setup`)
+**Block C — Setup + scoring** (up to 4 questions)
 
-- **Clone your existing Chrome profile** into the CDP profile? yes / no
-- **Cover letter auto-generation**: enable now? yes / no (default no)
+- **Auto-apply minimum score** (drives `/apply --auto`): options `6` / `7` / `8`, default `7`. Stored as `auto_apply_min_score`.
+- **Clone your existing Chrome profile** into the CDP profile? yes / no.
+  - `yes`: copies cookies, sessions, and extensions from your current Chrome profile — you stay logged in to ATSes and keep your existing extensions.
+  - `no`: starts from scratch — every ATS will ask you to log in once.
+- **Cover letter auto-generation**: yes / no (default no). Stored as `auto_generate_cover_letter` in both `candidate-profile.yml` and `.onboard-state.json`.
+- **Date of birth** (optional — may skip).
 
-Anything the user declines → `null`.
+`nationality` is no longer asked in Block C; set it to `null` by default (users can fill it later if a specific form requires it).
+
+**Block D — Required fields missing from CV** (conditional; skipped if all extracted; at most 2 questions)
+
+Trigger when **at least one** of `city`, `graduation_year` is `null` after extraction.
+
+- **City**: *"Your CV didn't state a residential city. Please provide one (used for form pre-fill on Workday/Greenhouse)."*
+- **Graduation year**: *"Your CV didn't state a graduation year. Based on your degree start year N, a typical 5-year cycle ends in N+5 — correct? Or enter a different year."*
+
+Anything the user declines in optional fields → `null`. Required fields (city, graduation_year, locations, remote_preference, work_authorization, requires_sponsorship, auto_apply_min_score) cannot be skipped — if the user refuses, stop and ask again clearly.
 
 ## 4. Ensure npm dependencies are installed
 
