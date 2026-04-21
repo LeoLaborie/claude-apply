@@ -1,6 +1,6 @@
 ---
 description: Discover and append a new company to config/portals.yml (no hand-editing YAML)
-argument-hint: "<name or URL>"
+argument-hint: '<name or URL>'
 ---
 
 # /add-company $ARGUMENTS
@@ -23,15 +23,15 @@ node src/scan/add-company.mjs --input "$ARGUMENTS" --dry-run --json
 
 Parse the JSON output and branch on `status`:
 
-| status                 | What to tell the user                                                                                   |
-| ---------------------- | ------------------------------------------------------------------------------------------------------- |
+| status                 | What to tell the user                                                                                                                                                                                        |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `ok`                   | Show `platform / slug (careersUrl) — N offers`. If `warning: "empty board"`, ask explicitly: "Board is live but 0 offers — add anyway?" Otherwise: "Confirm name and add? [Yes / Edit name / Edit URL / No]" |
-| `duplicate`            | "Already in portals.yml: `<duplicateOf.name>` (enabled: true). Nothing to do."                          |
-| `disabled-duplicate`   | "Found existing entry `<duplicateOf.name>` with enabled: false. Enable it? [Yes / No]"                  |
-| `unknown-host`         | "Host not recognized. Supported: `<supportedHosts joined>`. Open an issue to add this ATS."             |
-| `unsupported-platform` | If `knownHost` is `workable`, say: "Workable is not yet supported — see issue #83." Otherwise generic.  |
-| `not-found`            | For URL form: "Slug 404 or empty. Double-check the URL." For name form: "No slug matched (tried N candidates). Try `/add-company <url>` with the full URL." |
-| `no-portals`           | "No portals config. Run `/apply-onboard` first."                                                        |
+| `duplicate`            | "Already in portals.yml: `<duplicateOf.name>` (enabled: true). Nothing to do."                                                                                                                               |
+| `disabled-duplicate`   | "Found existing entry `<duplicateOf.name>` with enabled: false. Enable it? [Yes / No]"                                                                                                                       |
+| `unknown-host`         | "Host not recognized. Supported: `<supportedHosts joined>`. Open an issue to add this ATS."                                                                                                                  |
+| `unsupported-platform` | If `knownHost` is `workable`, say: "Workable is not yet supported — see issue #83." Otherwise generic.                                                                                                       |
+| `not-found`            | For URL form: "Slug 404 or empty. Double-check the URL." For name form: "No slug matched (tried N candidates). Try `/add-company <url>` with the full URL."                                                  |
+| `no-portals`           | "No portals config. Run `/apply-onboard` first."                                                                                                                                                             |
 
 ## Step 2 — confirm & write
 

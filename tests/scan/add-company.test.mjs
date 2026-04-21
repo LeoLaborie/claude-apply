@@ -343,7 +343,7 @@ test('main — --dry-run --json on URL form prints status ok', async () => {
     main(['--input', 'https://jobs.ashbyhq.com/poolside', '--dry-run', '--json', '--portals', p], {
       verifyCompany: async () => ({ ok: true, count: 11 }),
       discoverCompany: async () => ({ ok: false }),
-    }),
+    })
   );
   const parsed = JSON.parse(out.trim());
   assert.equal(parsed.status, 'ok');
@@ -354,12 +354,21 @@ test('main — --yes writes a new entry and prints status written', async () => 
   const { path: p } = copyFixture('portals.rich-comments.yml');
   const out = await captureStdout(() =>
     main(
-      ['--input', 'https://jobs.ashbyhq.com/poolside', '--name', 'Poolside', '--yes', '--json', '--portals', p],
+      [
+        '--input',
+        'https://jobs.ashbyhq.com/poolside',
+        '--name',
+        'Poolside',
+        '--yes',
+        '--json',
+        '--portals',
+        p,
+      ],
       {
         verifyCompany: async () => ({ ok: true, count: 11 }),
         discoverCompany: async () => ({ ok: false }),
-      },
-    ),
+      }
+    )
   );
   const parsed = JSON.parse(out.trim());
   assert.equal(parsed.status, 'written');
@@ -376,7 +385,7 @@ test('main — --yes on disabled-duplicate toggles and prints status toggled', a
     main(['--input', 'https://jobs.lever.co/oldco', '--yes', '--json', '--portals', p], {
       verifyCompany: async () => ({ ok: true, count: 1 }),
       discoverCompany: async () => ({ ok: false }),
-    }),
+    })
   );
   const parsed = JSON.parse(out.trim());
   assert.equal(parsed.status, 'toggled');
@@ -392,7 +401,7 @@ test('main — --dry-run on duplicate does not write', async () => {
     main(['--input', 'https://jobs.lever.co/mistral', '--dry-run', '--json', '--portals', p], {
       verifyCompany: async () => ({ ok: true, count: 42 }),
       discoverCompany: async () => ({ ok: false }),
-    }),
+    })
   );
   assert.equal(fs.readFileSync(p, 'utf8'), before);
 });
@@ -404,9 +413,29 @@ test('main — --yes on plain duplicate (enabled: true) does not rewrite file', 
     main(['--input', 'https://jobs.lever.co/mistral', '--yes', '--json', '--portals', p], {
       verifyCompany: async () => ({ ok: true, count: 42 }),
       discoverCompany: async () => ({ ok: false }),
-    }),
+    })
   );
   const parsed = JSON.parse(out.trim());
   assert.equal(parsed.status, 'duplicate');
   assert.equal(fs.readFileSync(p, 'utf8'), before);
+});
+
+test('appendCompany — throws SHAPE_INVALID on a malformed portals.yml', () => {
+  const { path: p } = copyFixture('portals.broken.yml');
+  assert.throws(
+    () => appendCompany(p, { name: 'X', careersUrl: 'https://jobs.lever.co/x' }),
+    (err) => err.code === 'SHAPE_INVALID'
+  );
+});
+
+test('resolveCompany — propagates SHAPE_INVALID when portals.yml is malformed', async () => {
+  const { path: p } = copyFixture('portals.broken.yml');
+  await assert.rejects(
+    resolveCompany({
+      input: 'https://jobs.ashbyhq.com/poolside',
+      portalsPath: p,
+      deps: makeDeps(),
+    }),
+    (err) => err.code === 'SHAPE_INVALID'
+  );
 });

@@ -1,6 +1,10 @@
 import fs from 'node:fs';
 import { parseDocument, isSeq } from 'yaml';
-import { detectPlatform, getSupportedHosts, verifyCompany as defaultVerify } from './ats-detect.mjs';
+import {
+  detectPlatform,
+  getSupportedHosts,
+  verifyCompany as defaultVerify,
+} from './ats-detect.mjs';
 import { discoverCompany as defaultDiscover } from './discover-company.mjs';
 
 export class AddCompanyError extends Error {
@@ -107,7 +111,14 @@ async function resolveByUrl(url, doc, deps) {
 
   const { platform, slug } = detected;
   if (!VERIFIABLE_PLATFORMS.has(platform)) {
-    return { status: 'unsupported-platform', form: 'url', input: url, platform, slug, knownHost: platform };
+    return {
+      status: 'unsupported-platform',
+      form: 'url',
+      input: url,
+      platform,
+      slug,
+      knownHost: platform,
+    };
   }
 
   const dup = duplicateStatus(doc, url);
@@ -117,7 +128,14 @@ async function resolveByUrl(url, doc, deps) {
 
   const verify = await deps.verifyCompany(url);
   if (!verify.ok) {
-    return { status: 'not-found', form: 'url', input: url, platform, slug, reason: verify.reason ?? 'verify failed' };
+    return {
+      status: 'not-found',
+      form: 'url',
+      input: url,
+      platform,
+      slug,
+      reason: verify.reason ?? 'verify failed',
+    };
   }
 
   const out = {
@@ -152,7 +170,14 @@ async function resolveByName(name, doc, deps) {
 
   const dup = duplicateStatus(doc, result.careersUrl);
   if (dup) {
-    return { ...dup, form: 'name', input: name, platform: result.platform, slug: result.slug, careersUrl: result.careersUrl };
+    return {
+      ...dup,
+      form: 'name',
+      input: name,
+      platform: result.platform,
+      slug: result.slug,
+      careersUrl: result.careersUrl,
+    };
   }
 
   return {
@@ -193,15 +218,37 @@ function parseArgs(argv) {
     const key = argv[i];
     const next = argv[i + 1];
     switch (key) {
-      case '--input': args.input = next; i += 1; break;
-      case '--name': args.name = next; i += 1; break;
-      case '--dry-run': args.dryRun = true; break;
-      case '--yes': args.yes = true; break;
-      case '--json': args.json = true; break;
-      case '--portals': args.portals = next; i += 1; break;
-      case '--cache': args.cache = next; i += 1; break;
-      case '--workday-registry': args.workdayRegistry = next; i += 1; break;
-      default: break;
+      case '--input':
+        args.input = next;
+        i += 1;
+        break;
+      case '--name':
+        args.name = next;
+        i += 1;
+        break;
+      case '--dry-run':
+        args.dryRun = true;
+        break;
+      case '--yes':
+        args.yes = true;
+        break;
+      case '--json':
+        args.json = true;
+        break;
+      case '--portals':
+        args.portals = next;
+        i += 1;
+        break;
+      case '--cache':
+        args.cache = next;
+        i += 1;
+        break;
+      case '--workday-registry':
+        args.workdayRegistry = next;
+        i += 1;
+        break;
+      default:
+        break;
     }
   }
   if (!args.dryRun && !args.yes) args.dryRun = true;
@@ -234,12 +281,15 @@ export async function main(argv, depsOverride = {}) {
   if (args.yes && resolved.status === 'disabled-duplicate') {
     const raw = fs.readFileSync(args.portals, 'utf8');
     const doc = parseDocument(raw);
-    const careersUrl = resolved.careersUrl ?? (/^https?:\/\//i.test(args.input) ? args.input : null);
+    const careersUrl =
+      resolved.careersUrl ?? (/^https?:\/\//i.test(args.input) ? args.input : null);
     const toggle = toggleEnabled(doc, careersUrl);
     const outStr = String(doc);
     const reparsed = parseDocument(outStr);
     if (reparsed.errors.length > 0) {
-      throw new AddCompanyError('POST_PARSE_FAILED', 'post-mutation reparse failed', { errors: reparsed.errors });
+      throw new AddCompanyError('POST_PARSE_FAILED', 'post-mutation reparse failed', {
+        errors: reparsed.errors,
+      });
     }
     fs.writeFileSync(args.portals, outStr);
     emit(args, { status: 'toggled', name: toggle.name });
@@ -254,7 +304,12 @@ export async function main(argv, depsOverride = {}) {
   // --yes and status === 'ok' → append
   const finalName = args.name ?? resolved.suggestedName ?? resolved.input;
   const result = appendCompany(args.portals, { name: finalName, careersUrl: resolved.careersUrl });
-  emit(args, { status: 'written', entryIndex: result.entryIndex, total: result.total, entry: result.entry });
+  emit(args, {
+    status: 'written',
+    entryIndex: result.entryIndex,
+    total: result.total,
+    entry: result.entry,
+  });
 }
 
 const invokedDirectly = (() => {
