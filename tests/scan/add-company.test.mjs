@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseDocument } from 'yaml';
 import os from 'node:os';
-import { AddCompanyError, appendCompany } from '../../src/scan/add-company.mjs';
+import { AddCompanyError, appendCompany, findByCareersUrl, toggleEnabled } from '../../src/scan/add-company.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURES = path.join(__dirname, '..', 'fixtures', 'add-company');
@@ -87,4 +87,55 @@ test('yaml parseDocument — round-trip preserves the rich-comments fixture byte
   const doc = parseDocument(raw);
   assert.equal(doc.errors.length, 0);
   assert.equal(String(doc), raw);
+});
+
+test('findByCareersUrl — returns {index, node} when URL matches', () => {
+  const raw = fs.readFileSync(path.join(FIXTURES, 'portals.rich-comments.yml'), 'utf8');
+  const doc = parseDocument(raw);
+  const match = findByCareersUrl(doc, 'https://jobs.lever.co/Anthropic');
+  assert.equal(match.index, 1);
+  assert.equal(match.node.get('name'), 'Anthropic');
+});
+
+test('findByCareersUrl — case-strict on URL', () => {
+  const raw = fs.readFileSync(path.join(FIXTURES, 'portals.rich-comments.yml'), 'utf8');
+  const doc = parseDocument(raw);
+  assert.equal(findByCareersUrl(doc, 'https://jobs.lever.co/anthropic'), null);
+});
+
+test('findByCareersUrl — returns null when no match', () => {
+  const raw = fs.readFileSync(path.join(FIXTURES, 'portals.rich-comments.yml'), 'utf8');
+  const doc = parseDocument(raw);
+  assert.equal(findByCareersUrl(doc, 'https://jobs.lever.co/zzz'), null);
+});
+
+test('toggleEnabled — flips enabled: false to true on matching entry', () => {
+  const { path: p } = copyFixture('portals.disabled-entry.yml');
+  const raw = fs.readFileSync(p, 'utf8');
+  const doc = parseDocument(raw);
+  const result = toggleEnabled(doc, 'https://jobs.lever.co/oldco');
+  assert.equal(result.status, 'toggled');
+  assert.equal(result.name, 'OldCo');
+  fs.writeFileSync(p, String(doc));
+  const out = fs.readFileSync(p, 'utf8');
+  const reparsed = parseDocument(out);
+  const list = reparsed.get('tracked_companies', true);
+  assert.equal(list.items[1].get('enabled'), true);
+  assert.equal(list.items[1].get('skip_required_any'), true);
+  assert.deepEqual(list.items[1].get('target_locations').toJSON(), ['Paris', 'Remote']);
+  assert.ok(out.includes('# Inline reason — must survive toggle.'));
+});
+
+test('toggleEnabled — returns already-enabled when entry is already true', () => {
+  const { path: p } = copyFixture('portals.disabled-entry.yml');
+  const doc = parseDocument(fs.readFileSync(p, 'utf8'));
+  const result = toggleEnabled(doc, 'https://jobs.lever.co/mistral');
+  assert.equal(result.status, 'already-enabled');
+  assert.equal(result.name, 'Mistral AI');
+});
+
+test('toggleEnabled — returns null when careers_url is not found', () => {
+  const { path: p } = copyFixture('portals.disabled-entry.yml');
+  const doc = parseDocument(fs.readFileSync(p, 'utf8'));
+  assert.equal(toggleEnabled(doc, 'https://nope'), null);
 });

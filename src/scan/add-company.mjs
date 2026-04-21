@@ -48,3 +48,21 @@ export function appendCompany(portalsPath, entry) {
     },
   };
 }
+
+export function findByCareersUrl(doc, careersUrl) {
+  const list = doc.get('tracked_companies', true);
+  if (!isSeq(list)) return null;
+  const idx = list.items.findIndex((item) => item.get?.('careers_url') === careersUrl);
+  return idx >= 0 ? { index: idx, node: list.items[idx] } : null;
+}
+
+export function toggleEnabled(doc, careersUrl) {
+  const match = findByCareersUrl(doc, careersUrl);
+  if (!match) return null;
+  const current = match.node.get('enabled');
+  if (current === true) {
+    return { status: 'already-enabled', name: match.node.get('name') };
+  }
+  match.node.set('enabled', true);
+  return { status: 'toggled', name: match.node.get('name') };
+}
