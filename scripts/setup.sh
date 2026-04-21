@@ -199,6 +199,7 @@ copy_if_missing "templates/candidate-profile.example.yml" "config/candidate-prof
 copy_if_missing "templates/cv.example.md"                  "config/cv.md"                 config
 copy_if_missing "templates/portals.example.yml"            "config/portals.yml"           config
 copy_if_missing "templates/applications.example.md"        "data/applications.md"         data
+copy_if_missing "templates/known-workday-slugs.example.json" "data/known-workday-slugs.json" data
 
 if [[ $configs_copied -eq 1 && $configs_preserved -eq 1 ]]; then
   echo "→ Some templates copied, existing configs preserved — edit the new files above"

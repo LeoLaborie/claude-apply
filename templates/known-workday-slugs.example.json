@@ -1,0 +1,157 @@
+{
+  "accelleron": {
+    "tenant": "accelleron",
+    "pod": "wd3",
+    "slug": "Accelleron"
+  },
+  "airbus": {
+    "tenant": "ag",
+    "pod": "wd3",
+    "slug": "Airbus"
+  },
+  "airliquide": {
+    "tenant": "airliquidehr",
+    "pod": "wd3",
+    "slug": "AirLiquideExternalCareer"
+  },
+  "arianegroup": {
+    "tenant": "arianegroup",
+    "pod": "wd3",
+    "slug": "EXTERNALALL"
+  },
+  "astrazeneca": {
+    "tenant": "astrazeneca",
+    "pod": "wd3",
+    "slug": "Careers"
+  },
+  "bectondickinson": {
+    "tenant": "bdx",
+    "pod": "wd1",
+    "slug": "EXTERNAL_CAREER_SITE_FRANCE"
+  },
+  "criteo": {
+    "tenant": "criteo",
+    "pod": "wd3",
+    "slug": "Criteo_Career_Site"
+  },
+  "gsk": {
+    "tenant": "gsk",
+    "pod": "wd5",
+    "slug": "GSKCareers"
+  },
+  "ingbank": {
+    "tenant": "ing",
+    "pod": "wd3",
+    "slug": "ICSGBLCOR"
+  },
+  "ipsen": {
+    "tenant": "ipsen",
+    "pod": "wd103",
+    "slug": "Ipsen_Careers"
+  },
+  "kering": {
+    "tenant": "kering",
+    "pod": "wd3",
+    "slug": "Kering"
+  },
+  "michelin": {
+    "tenant": "michelinhr",
+    "pod": "wd3",
+    "slug": "Michelin"
+  },
+  "novartis": {
+    "tenant": "novartis",
+    "pod": "wd3",
+    "slug": "Novartis_Careers"
+  },
+  "orange": {
+    "tenant": "orange",
+    "pod": "wd3",
+    "slug": "Orange_Career"
+  },
+  "pernodricard": {
+    "tenant": "pernodricard",
+    "pod": "wd3",
+    "slug": "pernod-ricard"
+  },
+  "philips": {
+    "tenant": "philips",
+    "pod": "wd3",
+    "slug": "jobs-and-careers"
+  },
+  "pierrefabre": {
+    "tenant": "pierrefabre",
+    "pod": "wd3",
+    "slug": "External_Career_Site"
+  },
+  "pwc": {
+    "tenant": "pwc",
+    "pod": "wd3",
+    "slug": "Global_Campus_Careers"
+  },
+  "renault": {
+    "tenant": "alliancewd",
+    "pod": "wd3",
+    "slug": "renault-group-careers"
+  },
+  "roche": {
+    "tenant": "roche",
+    "pod": "wd3",
+    "slug": "roche-ext"
+  },
+  "sanofi": {
+    "tenant": "sanofi",
+    "pod": "wd3",
+    "slug": "SanofiCareers"
+  },
+  "shell": {
+    "tenant": "shell",
+    "pod": "wd3",
+    "slug": "ShellCareers"
+  },
+  "siemensgamesa": {
+    "tenant": "siemensgamesa",
+    "pod": "wd3",
+    "slug": "SGRE"
+  },
+  "siemenshealthineers": {
+    "tenant": "onehealthineers",
+    "pod": "wd3",
+    "slug": "SHSJB"
+  },
+  "signify": {
+    "tenant": "lighting",
+    "pod": "wd3",
+    "slug": "jobs-and-careers"
+  },
+  "stellantis": {
+    "tenant": "stellantis",
+    "pod": "wd3",
+    "slug": "External_Career_Site_ID01"
+  },
+  "thales": {
+    "tenant": "thales",
+    "pod": "wd3",
+    "slug": "Careers"
+  },
+  "unilever": {
+    "tenant": "unilever",
+    "pod": "wd3",
+    "slug": "Unilever_Experienced_Professionals"
+  },
+  "urw": {
+    "tenant": "urw",
+    "pod": "wd3",
+    "slug": "urw_career_site"
+  },
+  "valeo": {
+    "tenant": "valeo",
+    "pod": "wd3",
+    "slug": "valeo_jobs"
+  },
+  "veolia": {
+    "tenant": "veoliauki",
+    "pod": "wd3",
+    "slug": "VESCareers"
+  }
+}
