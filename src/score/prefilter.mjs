@@ -66,7 +66,7 @@ async function main() {
   }
 
   const config = await loadConfig();
-  const result = runPrefilter(offer, config);
+  const result = await runPrefilter(offer, config);
 
   if (!result.pass) {
     const tsvPath = path.join(config.dataDir, 'filtered-out.tsv');

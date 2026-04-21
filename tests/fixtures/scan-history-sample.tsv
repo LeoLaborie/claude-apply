@@ -1,0 +1,4 @@
+url	first_seen	portal	title	company	status
+https://example.com/1	2026-04-19	lever	Software Engineer Intern	OpenAI	skipped_title
+https://example.com/2	2026-04-19	greenhouse	ML Engineer Intern	Anthropic	added
+https://example.com/3	2026-04-19	greenhouse	Senior Backend Engineer	Stripe	skipped_title

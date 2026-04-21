@@ -81,18 +81,19 @@ Then:
 
 ## Commands reference
 
-| Command                          | Purpose                                                             |
-| -------------------------------- | ------------------------------------------------------------------- |
-| `node src/scan/index.mjs`        | Scan Group A ATSes; append new offers to `data/pipeline.md`.        |
-| `node src/score/index.mjs <url>` | LLM-evaluate an offer; append to `data/evaluations.jsonl`.          |
-| `node src/apply/upload-file.mjs` | CDP file upload helper (called by `/apply`).                        |
-| `node src/dashboard/build.mjs`   | Regenerate `dashboard.html` from `data/` and `reports/`.            |
-| `bash scripts/setup.sh`          | Interactive first-time setup (Chrome CDP profile + templates + rc). |
-| `bash scripts/check-no-pii.sh`   | Grep the tree for personal data patterns (CI gate).                 |
-| `npm test`                       | Run the node test suite.                                            |
-| `/scan`                          | Claude Code slash command wrapping `node src/scan/index.mjs`.       |
-| `/score <url>`                   | Claude Code slash command wrapping `node src/score/index.mjs`.      |
-| `/apply <url>`                   | Claude Code orchestrator: open → classify → fill → upload → submit. |
+| Command                          | Purpose                                                                                        |
+| -------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `node src/scan/index.mjs`        | Scan Group A ATSes; append new offers to `data/pipeline.md`.                                   |
+| `node src/score/index.mjs <url>` | LLM-evaluate an offer; append to `data/evaluations.jsonl`.                                     |
+| `node src/apply/upload-file.mjs` | CDP file upload helper (called by `/apply`).                                                   |
+| `node src/dashboard/build.mjs`   | Regenerate `dashboard.html` from `data/` and `reports/`.                                       |
+| `bash scripts/setup.sh`          | Interactive first-time setup (Chrome CDP profile + templates + rc).                            |
+| `bash scripts/check-no-pii.sh`   | Grep the tree for personal data patterns (CI gate).                                            |
+| `npm test`                       | Run the node test suite.                                                                       |
+| `/scan`                          | Claude Code slash command wrapping `node src/scan/index.mjs`.                                  |
+| `/score <url>`                   | Claude Code slash command wrapping `node src/score/index.mjs`.                                 |
+| `/tune-filter`                   | Interactive calibration of `title_filter` against cached `scan-history.tsv`. No network calls. |
+| `/apply <url>`                   | Claude Code orchestrator: open → classify → fill → upload → submit.                            |
 
 ## Configuration
 

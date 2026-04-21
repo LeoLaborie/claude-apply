@@ -55,3 +55,11 @@ title_filter:
   # Leave empty or omit to skip. Use `skip_required_any: true` per company
   # to bypass for portals whose titles do not include the domain keyword.
   required_any: []
+
+  # When `required_any` is set, also match against the offer description
+  # if the title alone doesn't contain one of the keywords. Default: [title].
+  # Setting [title, description] catches titles like "Research Scientist Intern"
+  # whose body mentions "Machine Learning" or "AI" but whose title does not.
+  # Only required_any is soft-matched — positive and negative remain title-only.
+  # Note: Workday descriptions are not fetched in v1 (soft match disabled there).
+  required_any_in: [title]

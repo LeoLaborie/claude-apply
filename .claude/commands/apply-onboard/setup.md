@@ -22,6 +22,8 @@ Read `data/.onboard-state.json` (written by `/apply-onboard:profile`) to get `cl
 
 ## 2. Run `scripts/setup.sh`
 
+(The `--clone-chrome-profile` flag below uses the answer the user gave in phase 1. "yes" copies cookies/sessions/extensions from their current Chrome profile — they stay logged in to ATSes. "no" starts from scratch.)
+
 Run one of:
 
 ```bash
@@ -105,6 +107,60 @@ After you click "Add to Chrome" and approve the install:
 ```
 
 **Wait for the user to confirm permissions are granted** before continuing.
+
+### 5a. Verify host permissions via a minimal probe
+
+After the user confirms, run a one-shot probe against a representative ATS host. This catches the common case where the user installed the extension but forgot to grant host permissions — which otherwise fails only on the first `/apply` call.
+
+1. Load the MCP tools if not yet available:
+
+   ```
+   ToolSearch query: select:mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__find
+   ```
+
+2. Navigate to the probe host and run a benign `find`:
+
+   ```
+   mcp__claude-in-chrome__navigate(url: "https://jobs.lever.co/anthropic")
+   mcp__claude-in-chrome__find(selector: "body")
+   ```
+
+3. Feed the results into the probe interpreter:
+
+   ```bash
+   node -e "
+     import('./src/lib/extension-permission-probe.mjs').then(m => {
+       const r = m.interpretProbeResult({
+         navigateResult: <paste JSON result of navigate, or null>,
+         findResult: <paste JSON result of find, or null>,
+         findError: <paste error message if find threw, or null>,
+         navigateError: <paste error message if navigate threw, or null>,
+       });
+       console.log(JSON.stringify(r));
+     });
+   "
+   ```
+
+4. Based on `{ok, reason}`:
+   - `{ok: true}` → print: `✓ Permissions OK — extension can read ATS hosts.`
+   - `{ok: false, reason: 'missing_permission'}` → print:
+     ```
+     ✗ Missing host permission.
+       Reopen the extension menu and re-check the host list shown above.
+       Then rerun /apply-onboard:setup step 5 only.
+     ```
+   - `{ok: false, reason: 'extension_not_installed'}` → print:
+     ```
+     ✗ Extension not detected.
+       Did you complete the "Add to Chrome" install? Retry step 5.
+     ```
+   - `{ok: false, reason: 'navigation_failed' | 'timeout' | 'unknown'}` → print:
+     ```
+     ⚠ Could not reach the probe host (reason: <reason>).
+       Skipping verification — test with /apply when ready.
+     ```
+
+This probe is **non-blocking**: print the final summary (step 6) regardless of the probe result. The user can always rerun setup step 5 later if needed.
 
 ## 6. Final summary
 
