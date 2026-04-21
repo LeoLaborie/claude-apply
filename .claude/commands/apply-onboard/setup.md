@@ -22,16 +22,22 @@ Read `data/.onboard-state.json` (written by `/apply-onboard:profile`) to get `cl
 
 ## 2. Run `scripts/setup.sh`
 
-Run one of:
+**First, print the script's usage once** so the user discovers flags like `--no-clone-chrome-profile` and `--no-rc`:
 
-```bash
-bash scripts/setup.sh --yes --clone-chrome-profile       # if user said yes
-bash scripts/setup.sh --yes --no-clone-chrome-profile    # if user said no
-```
+    bash scripts/setup.sh --help
+
+Print the captured output verbatim, prefaced by one short line:
+
+> "Voici les flags supportés par le script (affichés une fois pour que tu saches ce qui est disponible) — je vais maintenant lancer le setup avec les flags correspondant à ton choix clone-chrome-profile."
+
+Then run one of:
+
+    bash scripts/setup.sh --yes --clone-chrome-profile       # if user said yes
+    bash scripts/setup.sh --yes --no-clone-chrome-profile    # if user said no
 
 This will: install npm deps if missing (`npm ci` / `npm install`), create the CDP Chrome profile (empty or cloned), append the `chrome-apply` alias to the user's shell rc (with a timestamped backup), and copy any missing templates into `config/` (harmless — `cv.md`, `candidate-profile.yml`, and `portals.yml` already exist from the earlier phases and are skipped).
 
-If the user is in an unusual shell setup, add `--no-rc` and print the alias to them manually. Run `bash scripts/setup.sh --help` for all flags.
+If the user is in an unusual shell setup, add `--no-rc` and print the alias to them manually.
 
 ## 3. Check if CDP is already up
 
@@ -106,9 +112,29 @@ After you click "Add to Chrome" and approve the install:
 
 **Wait for the user to confirm permissions are granted** before continuing.
 
+## 5.5. Calibration dry-run (best-effort)
+
+Before printing the final summary, run a `/scan --dry-run --json` to give the user a realistic preview of what their first real scan will yield. The extension is not required for this step.
+
+```bash
+node src/scan/index.mjs --dry-run --json
+```
+
+Parse the JSON to extract:
+
+- `result.raw` — total raw offers across all companies
+- `result.added.length` — number of offers that would survive all filters
+- `result.perCompany.filter(c => c.newCount > 0)` — companies with at least one hit, sorted descending by `newCount`, top 3
+
+Cache these three values (or a single "skipped" flag on failure) so step 6 can reference them.
+
+**Failure mode (network error, ATS outage, any non-zero exit):** do **not** block onboarding. Set an internal "dry-run skipped" flag and let step 6 fall back to the "skipped" message. The user will still have a working install.
+
 ## 6. Final summary
 
-Print a clean summary:
+Read `config/portals.yml` once to extract `title_filter.required_any` and `title_filter.excluded_any`. Use the dry-run values cached in step 5.5 (or the "skipped" flag).
+
+Print the following summary, substituting values where marked:
 
 ```
 ✅ Onboarding complete.
@@ -117,10 +143,23 @@ Files written:
   • config/cv.md
   • config/cv.<lang>.pdf
   • config/candidate-profile.yml
-  • config/portals.yml  (N companies)
+  • config/portals.yml  (<N> companies)
 
-Chrome launched in CDP mode (port 9222) with the claude-in-chrome
-extension page open.
+Your title_filter:
+  required_any  : <comma-separated list from portals.yml, or "(none)">
+  excluded_any  : <comma-separated list from portals.yml, or "(none)">
+  (source: config/portals.yml — edit there to re-tune,
+   or run /explain "<title>" to debug one title)
+
+First scan preview (dry-run):
+  <A> new offers after filter (from <R> raw).
+  Top hits: <company1> (<n1>), <company2> (<n2>), <company3> (<n3>).
+  → If 0 hits: your required_any is probably too strict.
+    Run /explain "<one of your target titles>" to trace it,
+    then edit config/portals.yml and re-run /scan.
+
+Chrome launched in CDP mode (port 9222) with the
+claude-in-chrome extension page open.
 
 One last manual step:
   → Click "Add to Chrome" on the page that just opened,
@@ -130,6 +169,27 @@ Then you can run:
   /scan                # fetch new offers into data/pipeline.md
   /score <url>         # LLM-evaluate an offer
   /apply <url>         # automated form fill + submit
+  /explain "<title>"   # debug why a title passes/fails the filter
+  /dashboard           # regenerate dashboard.html
+
+Tip: append --help to any command (e.g. /scan --help) to see its flags.
 ```
+
+**Fallback when step 5.5 was skipped:** replace the "First scan preview" block with exactly:
+
+```
+First scan preview (dry-run):
+  (skipped — network issue during dry-run; run /scan --dry-run when ready.)
+```
+
+**Fallback when `raw === 0` across all companies** (likely ATS outage or empty `portals.yml`): replace the block with:
+
+```
+First scan preview (dry-run):
+  0 raw offers — likely an ATS outage or an empty portals.yml.
+  Run /scan after the extension install to retry.
+```
+
+**Fallback when `title_filter` is absent from `portals.yml`:** print `(none — every title accepted)` for both `required_any` and `excluded_any`.
 
 **Do not run `/scan` or `/apply` yourself** — the user still needs to install the extension manually. Your onboarding stops here.
