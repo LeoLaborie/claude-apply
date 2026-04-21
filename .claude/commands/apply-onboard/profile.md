@@ -63,7 +63,7 @@ Use `AskUserQuestion` with a single question:
 - **Options**:
   - `confirm` — "Use these values"
   - `edit all` — "Re-ask all four"
-  - `edit missing only` — "Only re-ask fields that came back `<not found>`" *(show this option only when at least one of the four extracted fields is `null`; hide it otherwise)*
+  - `edit missing only` — "Only re-ask fields that came back `<not found>`" _(show this option only when at least one of the four extracted fields is `null`; hide it otherwise)_
 
 Behaviour:
 
@@ -108,8 +108,8 @@ Each `AskUserQuestion` call accepts at most 4 questions.
 
 Trigger when **at least one** of `city`, `graduation_year` is `null` after extraction.
 
-- **City**: *"Your CV didn't state a residential city. Please provide one (used for form pre-fill on Workday/Greenhouse)."*
-- **Graduation year**: *"Your CV didn't state a graduation year. Based on your degree start year N, a typical 5-year cycle ends in N+5 — correct? Or enter a different year."*
+- **City**: _"Your CV didn't state a residential city. Please provide one (used for form pre-fill on Workday/Greenhouse)."_
+- **Graduation year**: _"Your CV didn't state a graduation year. Based on your degree start year N, a typical 5-year cycle ends in N+5 — correct? Or enter a different year."_
 
 Anything the user declines in optional fields → `null`. Required fields (city, graduation_year, locations, remote_preference, work_authorization, requires_sponsorship, auto_apply_min_score) cannot be skipped — if the user refuses, stop and ask again clearly.
 

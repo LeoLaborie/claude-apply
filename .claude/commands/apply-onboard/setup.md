@@ -142,7 +142,6 @@ After the user confirms, run a one-shot probe against a representative ATS host.
    ```
 
 4. Based on `{ok, reason}`:
-
    - `{ok: true}` → print: `✓ Permissions OK — extension can read ATS hosts.`
    - `{ok: false, reason: 'missing_permission'}` → print:
      ```
