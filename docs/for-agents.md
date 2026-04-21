@@ -44,7 +44,7 @@ Open `data/pipeline.md` and pick offers. Score a subset, then apply to the ones 
 - **Don't silently retry after a failure.** Log the first failure, diagnose, then retry once if appropriate.
 - **Don't hardcode URLs, company names, paths, or personal data.** Everything user-specific goes in `config/` or `data/`. See the PII gate.
 - **Don't catch errors to "make the test pass".** The test is telling you something — fix the root cause.
-- **Don't add dependencies casually.** Node standard library first. `js-yaml` and `playwright` are the only runtime deps and that's the bar.
+- **Don't add dependencies casually.** Node standard library first. Current runtime deps: `js-yaml` (loaders), `yaml` (comment-preserving writes in `src/lib/portals-writer.mjs` — `js-yaml` cannot round-trip comments), and `playwright`. Adding anything else needs a specific capability justification in the PR.
 - **Don't create documentation files the user didn't ask for.** Work from conversation context.
 - **Don't narrate what you're thinking.** Tool calls + short status updates are enough. Match the user's energy.
 
