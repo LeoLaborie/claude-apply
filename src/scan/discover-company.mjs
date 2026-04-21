@@ -7,18 +7,21 @@ import fs from 'node:fs';
 import { verifySlug as verifyLever } from './ats/lever.mjs';
 import { verifySlug as verifyGreenhouse } from './ats/greenhouse.mjs';
 import { verifySlug as verifyAshby } from './ats/ashby.mjs';
+import { verifySlug as verifyWorkable } from './ats/workable.mjs';
 import { loadSlugRegistry, lookupWorkdaySlug } from './ats/workday-slugs.mjs';
 
 const VERIFIERS = {
   lever: verifyLever,
   greenhouse: verifyGreenhouse,
   ashby: verifyAshby,
+  workable: verifyWorkable,
 };
 
 const CAREERS_URL = {
   lever: (slug) => `https://jobs.lever.co/${slug}`,
   greenhouse: (slug) => `https://boards.greenhouse.io/${slug}`,
   ashby: (slug) => `https://jobs.ashbyhq.com/${slug}`,
+  workable: (slug) => `https://apply.workable.com/${slug}`,
 };
 
 export function slugCandidates(name, platform) {
@@ -45,6 +48,10 @@ export function slugCandidates(name, platform) {
       extras.add(`${b}-labs`);
       extras.add(`${b}labs`);
       extras.add(`${b}hq`);
+    } else if (platform === 'workable') {
+      extras.add(`${b}-careers`);
+      extras.add(`${b}hq`);
+      extras.add(`${b}-hq`);
     }
   }
   return [...base, ...extras].filter((s) => !s.includes(' '));
@@ -76,7 +83,7 @@ export async function discoverCompany(name, options = {}) {
     cachePath = null,
     workdayRegistryPath = null,
     delayMs = 100,
-    platforms = ['lever', 'greenhouse', 'ashby'],
+    platforms = ['lever', 'greenhouse', 'ashby', 'workable'],
   } = options;
 
   const key = cacheKey(name);

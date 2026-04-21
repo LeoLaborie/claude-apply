@@ -45,16 +45,24 @@ test('verifyCompany — URL non reconnue renvoie ok:false', async () => {
   assert.match(r.reason, /unknown platform/);
 });
 
-test('verifyCompany — plateforme sans verifySlug (workable) renvoie ok:false', async () => {
-  const r = await verifyCompany('https://apply.workable.com/acme');
-  assert.equal(r.ok, false);
-  assert.match(r.reason, /not supported/i);
+test('verifyCompany — dispatche Workable via URL', async () => {
+  restore = installMockFetch({
+    'https://apply.workable.com/api/v1/widget/accounts/huggingface': {
+      name: 'Hugging Face',
+      description: '',
+      jobs: [{ title: 'a' }, { title: 'b' }],
+    },
+  });
+  const r = await verifyCompany('https://apply.workable.com/huggingface');
+  assert.equal(r.ok, true);
+  assert.equal(r.count, 2);
 });
 
-test('getSupportedHosts — retourne les 5 hôtes ATS avec fetcher vérifiable', () => {
+test('getSupportedHosts — retourne les 6 hôtes ATS avec fetcher vérifiable', () => {
   const hosts = getSupportedHosts();
   assert.deepEqual(hosts.sort(), [
     'https://*.myworkdayjobs.com/*',
+    'https://apply.workable.com/*',
     'https://boards.greenhouse.io/*',
     'https://job-boards.greenhouse.io/*',
     'https://jobs.ashbyhq.com/*',
