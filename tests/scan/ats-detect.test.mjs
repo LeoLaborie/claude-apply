@@ -68,20 +68,14 @@ test('detectPlatform — Workday URL with locale returns canonicalUrl stripped a
   const r = detectPlatform('https://interdigital.wd5.myworkdayjobs.com/en-US/InterDigital_Intern');
   assert.equal(r.platform, 'workday');
   assert.equal(r.hasLocale, true);
-  assert.equal(
-    r.canonicalUrl,
-    'https://interdigital.wd5.myworkdayjobs.com/InterDigital_Intern'
-  );
+  assert.equal(r.canonicalUrl, 'https://interdigital.wd5.myworkdayjobs.com/InterDigital_Intern');
 });
 
 test('detectPlatform — Workday URL without locale has hasLocale=false and canonicalUrl equals slug', () => {
   const r = detectPlatform('https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers');
   assert.equal(r.platform, 'workday');
   assert.equal(r.hasLocale, false);
-  assert.equal(
-    r.canonicalUrl,
-    'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers'
-  );
+  assert.equal(r.canonicalUrl, 'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers');
 });
 
 test('detectPlatform — non-Workday platforms still return bare {platform, slug}', () => {

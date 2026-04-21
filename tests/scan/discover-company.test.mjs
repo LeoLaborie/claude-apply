@@ -246,11 +246,9 @@ test('discoverCompany — accepts injected verifiers, bypasses VERIFIERS constan
 });
 
 test('discover-company CLI — exits 1 with usage message when no name given', () => {
-  const result = spawnSync(
-    'node',
-    [path.join(REPO_ROOT, 'src/scan/discover-company.mjs')],
-    { encoding: 'utf8' }
-  );
+  const result = spawnSync('node', [path.join(REPO_ROOT, 'src/scan/discover-company.mjs')], {
+    encoding: 'utf8',
+  });
   assert.equal(result.status, 1);
   assert.match(result.stderr, /usage/i);
 });

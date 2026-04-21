@@ -73,7 +73,13 @@ async function fetchCompanyOffers(company, whitelist) {
     const fetchWarnings = Array.isArray(raw) ? [] : raw.warnings || [];
     return { company: company.name, platform: det.platform, offers, fetchWarnings, error: null };
   } catch (err) {
-    return { company: company.name, platform: det.platform, offers: [], fetchWarnings: [], error: err.message };
+    return {
+      company: company.name,
+      platform: det.platform,
+      offers: [],
+      fetchWarnings: [],
+      error: err.message,
+    };
   }
 }
 
@@ -273,7 +279,8 @@ export async function runScan(opts) {
 
     const fetchWarn = result.fetchWarnings?.length > 0 ? result.fetchWarnings[0] : null;
     const warning =
-      fetchWarn ?? (result.offers.length === 0 ? 'board live but empty — possibly wrong slug' : null);
+      fetchWarn ??
+      (result.offers.length === 0 ? 'board live but empty — possibly wrong slug' : null);
     perCompany.push({
       company: result.company,
       platform: result.platform,

@@ -1025,7 +1025,11 @@ test('runScan — Workday { offers, warnings } shape is normalised correctly', a
   try {
     const result = await runScan({
       portalsConfig,
-      profile: { target_locations: ['Paris'], blacklist_companies: [], min_start_date: '2020-01-01' },
+      profile: {
+        target_locations: ['Paris'],
+        blacklist_companies: [],
+        min_start_date: '2020-01-01',
+      },
       pipelinePath: path.join(tmp, 'pipeline.md'),
       historyPath: path.join(tmp, 'scan-history.tsv'),
       filteredPath: path.join(tmp, 'filtered-out.tsv'),

@@ -145,7 +145,9 @@ async function main() {
 
   const name = args[0];
   if (!name) {
-    process.stderr.write('Usage: node src/scan/discover-company.mjs "<CompanyName>" [--cache-path <path>] [--workday-registry <path>]\n');
+    process.stderr.write(
+      'Usage: node src/scan/discover-company.mjs "<CompanyName>" [--cache-path <path>] [--workday-registry <path>]\n'
+    );
     process.exit(1);
   }
 
@@ -160,7 +162,9 @@ async function main() {
 
   const __repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
   const resolvedCache = cachePath ? path.resolve(__repoRoot, cachePath) : null;
-  const resolvedRegistry = workdayRegistryPath ? path.resolve(__repoRoot, workdayRegistryPath) : null;
+  const resolvedRegistry = workdayRegistryPath
+    ? path.resolve(__repoRoot, workdayRegistryPath)
+    : null;
 
   const result = await discoverCompany(name, {
     cachePath: resolvedCache,
