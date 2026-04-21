@@ -37,6 +37,7 @@ const OPTIONAL_FIELDS = [
   'other_document_path',
   'internship_duration_months',
   'job_type',
+  'auto_generate_cover_letter',
 ];
 
 function validateEducationEntry(e, i) {
