@@ -62,12 +62,14 @@ Use `AskUserQuestion` with a single question:
 
 - **Options**:
   - `confirm` — "Use these values"
-  - `edit` — "Re-ask all four"
+  - `edit all` — "Re-ask all four"
+  - `edit missing only` — "Only re-ask fields that came back `<not found>`" *(show this option only when at least one of the four extracted fields is `null`; hide it otherwise)*
 
 Behaviour:
 
 - `confirm` → the extracted values are locked. Treat them as already-answered for step 3.
-- `edit` → reset **all four** extracted values to `null`. Step 3 will re-ask the entire "Job search" sub-block. (Per-field correction is intentionally not offered — the all-or-nothing reset keeps the UX one click and reuses step 3 verbatim.)
+- `edit all` → reset **all four** extracted values to `null`. Step 3 will re-ask the entire "Job search" sub-block.
+- `edit missing only` → keep non-null extracted values; reset to `null` **only** the fields that came back `<not found>`. Step 3 will re-ask just those.
 
 If step 1 extracted **zero** of the four fields, skip this section entirely and go straight to step 3.
 
