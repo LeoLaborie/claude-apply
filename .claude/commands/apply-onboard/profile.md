@@ -128,7 +128,7 @@ Assemble one **flat** YAML file — no nested `identity:` / `address:` / `availa
 Sources:
 
 - Extracted from the CV: `first_name`, `last_name`, `email`, `phone`, `linkedin_url`, `github_url`, `city`, `country`, `school`, `degree`, `graduation_year`, `education[]`, `experiences[]`, `languages[]`.
-- From the question block: `availability_start`, `internship_duration_months`, `work_authorization`, `requires_sponsorship`, `auto_apply_min_score`, optionally `blacklist_companies` and `min_start_date`.
+- From the question blocks: `availability_start`, `internship_duration_months` (only when `job_type` is internship/apprenticeship), `work_authorization`, `requires_sponsorship`, `auto_apply_min_score`, `auto_generate_cover_letter`, `date_of_birth`, optionally `blacklist_companies` and `min_start_date`.
 - From step 2: `cv_path`.
 - EEO fields default to `null` unless explicitly provided: `gender`, `ethnicity`, `veteran_status`, `disability_status`.
 
@@ -146,7 +146,8 @@ Write the job-search answers to `data/.onboard-state.json` so `/apply-onboard:co
   "target_role": "free-text domain keywords",
   "locations": ["Paris", "Remote EU"],
   "remote_preference": "onsite|hybrid|remote",
-  "clone_chrome_profile": true
+  "clone_chrome_profile": true,
+  "auto_generate_cover_letter": false
 }
 ```
 
