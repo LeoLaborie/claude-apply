@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 // Portal scanner for Group A companies (API-friendly ATS: Lever, Greenhouse,
-// Ashby). Zero LLM tokens, zero Playwright. Reads portals.yml +
+// Ashby, Workable, Workday). Zero LLM tokens, zero Playwright. Reads portals.yml +
 // candidate-profile.yml for blacklist / min_start_date overrides,
 // dispatches to src/scan/ats/{platform}.mjs, applies runPrefilter(), appends
 // results to pipeline.md + scan-history.tsv + filtered-out.tsv.
-//
-// Workable was dropped: Hugging Face moved to an auth-protected SPA.
 //
 // Usage:
 //   node src/scan/index.mjs                  # scan all enabled Group A companies
@@ -21,6 +19,7 @@ import { detectPlatform } from './ats-detect.mjs';
 import { fetchLever } from './ats/lever.mjs';
 import { fetchGreenhouse } from './ats/greenhouse.mjs';
 import { fetchAshby } from './ats/ashby.mjs';
+import { fetchWorkable } from './ats/workable.mjs';
 import { fetchWorkday } from './ats/workday.mjs';
 import { runPrefilter } from '../lib/prefilter-rules.mjs';
 import { appendFilteredOut } from '../lib/jsonl-writer.mjs';
@@ -35,6 +34,7 @@ const DISPATCH = {
   lever: fetchLever,
   greenhouse: fetchGreenhouse,
   ashby: fetchAshby,
+  workable: fetchWorkable,
   workday: fetchWorkday,
 };
 

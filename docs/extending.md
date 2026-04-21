@@ -69,6 +69,22 @@ const CAREERS_URL = { ..., workable: (slug) => `https://apply.workable.com/${slu
 platforms = ['lever', 'greenhouse', 'ashby', 'workable'],
 ```
 
+**`src/scan/index.mjs`** — two additions (import + `DISPATCH` entry):
+
+```js
+import { fetchWorkable } from './ats/workable.mjs';
+
+const DISPATCH = {
+  lever: fetchLever,
+  greenhouse: fetchGreenhouse,
+  ashby: fetchAshby,
+  workable: fetchWorkable,
+  workday: fetchWorkday,
+};
+```
+
+Without this, `detectPlatform` recognizes the platform but `fetchCompanyOffers` returns `error: 'no fetcher'`.
+
 ### 4. Add a fixture and tests
 
 Download and trim a real payload to 3 representative jobs (telecommuting false + city/country, telecommuting true + city/country, telecommuting true + empty location):
