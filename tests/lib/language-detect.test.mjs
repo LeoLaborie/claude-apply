@@ -75,3 +75,17 @@ test('detectRequiredLanguages: empty / null input → []', () => {
 test('detectRequiredLanguages: Japanese marker → [ja]', () => {
   assert.deepEqual(detectRequiredLanguages('Japanese speaking Sales Engineer'), ['ja']);
 });
+
+test('detectRequiredLanguages: nationality adjective as market descriptor does not match', () => {
+  assert.deepEqual(detectRequiredLanguages('German Automotive Market Intern'), []);
+  assert.deepEqual(detectRequiredLanguages('Italian Market Analyst'), []);
+  assert.deepEqual(detectRequiredLanguages('Spanish Market Intern'), []);
+  assert.deepEqual(detectRequiredLanguages('Japanese Electronics Engineer'), []);
+  assert.deepEqual(detectRequiredLanguages('Dutch Healthcare Specialist'), []);
+  assert.deepEqual(detectRequiredLanguages('Chinese Tech Market Manager'), []);
+});
+
+test('detectRequiredLanguages: qualifier before adjective also matches', () => {
+  assert.deepEqual(detectRequiredLanguages('Native Spanish Account Manager'), ['es']);
+  assert.deepEqual(detectRequiredLanguages('Fluent German Sales Lead'), ['de']);
+});
