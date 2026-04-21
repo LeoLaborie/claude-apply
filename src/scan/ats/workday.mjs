@@ -74,6 +74,7 @@ export async function fetchWorkday(url, companyName, opts = {}) {
     Array.isArray(opts.searchTerms) && opts.searchTerms.length > 0 ? opts.searchTerms : [''];
 
   const byUrl = new Map();
+  const warnings = [];
   let capped = false;
 
   outer: for (const searchText of terms) {
@@ -102,12 +103,12 @@ export async function fetchWorkday(url, companyName, opts = {}) {
       offset += pageSize;
     }
     if (capped) {
-      console.warn(
+      warnings.push(
         `[workday] ${parts.tenant}/${parts.site}: stopped at ${byUrl.size} offers (maxOffers=${maxOffers})`
       );
       break outer;
     }
   }
 
-  return [...byUrl.values()];
+  return { offers: [...byUrl.values()], warnings };
 }

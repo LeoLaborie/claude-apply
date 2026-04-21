@@ -80,7 +80,7 @@ test('fetchWorkday — single page, maps postings to Offer contract', async () =
       fixture,
   });
 
-  const offers = await fetchWorkday(
+  const { offers } = await fetchWorkday(
     'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers',
     'TotalEnergies',
     { pageSize: 50 } // > total, so only one call
@@ -127,7 +127,7 @@ test('fetchWorkday — paginates until a partial page is returned', async () => 
     [page1, page2]
   );
 
-  const offers = await fetchWorkday(
+  const { offers } = await fetchWorkday(
     'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers',
     'TotalEnergies',
     { pageSize: 3 } // page1 has 3 (full), page2 has 1 (partial → stop)
@@ -144,7 +144,7 @@ test('fetchWorkday — stops on first empty page', async () => {
     [{ total: 0, jobPostings: [] }]
   );
 
-  const offers = await fetchWorkday(
+  const { offers } = await fetchWorkday(
     'https://sanofi.wd3.myworkdayjobs.com/SanofiCareers',
     'Sanofi',
     { pageSize: 20 }
@@ -264,7 +264,7 @@ test('fetchWorkday — issues one POST per searchTerm and dedupes by url', async
     globalThis.fetch = original;
   };
 
-  const offers = await fetchWorkday(
+  const { offers } = await fetchWorkday(
     'https://sanofi.wd3.myworkdayjobs.com/SanofiCareers',
     'Sanofi',
     { searchTerms: ['Intern', 'Stage'], pageSize: 20 }
@@ -331,7 +331,7 @@ test('fetchWorkday — stops pagination when MAX_OFFERS reached', async () => {
     globalThis.fetch = original;
   };
 
-  const offers = await fetchWorkday('https://big.wd3.myworkdayjobs.com/BigCorp', 'BigCorp', {
+  const { offers } = await fetchWorkday('https://big.wd3.myworkdayjobs.com/BigCorp', 'BigCorp', {
     pageSize: 5,
     maxOffers: 12,
   });
@@ -340,4 +340,55 @@ test('fetchWorkday — stops pagination when MAX_OFFERS reached', async () => {
   assert.ok(offers.length <= 15, `Expected <= 15 offers, got ${offers.length}`);
   assert.ok(offers.length >= 12, `Expected >= 12 offers, got ${offers.length}`);
   assert.ok(callCount <= 3, `Expected <= 3 fetch calls, got ${callCount}`);
+});
+
+test('fetchWorkday — returns warnings array when maxOffers cap is hit', async () => {
+  const original = globalThis.fetch;
+  let callCount = 0;
+  globalThis.fetch = async () => {
+    callCount++;
+    const base = (callCount - 1) * 3;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        total: 999,
+        jobPostings: Array.from({ length: 3 }, (_, i) => ({
+          title: `Job ${base + i}`,
+          externalPath: `/job/J${base + i}`,
+          locationsText: 'Paris',
+        })),
+      }),
+      text: async () => '',
+    };
+  };
+  restore = () => {
+    globalThis.fetch = original;
+  };
+
+  const res = await fetchWorkday('https://acme.wd3.myworkdayjobs.com/AcmeCareers', 'Acme', {
+    pageSize: 3,
+    maxOffers: 2,
+  });
+
+  assert.equal(typeof res, 'object');
+  assert.ok(Array.isArray(res.warnings), 'expected warnings array');
+  assert.equal(res.warnings.length, 1);
+  assert.ok(res.warnings[0].includes('stopped at'), `unexpected warning: ${res.warnings[0]}`);
+});
+
+test('fetchWorkday — warnings empty when cap not reached', async () => {
+  restore = installMockFetch({
+    'https://acme.wd3.myworkdayjobs.com/wday/cxs/acme/AcmeCareers/jobs': {
+      total: 1,
+      jobPostings: [{ title: 'Solo', externalPath: '/job/solo', locationsText: 'Paris' }],
+    },
+  });
+
+  const res = await fetchWorkday('https://acme.wd3.myworkdayjobs.com/AcmeCareers', 'Acme', {
+    pageSize: 20,
+  });
+
+  assert.ok(Array.isArray(res.warnings), 'expected warnings array');
+  assert.equal(res.warnings.length, 0);
 });

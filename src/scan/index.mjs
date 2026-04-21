@@ -68,10 +68,12 @@ async function fetchCompanyOffers(company, whitelist) {
       det.platform === 'workday'
         ? { searchTerms: buildSearchTerms(whitelist.positive) }
         : undefined;
-    const offers = opts ? await fn(det.slug, company.name, opts) : await fn(det.slug, company.name);
-    return { company: company.name, platform: det.platform, offers, error: null };
+    const raw = opts ? await fn(det.slug, company.name, opts) : await fn(det.slug, company.name);
+    const offers = Array.isArray(raw) ? raw : raw.offers;
+    const fetchWarnings = Array.isArray(raw) ? [] : raw.warnings || [];
+    return { company: company.name, platform: det.platform, offers, fetchWarnings, error: null };
   } catch (err) {
-    return { company: company.name, platform: det.platform, offers: [], error: err.message };
+    return { company: company.name, platform: det.platform, offers: [], fetchWarnings: [], error: err.message };
   }
 }
 
@@ -269,8 +271,9 @@ export async function runScan(opts) {
       }
     }
 
+    const fetchWarn = result.fetchWarnings?.length > 0 ? result.fetchWarnings[0] : null;
     const warning =
-      result.offers.length === 0 ? 'board live but empty — possibly wrong slug' : null;
+      fetchWarn ?? (result.offers.length === 0 ? 'board live but empty — possibly wrong slug' : null);
     perCompany.push({
       company: result.company,
       platform: result.platform,
@@ -292,6 +295,7 @@ export async function runScan(opts) {
         afterFilterCount: companyAfterFilter,
         newCount: companyNew,
         error: null,
+        warning,
       });
     }
   }

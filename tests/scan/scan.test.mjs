@@ -995,3 +995,50 @@ test('formatSummary: includes Langue line even when zero', () => {
   const summary = formatSummary(result, false);
   assert.match(summary, /Langue\s+0/);
 });
+
+test('runScan — Workday { offers, warnings } shape is normalised correctly', async () => {
+  const portalsConfig = {
+    title_filter: { positive: [], negative: [] },
+    tracked_companies: [
+      {
+        name: 'TotalEnergies',
+        careers_url: 'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers',
+        enabled: true,
+      },
+    ],
+  };
+
+  const restore = installMockFetch({
+    'https://totalenergies.wd3.myworkdayjobs.com/wday/cxs/totalenergies/TotalEnergies_careers/jobs':
+      {
+        total: 1,
+        jobPostings: [
+          {
+            title: 'Data Engineer',
+            externalPath: '/job/Data-Engineer_R99',
+            locationsText: 'Paris',
+          },
+        ],
+      },
+  });
+
+  try {
+    const result = await runScan({
+      portalsConfig,
+      profile: { target_locations: ['Paris'], blacklist_companies: [], min_start_date: '2020-01-01' },
+      pipelinePath: path.join(tmp, 'pipeline.md'),
+      historyPath: path.join(tmp, 'scan-history.tsv'),
+      filteredPath: path.join(tmp, 'filtered-out.tsv'),
+      applicationsPath: path.join(tmp, 'applications.md'),
+      dryRun: true,
+    });
+
+    assert.equal(result.raw, 1, 'raw count should be 1');
+    assert.equal(result.errors.length, 0, 'no errors');
+    assert.equal(result.perCompany.length, 1);
+    assert.equal(result.perCompany[0].rawCount, 1);
+    assert.equal(result.perCompany[0].warning, null);
+  } finally {
+    restore();
+  }
+});
