@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { parseDocument, isSeq } from 'yaml';
-import { detectPlatform, getSupportedHosts } from './ats-detect.mjs';
+import { detectPlatform, getSupportedHosts, verifyCompany as defaultVerify } from './ats-detect.mjs';
+import { discoverCompany as defaultDiscover } from './discover-company.mjs';
 
 export class AddCompanyError extends Error {
   constructor(code, message, details = null) {
@@ -175,4 +176,99 @@ export function toggleEnabled(doc, careersUrl) {
   }
   match.node.set('enabled', true);
   return { status: 'toggled', name: match.node.get('name') };
+}
+
+function parseArgs(argv) {
+  const args = {
+    input: null,
+    name: null,
+    dryRun: false,
+    yes: false,
+    json: false,
+    portals: 'config/portals.yml',
+    cache: 'data/known-ats-slugs.json',
+    workdayRegistry: null,
+  };
+  for (let i = 0; i < argv.length; i += 1) {
+    const key = argv[i];
+    const next = argv[i + 1];
+    switch (key) {
+      case '--input': args.input = next; i += 1; break;
+      case '--name': args.name = next; i += 1; break;
+      case '--dry-run': args.dryRun = true; break;
+      case '--yes': args.yes = true; break;
+      case '--json': args.json = true; break;
+      case '--portals': args.portals = next; i += 1; break;
+      case '--cache': args.cache = next; i += 1; break;
+      case '--workday-registry': args.workdayRegistry = next; i += 1; break;
+      default: break;
+    }
+  }
+  if (!args.dryRun && !args.yes) args.dryRun = true;
+  return args;
+}
+
+function emit(args, payload) {
+  process.stdout.write(JSON.stringify(payload) + '\n');
+}
+
+export async function main(argv, depsOverride = {}) {
+  const args = parseArgs(argv);
+  if (!args.input) {
+    throw new AddCompanyError('MISSING_INPUT', '--input is required');
+  }
+
+  const deps = {
+    verifyCompany: depsOverride.verifyCompany ?? defaultVerify,
+    discoverCompany:
+      depsOverride.discoverCompany ??
+      ((name) =>
+        defaultDiscover(name, {
+          cachePath: args.cache,
+          workdayRegistryPath: args.workdayRegistry,
+        })),
+  };
+
+  const resolved = await resolveCompany({ input: args.input, portalsPath: args.portals, deps });
+
+  if (args.yes && resolved.status === 'disabled-duplicate') {
+    const raw = fs.readFileSync(args.portals, 'utf8');
+    const doc = parseDocument(raw);
+    const careersUrl = resolved.careersUrl ?? (/^https?:\/\//i.test(args.input) ? args.input : null);
+    const toggle = toggleEnabled(doc, careersUrl);
+    const outStr = String(doc);
+    const reparsed = parseDocument(outStr);
+    if (reparsed.errors.length > 0) {
+      throw new AddCompanyError('POST_PARSE_FAILED', 'post-mutation reparse failed', { errors: reparsed.errors });
+    }
+    fs.writeFileSync(args.portals, outStr);
+    emit(args, { status: 'toggled', name: toggle.name });
+    return;
+  }
+
+  if (!args.yes || resolved.status !== 'ok') {
+    emit(args, resolved);
+    return;
+  }
+
+  // --yes and status === 'ok' → append
+  const finalName = args.name ?? resolved.suggestedName ?? resolved.input;
+  const result = appendCompany(args.portals, { name: finalName, careersUrl: resolved.careersUrl });
+  emit(args, { status: 'written', entryIndex: result.entryIndex, total: result.total, entry: result.entry });
+}
+
+const invokedDirectly = (() => {
+  try {
+    return process.argv[1] && process.argv[1].endsWith('add-company.mjs');
+  } catch {
+    return false;
+  }
+})();
+
+if (invokedDirectly) {
+  main(process.argv.slice(2)).catch((err) => {
+    process.stderr.write(`${err.name}: ${err.message}\n`);
+    if (err.details) process.stderr.write(JSON.stringify(err.details, null, 2) + '\n');
+    process.exit(1);
+  });
 }

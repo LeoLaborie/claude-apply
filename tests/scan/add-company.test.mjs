@@ -320,3 +320,93 @@ test('resolveCompany — name form duplicate when discovered URL is already pres
   assert.equal(out.status, 'duplicate');
   assert.equal(out.duplicateOf.name, 'Mistral AI');
 });
+
+import { main } from '../../src/scan/add-company.mjs';
+
+function captureStdout(fn) {
+  const chunks = [];
+  const originalWrite = process.stdout.write.bind(process.stdout);
+  process.stdout.write = (s) => {
+    chunks.push(typeof s === 'string' ? s : s.toString('utf8'));
+    return true;
+  };
+  return fn()
+    .finally(() => {
+      process.stdout.write = originalWrite;
+    })
+    .then(() => chunks.join(''));
+}
+
+test('main — --dry-run --json on URL form prints status ok', async () => {
+  const { path: p } = copyFixture('portals.rich-comments.yml');
+  const out = await captureStdout(() =>
+    main(['--input', 'https://jobs.ashbyhq.com/poolside', '--dry-run', '--json', '--portals', p], {
+      verifyCompany: async () => ({ ok: true, count: 11 }),
+      discoverCompany: async () => ({ ok: false }),
+    }),
+  );
+  const parsed = JSON.parse(out.trim());
+  assert.equal(parsed.status, 'ok');
+  assert.equal(parsed.suggestedName, 'Poolside');
+});
+
+test('main — --yes writes a new entry and prints status written', async () => {
+  const { path: p } = copyFixture('portals.rich-comments.yml');
+  const out = await captureStdout(() =>
+    main(
+      ['--input', 'https://jobs.ashbyhq.com/poolside', '--name', 'Poolside', '--yes', '--json', '--portals', p],
+      {
+        verifyCompany: async () => ({ ok: true, count: 11 }),
+        discoverCompany: async () => ({ ok: false }),
+      },
+    ),
+  );
+  const parsed = JSON.parse(out.trim());
+  assert.equal(parsed.status, 'written');
+  assert.equal(parsed.entryIndex, 3);
+  assert.equal(parsed.total, 4);
+  const reparsed = parseDocument(fs.readFileSync(p, 'utf8'));
+  const list = reparsed.get('tracked_companies', true);
+  assert.equal(list.items[3].get('name'), 'Poolside');
+});
+
+test('main — --yes on disabled-duplicate toggles and prints status toggled', async () => {
+  const { path: p } = copyFixture('portals.disabled-entry.yml');
+  const out = await captureStdout(() =>
+    main(['--input', 'https://jobs.lever.co/oldco', '--yes', '--json', '--portals', p], {
+      verifyCompany: async () => ({ ok: true, count: 1 }),
+      discoverCompany: async () => ({ ok: false }),
+    }),
+  );
+  const parsed = JSON.parse(out.trim());
+  assert.equal(parsed.status, 'toggled');
+  const reparsed = parseDocument(fs.readFileSync(p, 'utf8'));
+  const list = reparsed.get('tracked_companies', true);
+  assert.equal(list.items[1].get('enabled'), true);
+});
+
+test('main — --dry-run on duplicate does not write', async () => {
+  const { path: p } = copyFixture('portals.rich-comments.yml');
+  const before = fs.readFileSync(p, 'utf8');
+  await captureStdout(() =>
+    main(['--input', 'https://jobs.lever.co/mistral', '--dry-run', '--json', '--portals', p], {
+      verifyCompany: async () => ({ ok: true, count: 42 }),
+      discoverCompany: async () => ({ ok: false }),
+    }),
+  );
+  assert.equal(fs.readFileSync(p, 'utf8'), before);
+});
+
+test('main — --yes on plain duplicate (enabled: true) does not rewrite file', async () => {
+  const { path: p } = copyFixture('portals.rich-comments.yml');
+  const before = fs.readFileSync(p, 'utf8');
+  const out = await captureStdout(() =>
+    main(['--input', 'https://jobs.lever.co/mistral', '--yes', '--json', '--portals', p], {
+      verifyCompany: async () => ({ ok: true, count: 42 }),
+      discoverCompany: async () => ({ ok: false }),
+    }),
+  );
+  const parsed = JSON.parse(out.trim());
+  assert.equal(parsed.status, 'duplicate');
+  assert.equal(fs.readFileSync(p, 'utf8'), before);
+});
