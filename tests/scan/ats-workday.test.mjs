@@ -177,7 +177,7 @@ test('verifySlug — returns ok with count on valid response', async () => {
 
   const r = await verifySlug('https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers');
   assert.equal(r.ok, true);
-  assert.equal(r.count, 3);
+  assert.equal(r.count, 23); // fixture has total:23
 });
 
 test('verifySlug — returns ok with count 0 on empty response', async () => {
@@ -211,6 +211,29 @@ test('verifySlug — returns ko on non-Workday URL', async () => {
   const r = await verifySlug('https://jobs.lever.co/stripe');
   assert.equal(r.ok, false);
   assert.match(r.reason, /not a Workday URL/);
+});
+
+test('verifySlug — reads data.total when present', async () => {
+  restore = installMockFetch({
+    'https://acme.wd3.myworkdayjobs.com/wday/cxs/acme/Careers/jobs': {
+      total: 247,
+      jobPostings: [{ title: 'one' }],
+    },
+  });
+  const r = await verifySlug('https://acme.wd3.myworkdayjobs.com/Careers');
+  assert.equal(r.ok, true);
+  assert.equal(r.count, 247);
+});
+
+test('verifySlug — falls back to jobPostings.length when total absent', async () => {
+  restore = installMockFetch({
+    'https://acme.wd3.myworkdayjobs.com/wday/cxs/acme/Careers/jobs': {
+      jobPostings: [{ title: 'one' }],
+    },
+  });
+  const r = await verifySlug('https://acme.wd3.myworkdayjobs.com/Careers');
+  assert.equal(r.ok, true);
+  assert.equal(r.count, 1);
 });
 
 test('fetchWorkday — issues one POST per searchTerm and dedupes by url', async () => {

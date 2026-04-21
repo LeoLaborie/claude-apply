@@ -61,7 +61,8 @@ export async function verifySlug(url) {
     return { ok: false, status: res.status, reason: `HTTP ${res.status}` };
   }
   const data = await res.json();
-  const count = Array.isArray(data?.jobPostings) ? data.jobPostings.length : 0;
+  const postings = Array.isArray(data?.jobPostings) ? data.jobPostings : [];
+  const count = typeof data?.total === 'number' ? data.total : postings.length;
   return { ok: true, count };
 }
 
