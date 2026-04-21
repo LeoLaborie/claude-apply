@@ -93,3 +93,4 @@ Or as one command: `npm test && bash scripts/check-no-pii.sh && npm run lint`.
    node src/apply/upload-file.mjs --url lever-form --selector '#resume' --file tests/fixtures/fake-cv.pdf
    ```
 5. Review `git log` on the release branch — confirm no accidental PII in any file.
+6. `/apply-onboard` final summary shows the `Your title_filter` block and either a `First scan preview` (with raw + added counts) or the graceful "skipped" fallback when the dry-run fails.
