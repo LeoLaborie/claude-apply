@@ -918,7 +918,13 @@ test('formatSummary — emits Next steps block in default path', () => {
     raw: 10,
     perCompany: [
       { company: 'mistral', platform: 'lever', rawCount: 5, afterFilterCount: 1, newCount: 1 },
-      { company: 'anthropic', platform: 'greenhouse', rawCount: 5, afterFilterCount: 0, newCount: 0 },
+      {
+        company: 'anthropic',
+        platform: 'greenhouse',
+        rawCount: 5,
+        afterFilterCount: 0,
+        newCount: 0,
+      },
     ],
     filtered: {
       skipped_dup: 0,
@@ -946,7 +952,13 @@ test('formatSummary — Next steps block is present even when nothing was added'
     eligibleTotal: 1,
     raw: 2359,
     perCompany: [
-      { company: 'big-co', platform: 'greenhouse', rawCount: 2359, afterFilterCount: 0, newCount: 0 },
+      {
+        company: 'big-co',
+        platform: 'greenhouse',
+        rawCount: 2359,
+        afterFilterCount: 0,
+        newCount: 0,
+      },
     ],
     filtered: {
       skipped_dup: 0,
@@ -971,7 +983,7 @@ test('scan CLI --json — stdout is parseable JSON and contains no Next steps bl
   const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-json-data-'));
   fs.writeFileSync(
     path.join(cfgDir, 'portals.yml'),
-    'tracked_companies: []\ntitle_filter:\n  required_any: []\n  excluded_any: []\n',
+    'tracked_companies: []\ntitle_filter:\n  required_any: []\n  excluded_any: []\n'
   );
   fs.writeFileSync(
     path.join(cfgDir, 'candidate-profile.yml'),
@@ -993,7 +1005,7 @@ test('scan CLI --json — stdout is parseable JSON and contains no Next steps bl
       'cv_path: config/cv.fr.pdf',
       'auto_apply_min_score: 7',
       'internship_duration_months: 6',
-    ].join('\n') + '\n',
+    ].join('\n') + '\n'
   );
 
   try {
@@ -1007,7 +1019,7 @@ test('scan CLI --json — stdout is parseable JSON and contains no Next steps bl
           CLAUDE_APPLY_DATA_DIR: dataDir,
         },
         encoding: 'utf8',
-      },
+      }
     );
     assert.equal(res.status, 0, `stderr=${res.stderr}`);
     assert.doesNotMatch(res.stdout, /Next steps/);
