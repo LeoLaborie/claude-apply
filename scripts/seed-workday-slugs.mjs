@@ -104,21 +104,32 @@ async function main() {
     }
     await new Promise((r) => setTimeout(r, 100));
     const result = await verifyWithRetry(url);
-    if (result.ok) {
+    if (result.ok && !result.warning) {
       registry[key] = parsed;
       seenKeys.add(key);
       process.stdout.write(`✓ ${name} (${result.count ?? '?'})\n`);
     } else {
-      unresolved.push({ name, url, reason: result.reason ?? 'verify failed' });
-      process.stdout.write(`✗ ${name} — ${result.reason ?? 'verify failed'}\n`);
+      const reason = result.reason ?? result.warning ?? 'verify failed';
+      unresolved.push({ name, url, reason });
+      process.stdout.write(`✗ ${name} — ${reason}\n`);
     }
   }
 
+  if (unresolved.length > 0) {
+    fs.writeFileSync(
+      UNRESOLVED_PATH,
+      unresolved.map((u) => `${u.name}\t${u.url}\t${u.reason}`).join('\n') + '\n'
+    );
+  }
+
+  if (Object.keys(registry).length === 0) {
+    console.error(
+      `\nNo entries verified; refusing to overwrite ${TEMPLATE_PATH}. ${unresolved.length} unresolved (see ${UNRESOLVED_PATH}).`
+    );
+    process.exit(1);
+  }
+
   writeTemplate(registry);
-  fs.writeFileSync(
-    UNRESOLVED_PATH,
-    unresolved.map((u) => `${u.name}\t${u.url}\t${u.reason}`).join('\n') + '\n'
-  );
   console.log(
     `\n${Object.keys(registry).length} entries in ${TEMPLATE_PATH}, ${unresolved.length} unresolved (see ${UNRESOLVED_PATH})`
   );

@@ -46,12 +46,13 @@ async function main() {
     const url = buildWorkdayUrl(entry);
     await new Promise((r) => setTimeout(r, 100));
     const result = await verifyWithRetry(url);
-    if (result.ok) {
+    if (result.ok && !result.warning) {
       live[key] = entry;
       process.stdout.write(`✓ ${key} (${result.count ?? '?'})\n`);
     } else {
-      dead.push({ key, url, reason: result.reason ?? 'verify failed' });
-      process.stdout.write(`✗ ${key} — ${result.reason ?? 'verify failed'}\n`);
+      const reason = result.reason ?? result.warning ?? 'verify failed';
+      dead.push({ key, url, reason });
+      process.stdout.write(`✗ ${key} — ${reason}\n`);
     }
   }
 
@@ -63,6 +64,10 @@ async function main() {
   }
 
   if (fix) {
+    if (Object.keys(live).length === 0) {
+      console.error(`\nRefusing to rewrite ${TEMPLATE_PATH}: zero live entries.`);
+      process.exit(1);
+    }
     fs.writeFileSync(TEMPLATE_PATH, JSON.stringify(live, null, 2) + '\n');
     console.log(`\nTemplate rewritten with ${Object.keys(live).length} live entries.`);
     process.exit(0);
