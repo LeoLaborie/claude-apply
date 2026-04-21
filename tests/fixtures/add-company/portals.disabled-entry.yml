@@ -1,0 +1,18 @@
+# Fixture with a disabled entry and extra keys.
+tracked_companies:
+  - name: Mistral AI
+    careers_url: https://jobs.lever.co/mistral
+    enabled: true
+  - name: OldCo
+    careers_url: https://jobs.lever.co/oldco
+    enabled: false
+    # Inline reason — must survive toggle.
+    skip_required_any: true
+    target_locations:
+      - Paris
+      - Remote
+
+title_filter:
+  positive: [Intern]
+  negative: []
+  required_any: []

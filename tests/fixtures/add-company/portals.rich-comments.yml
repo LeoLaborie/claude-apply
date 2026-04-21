@@ -1,0 +1,24 @@
+# Companies to scan for open positions.
+# This fixture has rich comments used by add-company tests to assert
+# that AST-based mutation preserves trivia on round-trip.
+
+tracked_companies:
+  - name: Mistral AI
+    careers_url: https://jobs.lever.co/mistral
+    enabled: true
+    # Domain is implicit in company name — skip required_any filter
+    skip_required_any: true
+  - name: Anthropic
+    careers_url: https://jobs.lever.co/Anthropic
+    enabled: true
+  # Block comment between entries — must survive append.
+  - name: Photoroom
+    careers_url: https://jobs.lever.co/photoroom
+    enabled: true
+
+title_filter:
+  positive:
+    - Intern
+    - Stage
+  negative: []
+  required_any: []
