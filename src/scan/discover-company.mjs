@@ -139,21 +139,25 @@ export async function discoverCompany(name, options = {}) {
   return { ok: false, reason: 'no slug matched', tried };
 }
 
-async function main() {
-  const args = process.argv.slice(2).filter((a) => !a.startsWith('--'));
-  const flags = process.argv.slice(2).filter((a) => a.startsWith('--'));
+export async function main({
+  argv = process.argv,
+  verifiers,
+  _write = (s) => process.stdout.write(s),
+} = {}) {
+  const args = argv.slice(2).filter((a) => !a.startsWith('--'));
+  const flags = argv.slice(2).filter((a) => a.startsWith('--'));
 
   const name = args[0];
   if (!name) {
     process.stderr.write(
       'Usage: node src/scan/discover-company.mjs "<CompanyName>" [--cache-path <path>] [--workday-registry <path>]\n'
     );
-    process.exit(1);
+    return 1;
   }
 
   const flag = (key) => {
     const idx = flags.indexOf(key);
-    return idx >= 0 ? process.argv[process.argv.indexOf(key) + 1] : null;
+    return idx >= 0 ? argv[argv.indexOf(key) + 1] : null;
   };
 
   const cachePath = flag('--cache-path');
@@ -170,15 +174,16 @@ async function main() {
     cachePath: resolvedCache,
     workdayRegistryPath: resolvedRegistry,
     delayMs,
+    verifiers,
   });
 
-  process.stdout.write(JSON.stringify(result) + '\n');
-  process.exit(result.ok ? 0 : 1);
+  _write(JSON.stringify(result) + '\n');
+  return 0;
 }
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
-  main().catch((err) => {
+  main().then(process.exit).catch((err) => {
     process.stderr.write(`${err.message}\n`);
     process.exit(1);
   });

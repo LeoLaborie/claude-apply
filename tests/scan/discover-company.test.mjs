@@ -10,6 +10,7 @@ import {
   discoverCompany,
   slugCandidates,
   loadKnownSlugs,
+  main,
 } from '../../src/scan/discover-company.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -253,13 +254,19 @@ test('discover-company CLI — exits 1 with usage message when no name given', (
   assert.match(result.stderr, /usage/i);
 });
 
-test('discover-company CLI — exits 1 and prints JSON ok:false when slug not found', () => {
-  const result = spawnSync(
-    'node',
-    [path.join(REPO_ROOT, 'src/scan/discover-company.mjs'), 'XYZNoSuchCompanyEver'],
-    { encoding: 'utf8', env: { ...process.env, DISCOVER_DELAY_MS: '0' } }
-  );
-  assert.equal(result.status, 1);
-  const parsed = JSON.parse(result.stdout);
+test('discover-company CLI — prints JSON ok:false and exits 0 when slug not found', async () => {
+  const out = [];
+  const exitCode = await main({
+    argv: ['node', 'discover-company.mjs', 'XYZNoSuchCompanyEver'],
+    verifiers: {
+      lever: async () => ({ ok: false }),
+      greenhouse: async () => ({ ok: false }),
+      ashby: async () => ({ ok: false }),
+      workable: async () => ({ ok: false }),
+    },
+    _write: (s) => out.push(s),
+  });
+  assert.equal(exitCode, 0);
+  const parsed = JSON.parse(out.join(''));
   assert.equal(parsed.ok, false);
 });
