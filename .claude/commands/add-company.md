@@ -29,7 +29,7 @@ Parse the JSON output and branch on `status`:
 | `duplicate`            | "Already in portals.yml: `<duplicateOf.name>` (enabled: true). Nothing to do."                                                                                                                               |
 | `disabled-duplicate`   | "Found existing entry `<duplicateOf.name>` with enabled: false. Enable it? [Yes / No]"                                                                                                                       |
 | `unknown-host`         | "Host not recognized. Supported: `<supportedHosts joined>`. Open an issue to add this ATS."                                                                                                                  |
-| `unsupported-platform` | If `knownHost` is `workable`, say: "Workable is not yet supported — see issue #83." Otherwise generic.                                                                                                       |
+| `unsupported-platform` | "Platform `<knownHost>` is recognized but not yet supported by `/add-company`. Open an issue to request support."                                                                                            |
 | `not-found`            | For URL form: "Slug 404 or empty. Double-check the URL." For name form: "No slug matched (tried N candidates). Try `/add-company <url>` with the full URL."                                                  |
 | `no-portals`           | "No portals config. Run `/apply-onboard` first."                                                                                                                                                             |
 

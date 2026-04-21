@@ -193,15 +193,16 @@ test('resolveCompany — URL form unknown host returns supportedHosts list', asy
   assert.ok(out.supportedHosts.length > 0);
 });
 
-test('resolveCompany — URL form workable returns unsupported-platform with knownHost', async () => {
+test('resolveCompany — URL form workable verifies and returns ok', async () => {
   const { path: p } = copyFixture('portals.rich-comments.yml');
   const out = await resolveCompany({
     input: 'https://apply.workable.com/huggingface',
     portalsPath: p,
-    deps: makeDeps(),
+    deps: makeDeps({ verifyCompany: async () => ({ ok: true, count: 7 }) }),
   });
-  assert.equal(out.status, 'unsupported-platform');
-  assert.equal(out.knownHost, 'workable');
+  assert.equal(out.status, 'ok');
+  assert.equal(out.platform, 'workable');
+  assert.equal(out.count, 7);
 });
 
 test('resolveCompany — URL form verify failure returns not-found', async () => {

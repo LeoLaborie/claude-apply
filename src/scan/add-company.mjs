@@ -62,7 +62,7 @@ export function findByCareersUrl(doc, careersUrl) {
   return idx >= 0 ? { index: idx, node: list.items[idx] } : null;
 }
 
-const VERIFIABLE_PLATFORMS = new Set(['lever', 'greenhouse', 'ashby', 'workday']);
+const VERIFIABLE_PLATFORMS = new Set(['lever', 'greenhouse', 'ashby', 'workable', 'workday']);
 
 function titleCaseSlug(slug) {
   return slug
