@@ -356,6 +356,13 @@ export function formatSummary(result, dryRun) {
       lines.push(`  ! ${e.company}: ${e.error}`);
     }
   }
+  lines.push('');
+  lines.push('Next steps :');
+  lines.push('  /score <url>        # évalue une offre via LLM (data/evaluations.jsonl)');
+  lines.push('  /explain "<title>"  # trace pourquoi une offre passe/échoue le filtre');
+  lines.push('  /dashboard          # régénère dashboard.html');
+  lines.push('');
+  lines.push('Plus de flags : /scan --help  (--dry-run, --only <slug>, --json)');
   return lines.join('\n');
 }
 
