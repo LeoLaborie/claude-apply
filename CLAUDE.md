@@ -29,7 +29,9 @@ The three stages are independent and communicate only via files in `data/`: `sca
 - `npm run test:watch` — watch mode
 - `npm run lint` / `npm run format` — Prettier check / write
 - `npm run check:pii` — PII gate (run locally before pushing)
-- `npm run scan` / `npm run score <url>` / `npm run dashboard` — module entry points
+- `npm run scan` / `npm run score <url>` / `npm run score:batch` / `npm run dashboard` — module entry points
+- `npm run explain -- "<title>"` — trace why a title is accepted or filtered by the current config
+- `npm run workday:seed` / `npm run workday:validate` — maintain the known-Workday-slugs registry
 
 ## First-time setup
 
@@ -43,18 +45,25 @@ The `/scan`, `/score`, and `/apply` commands each have a first-run guard that re
 
 ### Slash commands (`.claude/commands/`)
 
-| Command        | Contract                                                                                                                                      |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/scan`        | `node src/scan/index.mjs` → appends new rows to `data/pipeline.md`; dedups via `scan-history.tsv`.                                            |
-| `/score <url>` | Reads `config/cv.md`; appends one JSON line to `data/evaluations.jsonl`.                                                                      |
-| `/apply <url>` | Opens the URL in Chrome, classifies/fills the form, uploads the CV via CDP, submits, updates `data/applications.md` + `data/apply-log.jsonl`. |
+| Command                      | Contract                                                                                                                                      |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/apply-onboard [cv.pdf]`    | First-run onboarding — extract CV, build `config/cv.md` + `candidate-profile.yml`, discover ~30 companies, run `scripts/setup.sh` non-interactively. Sub-commands: `:profile`, `:companies`, `:setup`. |
+| `/add-company <name or URL>` | Discover and append a new company to `config/portals.yml` (wraps `src/scan/discover-company.mjs` + `add-company.mjs`).                        |
+| `/scan`                      | `node src/scan/index.mjs` → appends new rows to `data/pipeline.md`; dedups via `scan-history.tsv`. Flags: `--dry-run`, `--only <slug>`, `--json`. |
+| `/score <url>`               | Reads `config/cv.md`; appends one JSON line to `data/evaluations.jsonl`. Also supports `--batch` and `--from-pipeline` (mutually exclusive).  |
+| `/explain "<title>"`         | Trace which prefilter rule accepts or rejects a given title. Flags: `--company <name>`, `--location <loc>`.                                   |
+| `/tune-filter`               | Interactive calibration of `portals.yml` `title_filter` against cached `scan-history.tsv`. No network calls.                                  |
+| `/apply <url>`               | Opens the URL in Chrome, classifies/fills the form, uploads the CV via CDP, submits, updates `data/applications.md` + `data/apply-log.jsonl`. |
+| `/dashboard`                 | Rebuild `dashboard.html` from `data/` + `reports/`.                                                                                           |
+
+All commands support `--help` / `-h` and have a first-run guard that redirects to `/apply-onboard` if `config/candidate-profile.yml` is missing.
 
 ### Modules (`src/`)
 
-- `src/lib/` — shared utilities (YAML/TSV/JSONL I/O, pipeline-md writer, dedup, prompt builder).
-- `src/scan/` — ATS scanner (`ats-detect.mjs` + fetchers in `ats/`).
-- `src/score/` — lightweight offer evaluator wrapping `claude -p` in stripped mode.
-- `src/apply/` — form classifier, language detector, confirmation detector, CDP upload helper, letter generator, apply-log writer, profile schema.
+- `src/lib/` — shared utilities (YAML/TSV/JSONL I/O, pipeline-md writer, dedup, prefilter rules, title n-grams, load-profile, repo-root, extension permission probe, onboard state, portals writer, p-limit).
+- `src/scan/` — ATS scanner: `index.mjs`, `ats-detect.mjs`, fetchers in `ats/` (Lever, Greenhouse, Ashby, Workable, Workday + `workday-slugs.mjs`), plus `add-company.mjs`, `discover-company.mjs`, `explain.mjs`, `tune-filter.mjs`, `fetch-offer-body.mjs`.
+- `src/score/` — lightweight offer evaluator wrapping `claude -p` in stripped mode (`index.mjs`, `jd-truncate.mjs`, `location-extractor.mjs`, `prefilter.mjs`, `prompt-builder.mjs`).
+- `src/apply/` — form classifier, language detector, confirmation detector, CDP upload helper, letter/cover-letter generator, apply-log writer, profile schema, React-select helper, DOM-label extractor, Workday step detector (`workday/`).
 - `src/dashboard/` — self-contained HTML generator from `data/` + `reports/`.
 
 ## Conventions
@@ -69,18 +78,20 @@ The `/scan`, `/score`, and `/apply` commands each have a first-run guard that re
 
 ## Where to find what
 
-| Need                         | Location                                  |
-| ---------------------------- | ----------------------------------------- |
-| Architecture overview        | `docs/architecture.md`                    |
-| `/apply` step-by-step        | `docs/apply-workflow.md`                  |
-| `/scan` details              | `docs/scan-workflow.md`                   |
-| `/score` details             | `docs/score-workflow.md`                  |
-| CDP setup (Linux/macOS)      | `docs/cdp-setup.md`                       |
-| ATS support matrix + gotchas | `docs/ats-support.md`                     |
-| Adding a new ATS             | `docs/extending.md`                       |
-| Agent-specific guidance      | `docs/for-agents.md`                      |
-| Running tests, E2E checklist | `docs/testing.md`                         |
-| PII gate                     | `scripts/check-no-pii.sh`                 |
-| User config                  | `config/` (ignored)                       |
-| User data                    | `data/` (ignored)                         |
-| Example persona              | `templates/candidate-profile.example.yml` |
+| Need                           | Location                                  |
+| ------------------------------ | ----------------------------------------- |
+| Architecture overview          | `docs/architecture.md`                    |
+| `/apply` step-by-step          | `docs/apply-workflow.md`                  |
+| `/scan` details                | `docs/scan-workflow.md`                   |
+| `/score` details               | `docs/score-workflow.md`                  |
+| CDP setup (Linux/macOS)        | `docs/cdp-setup.md`                       |
+| ATS support matrix + gotchas   | `docs/ats-support.md`                     |
+| ATS-specific apply playbooks   | `docs/playbooks/` (Greenhouse, Workday)   |
+| Adding a new ATS               | `docs/extending.md`                       |
+| Agent-specific guidance        | `docs/for-agents.md`                      |
+| Running tests, E2E checklist   | `docs/testing.md`                         |
+| Release notes & breaking changes | `CHANGELOG.md`                          |
+| PII gate                       | `scripts/check-no-pii.sh`                 |
+| User config                    | `config/` (ignored)                       |
+| User data                      | `data/` (ignored)                         |
+| Example persona                | `templates/candidate-profile.example.yml` |
