@@ -385,7 +385,8 @@ function formatProgress(index, total, offer, result) {
 
 function printScoreHelp() {
   console.log(`Usage: /score <url> [options]
-       /score --from-pipeline [--batch] [--parallel <n>]
+       /score --from-pipeline
+       /score --batch [--parallel <n>]
        /score --json-input <path>
 
 LLM-evaluate one or more offers against config/cv.md.
@@ -393,10 +394,12 @@ LLM-evaluate one or more offers against config/cv.md.
 Flags:
   --re-score             Re-evaluate a URL already in evaluations.jsonl
                          (preserves the existing id).
-  --batch                Score multiple offers from data/pipeline.md.
+  --batch                Score all unscored offers from data/pipeline.md.
+                         Mutually exclusive with --from-pipeline and <url>.
   --parallel <n>         With --batch, run <n> evaluations concurrently.
                          Implies --batch. Default: 5.
-  --from-pipeline        Take the offer URL from data/pipeline.md.
+  --from-pipeline        Score a single offer selected from data/pipeline.md.
+                         Mutually exclusive with --batch and <url>.
   --json-input <path>    Read a pre-built offer JSON instead of fetching.
   --id <id>              Override the generated id for this entry.
   --company <name>       With --role and --location, override offer metadata
