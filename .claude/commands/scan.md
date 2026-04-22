@@ -52,6 +52,4 @@ The scanner prints a summary per company:
 
 If a company reports `0 raw offers`, check that its `careers_url` points to an ATS slug supported by `src/scan/ats-detect.mjs`. Group B (custom career pages) companies are skipped silently.
 
-## Next step
-
-Once `data/pipeline.md` has new rows, run `/score <url>` on each to get an LLM evaluation.
+Pour comprendre en détail comment `title_filter` rejette une offre, voir [`docs/scan-workflow.md#title-filter`](../../docs/scan-workflow.md#title-filter) ou lance `/explain "<titre>"`.

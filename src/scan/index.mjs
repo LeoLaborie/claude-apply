@@ -373,11 +373,41 @@ export function formatSummary(result, dryRun) {
       lines.push(`  ! ${e.company}: ${e.error}`);
     }
   }
+  lines.push('');
+  lines.push('Next steps :');
+  lines.push('  /score <url>        # évalue une offre via LLM (data/evaluations.jsonl)');
+  lines.push('  /explain "<title>"  # trace pourquoi une offre passe/échoue le filtre');
+  lines.push('  /dashboard          # régénère dashboard.html');
+  lines.push('');
+  lines.push('Plus de flags : /scan --help  (--dry-run, --only <slug>, --json)');
   return lines.join('\n');
+}
+
+function printScanHelp() {
+  console.log(`Usage: /scan [--dry-run] [--only <slug>] [--json]
+
+Scan enabled ATS portals and append new offers to data/pipeline.md.
+
+Flags:
+  --dry-run         Compute everything, write nothing.
+  --only <slug>     Scan a single company by ATS slug (e.g. mistral).
+  --json            Emit machine-readable output to stdout.
+  --help, -h        Show this help and exit.
+
+Files:
+  reads:  config/portals.yml, config/candidate-profile.yml
+  writes: data/pipeline.md, data/scan-history.tsv, data/filtered-out.tsv
+
+See also: /explain, /dashboard
+          docs/scan-workflow.md  (title_filter format, per-company overrides)`);
 }
 
 async function main() {
   const args = process.argv.slice(2);
+  if (args.includes('--help') || args.includes('-h')) {
+    printScanHelp();
+    process.exit(0);
+  }
   const dryRun = args.includes('--dry-run');
   const asJson = args.includes('--json');
   const onlyIdx = args.indexOf('--only');

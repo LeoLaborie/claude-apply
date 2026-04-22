@@ -911,6 +911,126 @@ test('formatSummary — lists filtered-out.tsv in updated files block (item 5)',
   assert.match(out, /filtered-out\.tsv\s+\(\+1 lignes?\)/);
 });
 
+test('formatSummary — emits Next steps block in default path', () => {
+  const result = {
+    scanned: 2,
+    eligibleTotal: 2,
+    raw: 10,
+    perCompany: [
+      { company: 'mistral', platform: 'lever', rawCount: 5, afterFilterCount: 1, newCount: 1 },
+      {
+        company: 'anthropic',
+        platform: 'greenhouse',
+        rawCount: 5,
+        afterFilterCount: 0,
+        newCount: 0,
+      },
+    ],
+    filtered: {
+      skipped_dup: 0,
+      skipped_title: 4,
+      skipped_blacklist: 0,
+      skipped_location: 0,
+      skipped_date: 0,
+    },
+    added: [{ company: 'mistral', title: 'ML Engineer Intern' }],
+    historyWrites: 1,
+    filteredWrites: 4,
+    errors: [],
+  };
+  const out = formatSummary(result, false);
+  assert.match(out, /Next steps :/);
+  assert.match(out, /\/score <url>/);
+  assert.match(out, /\/explain/);
+  assert.match(out, /\/dashboard/);
+  assert.match(out, /\/scan --help/);
+});
+
+test('formatSummary — Next steps block is present even when nothing was added', () => {
+  const result = {
+    scanned: 1,
+    eligibleTotal: 1,
+    raw: 2359,
+    perCompany: [
+      {
+        company: 'big-co',
+        platform: 'greenhouse',
+        rawCount: 2359,
+        afterFilterCount: 0,
+        newCount: 0,
+      },
+    ],
+    filtered: {
+      skipped_dup: 0,
+      skipped_title: 2359,
+      skipped_blacklist: 0,
+      skipped_location: 0,
+      skipped_date: 0,
+    },
+    added: [],
+    historyWrites: 0,
+    filteredWrites: 2359,
+    errors: [],
+  };
+  const out = formatSummary(result, false);
+  assert.match(out, /Next steps :/);
+  assert.match(out, /\/explain/);
+});
+
+test('scan CLI --json — stdout is parseable JSON and contains no Next steps block', () => {
+  // Config dir must be inside the repo so findRepoRoot() can locate .git.
+  const cfgDir = fs.mkdtempSync(path.join(REPO_ROOT, 'tmp-scan-json-cfg-'));
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-json-data-'));
+  fs.writeFileSync(
+    path.join(cfgDir, 'portals.yml'),
+    'tracked_companies: []\ntitle_filter:\n  required_any: []\n  excluded_any: []\n'
+  );
+  fs.writeFileSync(
+    path.join(cfgDir, 'candidate-profile.yml'),
+    [
+      'first_name: Alice',
+      'last_name: Martin',
+      'email: alice@example.com',
+      'phone: "+33600000000"',
+      'linkedin_url: https://linkedin.com/in/alice',
+      'github_url: https://github.com/alice',
+      'city: Paris',
+      'country: France',
+      'school: École Polytechnique',
+      'degree: Master',
+      'graduation_year: 2025',
+      'work_authorization: EU citizen',
+      'requires_sponsorship: false',
+      'availability_start: "2026-06-01"',
+      'cv_path: config/cv.fr.pdf',
+      'auto_apply_min_score: 7',
+      'internship_duration_months: 6',
+    ].join('\n') + '\n'
+  );
+
+  try {
+    const res = spawnSync(
+      process.execPath,
+      [path.join(REPO_ROOT, 'src', 'scan', 'index.mjs'), '--dry-run', '--json'],
+      {
+        env: {
+          ...process.env,
+          CLAUDE_APPLY_CONFIG_DIR: cfgDir,
+          CLAUDE_APPLY_DATA_DIR: dataDir,
+        },
+        encoding: 'utf8',
+      }
+    );
+    assert.equal(res.status, 0, `stderr=${res.stderr}`);
+    assert.doesNotMatch(res.stdout, /Next steps/);
+    const parsed = JSON.parse(res.stdout);
+    assert.ok(typeof parsed === 'object' && parsed !== null);
+  } finally {
+    fs.rmSync(cfgDir, { recursive: true, force: true });
+    fs.rmSync(dataDir, { recursive: true, force: true });
+  }
+});
+
 test('runScan — offer requiring Spanish rejected when candidate has only A2', async () => {
   const portalsConfig = {
     title_filter: { positive: ['Engineer', 'Intern'], negative: [] },
