@@ -32,6 +32,8 @@ A URL that doesn't match these patterns is skipped silently. To add a new ATS, s
 
 ## Title filter
 
+> **Low match ratio?** Run `/tune-filter` — it reads `data/scan-history.tsv` and lets you simulate filter changes without re-scanning.
+
 `portals.yml.title_filter.positive` / `negative` are whole-word regexes matched against the job **title**. `required_any` is a domain filter matched against the **job title only**: at least one keyword must appear in the title. This ensures non-tech roles at tech companies (e.g. "General Secretary Associate intern") are filtered out even when their descriptions mention tech terms casually. Use `skip_required_any: true` per company to bypass this filter for ATS portals whose job titles do not include the domain keyword (e.g. Mistral AI, where the company name alone implies the domain).
 
 Example:

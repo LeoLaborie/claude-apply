@@ -1,0 +1,5 @@
+tracked_companies:
+  - name: Broken
+    careers_url: https://jobs.lever.co/broken
+    enabled: true
+   this: is indented wrong and not a key

@@ -62,44 +62,56 @@ Use `AskUserQuestion` with a single question:
 
 - **Options**:
   - `confirm` — "Use these values"
-  - `edit` — "Re-ask all four"
+  - `edit all` — "Re-ask all four"
+  - `edit missing only` — "Only re-ask fields that came back `<not found>`" _(show this option only when at least one of the four extracted fields is `null`; hide it otherwise)_
 
 Behaviour:
 
 - `confirm` → the extracted values are locked. Treat them as already-answered for step 3.
-- `edit` → reset **all four** extracted values to `null`. Step 3 will re-ask the entire "Job search" sub-block. (Per-field correction is intentionally not offered — the all-or-nothing reset keeps the UX one click and reuses step 3 verbatim.)
+- `edit all` → reset **all four** extracted values to `null`. Step 3 will re-ask the entire "Job search" sub-block.
+- `edit missing only` → keep non-null extracted values; reset to `null` **only** the fields that came back `<not found>`. Step 3 will re-ask just those.
 
 If step 1 extracted **zero** of the four fields, skip this section entirely and go straight to step 3.
 
-## 3. One question block
+## 3. Question blocks (up to 3, plus one conditional)
 
-Use **`AskUserQuestion`** once with everything you could not extract, grouped logically. Do not loop back with follow-ups unless the user's answer is internally inconsistent.
+Use **`AskUserQuestion`** up to **3** times, grouping questions logically (Block A job search / Block B location+admin / Block C setup+scoring). A 4th call (Block D) is only allowed to fill required fields missing from the CV. Never loop back with follow-ups unless the user's answer is internally inconsistent.
 
-**Job search** (skip the entire sub-block if step 2.5 confirmed all four fields. Otherwise, only include the bullets whose value is still `null`.)
+Each `AskUserQuestion` call accepts at most 4 questions.
+
+**Block A — Job search** (skip the entire block if step 2.5 confirmed all four fields; otherwise include only the bullets whose value is still `null`; max 4 questions total)
 
 - **Job type**: internship / apprenticeship / entry-level / mid-level / senior / other
 - **Target start date** (ISO date)
 - **Duration** (if internship/apprenticeship): months
 - **Target role / domain keywords**: free text — drives both `title_filter` and company discovery (phase 2). Example: "AI/ML engineering", "backend Python", "devtools".
 
-**Location & remote**
+**Block B — Location + admin core** (4 questions)
 
 - **Locations**: cities or regions, comma-separated
 - **Remote preference**: onsite / hybrid / remote
-
-**Admin**
-
-- **Date of birth** (may skip if user refuses)
-- **Nationality**
 - **Work authorization** — free text (e.g. "EU citizen — no sponsorship needed")
 - **Requires visa sponsorship**: yes / no
 
-**Setup choices** (used later by `/apply-onboard:setup`)
+**Block C — Setup + scoring** (up to 4 questions)
 
-- **Clone your existing Chrome profile** into the CDP profile? yes / no
-- **Cover letter auto-generation**: enable now? yes / no (default no)
+- **Auto-apply minimum score** (drives `/apply --auto`): options `6` / `7` / `8`, default `7`. Stored as `auto_apply_min_score`.
+- **Clone your existing Chrome profile** into the CDP profile? yes / no.
+  - `yes`: copies cookies, sessions, and extensions from your current Chrome profile — you stay logged in to ATSes and keep your existing extensions.
+  - `no`: starts from scratch — every ATS will ask you to log in once.
+- **Cover letter auto-generation**: yes / no (default no). Stored as `auto_generate_cover_letter` in both `candidate-profile.yml` and `.onboard-state.json`.
+- **Date of birth** (optional — may skip).
 
-Anything the user declines → `null`.
+`nationality` is no longer asked in Block C; set it to `null` by default (users can fill it later if a specific form requires it).
+
+**Block D — Required fields missing from CV** (conditional; skipped if all extracted; at most 2 questions)
+
+Trigger when **at least one** of `city`, `graduation_year` is `null` after extraction.
+
+- **City**: _"Your CV didn't state a residential city. Please provide one (used for form pre-fill on Workday/Greenhouse)."_
+- **Graduation year**: _"Your CV didn't state a graduation year. Based on your degree start year N, a typical 5-year cycle ends in N+5 — correct? Or enter a different year."_
+
+Anything the user declines in optional fields → `null`. Required fields for `candidate-profile.yml` (city, graduation_year, work_authorization, requires_sponsorship, auto_apply_min_score) cannot be skipped — if the user refuses, stop and ask again clearly. Note: `locations` and `remote_preference` are required for `.onboard-state.json` (not `candidate-profile.yml`) and are collected in step 2.5.
 
 ## 4. Ensure npm dependencies are installed
 
@@ -116,7 +128,7 @@ Assemble one **flat** YAML file — no nested `identity:` / `address:` / `availa
 Sources:
 
 - Extracted from the CV: `first_name`, `last_name`, `email`, `phone`, `linkedin_url`, `github_url`, `city`, `country`, `school`, `degree`, `graduation_year`, `education[]`, `experiences[]`, `languages[]`.
-- From the question block: `availability_start`, `internship_duration_months`, `work_authorization`, `requires_sponsorship`, `auto_apply_min_score`, optionally `blacklist_companies` and `min_start_date`.
+- From the question blocks: `availability_start`, `internship_duration_months` (only when `job_type` is internship/apprenticeship), `work_authorization`, `requires_sponsorship`, `auto_apply_min_score`, `auto_generate_cover_letter`, `date_of_birth`, optionally `blacklist_companies` and `min_start_date`.
 - From step 2: `cv_path`.
 - EEO fields default to `null` unless explicitly provided: `gender`, `ethnicity`, `veteran_status`, `disability_status`.
 
@@ -134,7 +146,8 @@ Write the job-search answers to `data/.onboard-state.json` so `/apply-onboard:co
   "target_role": "free-text domain keywords",
   "locations": ["Paris", "Remote EU"],
   "remote_preference": "onsite|hybrid|remote",
-  "clone_chrome_profile": true
+  "clone_chrome_profile": true,
+  "auto_generate_cover_letter": false
 }
 ```
 

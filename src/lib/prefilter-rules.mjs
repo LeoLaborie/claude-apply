@@ -1,6 +1,8 @@
 // Pure functions for deterministic pre-filtering of job offers.
 // Each function returns {pass: true} or {pass: false, reason: string}.
 
+import { detectRequiredLanguages, levelRank, MIN_LANGUAGE_LEVEL } from './language-detect.mjs';
+
 const LOCATION_FR_RE =
   /\b(france|paris|lyon|toulouse|marseille|bordeaux|lille|nantes|grenoble|sophia[- ]antipolis|rennes|compi[eè]gne|strasbourg|montpellier|nice|remote.*france|t[eé]l[eé]travail|full.remote.eu)\b/i;
 const LOCATION_FOREIGN_RE =
@@ -138,20 +140,25 @@ function findMatch(terms, title) {
   return null;
 }
 
-export function checkTitle(offer, whitelist) {
+export function checkTitle(offer, whitelist, opts = {}) {
   const title = offer.title || '';
+  const body = opts.body || '';
   try {
     const neg = findMatch(whitelist.negative, title);
     if (neg) return { pass: false, reason: `title: negative match "${neg}"` };
     const pos = findMatch(whitelist.positive, title);
     if (!pos) return { pass: false, reason: 'title: no positive match' };
     if (Array.isArray(whitelist.required_any) && whitelist.required_any.length > 0) {
-      const req = findMatch(whitelist.required_any, title);
-      if (!req)
+      const haystack = body ? `${title}\n${body}` : title;
+      const req = findMatch(whitelist.required_any, haystack);
+      if (!req) {
         return {
           pass: false,
-          reason: 'title: missing required_any keyword',
+          reason: body
+            ? 'title: missing required_any (title+description)'
+            : 'title: missing required_any keyword',
         };
+      }
     }
     return { pass: true };
   } catch (err) {
@@ -162,6 +169,26 @@ export function checkTitle(offer, whitelist) {
   }
 }
 
+export function checkLanguages(offer, profileLanguages) {
+  if (!Array.isArray(profileLanguages) || profileLanguages.length === 0) {
+    return { pass: true };
+  }
+  const required = detectRequiredLanguages(offer.title || '');
+  if (required.length === 0) return { pass: true };
+  const minRank = levelRank(MIN_LANGUAGE_LEVEL);
+  const byCode = new Map(profileLanguages.map((l) => [l.code, l.level]));
+  for (const code of required) {
+    const have = byCode.get(code);
+    if (!have || levelRank(have) < minRank) {
+      return {
+        pass: false,
+        reason: `language: requires ${code} (have ${have ?? 'none'})`,
+      };
+    }
+  }
+  return { pass: true };
+}
+
 export function checkBlacklist(offer, blacklist) {
   const company = (offer.company || '').toLowerCase();
   const hit = (blacklist || []).find((b) => company.includes(b.toLowerCase()));
@@ -169,16 +196,42 @@ export function checkBlacklist(offer, blacklist) {
   return { pass: true };
 }
 
-export function runPrefilter(offer, config) {
-  const checks = [
-    () => checkTitle(offer, config.whitelist),
-    () => checkBlacklist(offer, config.blacklist),
-    () => checkLocation(offer, config.targetLocations),
-    () => checkStartDate(offer, config.minStartDate),
-  ];
-  for (const fn of checks) {
-    const r = fn();
-    if (!r.pass) return r;
+export async function runPrefilter(offer, config) {
+  const whitelist = config.whitelist || { positive: [], negative: [] };
+  const wantsSoftMatch =
+    Array.isArray(whitelist.required_any_in) &&
+    whitelist.required_any_in.includes('description') &&
+    typeof config.fetchBody === 'function';
+
+  let titleResult = checkTitle(offer, whitelist);
+  if (
+    !titleResult.pass &&
+    titleResult.reason === 'title: missing required_any keyword' &&
+    wantsSoftMatch
+  ) {
+    const body = await config.fetchBody(offer);
+    if (body && body.length > 0) {
+      titleResult = checkTitle(offer, whitelist, { body });
+    } else {
+      titleResult = {
+        pass: false,
+        reason: 'title: missing required_any (title+description)',
+      };
+    }
   }
+  if (!titleResult.pass) return titleResult;
+
+  const blacklistResult = checkBlacklist(offer, config.blacklist);
+  if (!blacklistResult.pass) return blacklistResult;
+
+  const langResult = checkLanguages(offer, config.profileLanguages);
+  if (!langResult.pass) return langResult;
+
+  const locResult = checkLocation(offer, config.targetLocations);
+  if (!locResult.pass) return locResult;
+
+  const dateResult = checkStartDate(offer, config.minStartDate);
+  if (!dateResult.pass) return dateResult;
+
   return { pass: true };
 }

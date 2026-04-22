@@ -1030,3 +1030,139 @@ test('scan CLI --json — stdout is parseable JSON and contains no Next steps bl
     fs.rmSync(dataDir, { recursive: true, force: true });
   }
 });
+
+test('runScan — offer requiring Spanish rejected when candidate has only A2', async () => {
+  const portalsConfig = {
+    title_filter: { positive: ['Engineer', 'Intern'], negative: [] },
+    tracked_companies: [
+      { name: 'TestCo', careers_url: 'https://jobs.lever.co/testco', enabled: true },
+    ],
+  };
+  const profile = {
+    min_start_date: '2026-08-24',
+    target_locations: ['France', 'Paris', 'Remote'],
+    languages: [
+      { code: 'fr', level: 'native' },
+      { code: 'en', level: 'C1' },
+      { code: 'es', level: 'A2' },
+    ],
+  };
+
+  const leverJson = [
+    {
+      hostedUrl: 'https://jobs.lever.co/testco/job1',
+      text: 'ML Engineer Intern - Spanish speaker',
+      categories: { location: 'Paris' },
+      descriptionPlain: 'Paris France, starting September 2026',
+    },
+    {
+      hostedUrl: 'https://jobs.lever.co/testco/job2',
+      text: 'ML Engineer Intern',
+      categories: { location: 'Paris' },
+      descriptionPlain: 'Paris France, starting September 2026',
+    },
+  ];
+
+  const restore = installMockFetch({
+    'https://api.lever.co/v0/postings/testco?mode=json': leverJson,
+  });
+
+  const pipelinePath = path.join(tmp, 'pipeline.md');
+  const historyPath = path.join(tmp, 'scan-history.tsv');
+  const filteredPath = path.join(tmp, 'filtered-out.tsv');
+  const applicationsPath = path.join(tmp, 'applications.md');
+  fs.writeFileSync(applicationsPath, '# Apps\n');
+
+  const result = await runScan({
+    portalsConfig,
+    profile,
+    pipelinePath,
+    historyPath,
+    filteredPath,
+    applicationsPath,
+    dryRun: false,
+  });
+  restore();
+
+  assert.equal(result.filtered.skipped_language, 1);
+  assert.equal(result.added.length, 1);
+  assert.equal(result.added[0].title, 'ML Engineer Intern');
+
+  const summary = formatSummary(result, false);
+  assert.match(summary, /Langue\s+1/);
+});
+
+test('formatSummary: includes Langue line even when zero', () => {
+  const result = {
+    scanned: 1,
+    eligibleTotal: 1,
+    raw: 0,
+    perCompany: [],
+    filtered: {
+      skipped_dup: 0,
+      skipped_title: 0,
+      skipped_blacklist: 0,
+      skipped_location: 0,
+      skipped_date: 0,
+      skipped_language: 0,
+      skipped_other: 0,
+    },
+    added: [],
+    errors: [],
+    historyWrites: 0,
+    filteredWrites: 0,
+  };
+  const summary = formatSummary(result, false);
+  assert.match(summary, /Langue\s+0/);
+});
+
+test('runScan — Workday { offers, warnings } shape is normalised correctly', async () => {
+  const portalsConfig = {
+    title_filter: { positive: [], negative: [] },
+    tracked_companies: [
+      {
+        name: 'TotalEnergies',
+        careers_url: 'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers',
+        enabled: true,
+      },
+    ],
+  };
+
+  const restore = installMockFetch({
+    'https://totalenergies.wd3.myworkdayjobs.com/wday/cxs/totalenergies/TotalEnergies_careers/jobs':
+      {
+        total: 1,
+        jobPostings: [
+          {
+            title: 'Data Engineer',
+            externalPath: '/job/Data-Engineer_R99',
+            locationsText: 'Paris',
+          },
+        ],
+      },
+  });
+
+  try {
+    const result = await runScan({
+      portalsConfig,
+      profile: {
+        target_locations: ['Paris'],
+        blacklist_companies: [],
+        min_start_date: '2020-01-01',
+      },
+      pipelinePath: path.join(tmp, 'pipeline.md'),
+      historyPath: path.join(tmp, 'scan-history.tsv'),
+      filteredPath: path.join(tmp, 'filtered-out.tsv'),
+      applicationsPath: path.join(tmp, 'applications.md'),
+      dryRun: true,
+    });
+
+    assert.equal(result.raw, 1, 'raw count should be 1');
+    assert.equal(result.errors.length, 0, 'no errors');
+    assert.equal(result.perCompany.length, 1);
+    assert.equal(result.perCompany[0].rawCount, 1);
+    assert.equal(result.perCompany[0].warning, null);
+  } finally {
+    restore();
+  }
+});

@@ -13,7 +13,6 @@ export const REQUIRED_FIELDS = [
   'work_authorization',
   'requires_sponsorship',
   'availability_start',
-  'internship_duration_months',
   'cv_path',
   'auto_apply_min_score',
 ];
@@ -36,6 +35,9 @@ const OPTIONAL_FIELDS = [
   'transcript_path',
   'portfolio_path',
   'other_document_path',
+  'internship_duration_months',
+  'job_type',
+  'auto_generate_cover_letter',
 ];
 
 function validateEducationEntry(e, i) {
@@ -64,6 +66,24 @@ export function validateProfile(profile) {
   for (const f of REQUIRED_FIELDS) {
     if (profile[f] === undefined || profile[f] === null || profile[f] === '') {
       errors.push(`missing required field: ${f}`);
+    }
+  }
+  if (profile.job_type === 'internship' || profile.job_type === 'apprenticeship') {
+    if (!profile.internship_duration_months) {
+      errors.push(
+        'missing required field: internship_duration_months (required for internship/apprenticeship)'
+      );
+    }
+  }
+  if (
+    profile.internship_duration_months !== undefined &&
+    profile.internship_duration_months !== null
+  ) {
+    if (
+      typeof profile.internship_duration_months !== 'number' ||
+      profile.internship_duration_months < 1
+    ) {
+      errors.push('internship_duration_months must be a positive number');
     }
   }
   if (profile.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(profile.email)) {

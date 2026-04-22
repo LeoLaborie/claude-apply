@@ -1,0 +1,17 @@
+# Companies to scan for open positions.
+tracked_companies:
+  - name: Mistral AI
+    careers_url: https://jobs.lever.co/mistral
+    enabled: true
+
+title_filter:
+  # positive and negative terms match WHOLE WORDS.
+  positive:
+    - Intern
+    - Stage
+
+  # Optional exclusion keywords.
+  negative: []
+
+  # Domain filter layered on top.
+  required_any: []

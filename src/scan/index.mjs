@@ -22,6 +22,7 @@ import { fetchAshby } from './ats/ashby.mjs';
 import { fetchWorkable } from './ats/workable.mjs';
 import { fetchWorkday } from './ats/workday.mjs';
 import { runPrefilter } from '../lib/prefilter-rules.mjs';
+import { fetchOfferBody } from './fetch-offer-body.mjs';
 import { appendFilteredOut } from '../lib/jsonl-writer.mjs';
 import { readPipelineMd, appendOffer, writePipelineMd } from '../lib/pipeline-md.mjs';
 import { loadSeenUrls, appendHistoryRow } from '../lib/scan-history.mjs';
@@ -42,6 +43,7 @@ function reasonToStatus(reason) {
   if (!reason) return 'skipped_other';
   if (reason.startsWith('title:')) return 'skipped_title';
   if (reason.startsWith('blacklist:')) return 'skipped_blacklist';
+  if (reason.startsWith('language:')) return 'skipped_language';
   if (reason.startsWith('location:')) return 'skipped_location';
   if (reason.startsWith('start_date:')) return 'skipped_date';
   return 'skipped_other';
@@ -66,10 +68,18 @@ async function fetchCompanyOffers(company, whitelist) {
       det.platform === 'workday'
         ? { searchTerms: buildSearchTerms(whitelist.positive) }
         : undefined;
-    const offers = opts ? await fn(det.slug, company.name, opts) : await fn(det.slug, company.name);
-    return { company: company.name, platform: det.platform, offers, error: null };
+    const raw = opts ? await fn(det.slug, company.name, opts) : await fn(det.slug, company.name);
+    const offers = Array.isArray(raw) ? raw : raw.offers;
+    const fetchWarnings = Array.isArray(raw) ? [] : raw.warnings || [];
+    return { company: company.name, platform: det.platform, offers, fetchWarnings, error: null };
   } catch (err) {
-    return { company: company.name, platform: det.platform, offers: [], error: err.message };
+    return {
+      company: company.name,
+      platform: det.platform,
+      offers: [],
+      fetchWarnings: [],
+      error: err.message,
+    };
   }
 }
 
@@ -94,6 +104,8 @@ export async function runScan(opts) {
     blacklist: profile.blacklist_companies || [],
     minStartDate: profile.min_start_date || '2026-08-24',
     targetLocations,
+    profileLanguages: profile.languages || [],
+    fetchBody: fetchOfferBody,
   };
 
   let companies = (portalsConfig.tracked_companies || [])
@@ -123,6 +135,7 @@ export async function runScan(opts) {
     skipped_dup: 0,
     skipped_title: 0,
     skipped_blacklist: 0,
+    skipped_language: 0,
     skipped_location: 0,
     skipped_date: 0,
     skipped_other: 0,
@@ -194,7 +207,7 @@ export async function runScan(opts) {
     for (const offer of result.offers) {
       let check;
       try {
-        check = runPrefilter(offer, effectiveConfig);
+        check = await runPrefilter(offer, effectiveConfig);
       } catch (err) {
         filtered.skipped_other = (filtered.skipped_other || 0) + 1;
         errors.push({ company: offer.company, error: `prefilter: ${err.message}` });
@@ -264,8 +277,10 @@ export async function runScan(opts) {
       }
     }
 
+    const fetchWarn = result.fetchWarnings?.length > 0 ? result.fetchWarnings[0] : null;
     const warning =
-      result.offers.length === 0 ? 'board live but empty — possibly wrong slug' : null;
+      fetchWarn ??
+      (result.offers.length === 0 ? 'board live but empty — possibly wrong slug' : null);
     perCompany.push({
       company: result.company,
       platform: result.platform,
@@ -287,6 +302,7 @@ export async function runScan(opts) {
         afterFilterCount: companyAfterFilter,
         newCount: companyNew,
         error: null,
+        warning,
       });
     }
   }
@@ -333,6 +349,7 @@ export function formatSummary(result, dryRun) {
   lines.push(`  • Déjà vues       ${result.filtered.skipped_dup}`);
   lines.push(`  • Titre rejeté    ${result.filtered.skipped_title}`);
   lines.push(`  • Blacklist       ${result.filtered.skipped_blacklist}`);
+  lines.push(`  • Langue          ${result.filtered.skipped_language ?? 0}`);
   lines.push(`  • Localisation    ${result.filtered.skipped_location}`);
   lines.push(`  • Date            ${result.filtered.skipped_date}`);
   lines.push('');
