@@ -2,8 +2,12 @@
 // Tries platform-specific slug variations against the JSON APIs and
 // returns the first hit. Optionally caches successful resolutions in
 // data/known-ats-slugs.json so subsequent runs are instant.
+//
+// CLI: node src/scan/discover-company.mjs "<CompanyName>" [--cache-path <path>] [--workday-registry <path>]
 
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { verifySlug as verifyLever } from './ats/lever.mjs';
 import { verifySlug as verifyGreenhouse } from './ats/greenhouse.mjs';
 import { verifySlug as verifyAshby } from './ats/ashby.mjs';
@@ -35,6 +39,7 @@ export function slugCandidates(name, platform) {
 
   const extras = new Set();
   for (const b of base) {
+    extras.add(`${b}-`);
     if (platform === 'lever') {
       extras.add(`${b}-ai`);
       extras.add(`${b}ai`);
@@ -84,6 +89,7 @@ export async function discoverCompany(name, options = {}) {
     workdayRegistryPath = null,
     delayMs = 100,
     platforms = ['lever', 'greenhouse', 'ashby', 'workable'],
+    verifiers = VERIFIERS,
   } = options;
 
   const key = cacheKey(name);
@@ -96,7 +102,7 @@ export async function discoverCompany(name, options = {}) {
 
   const tried = [];
   for (const platform of platforms) {
-    const verify = VERIFIERS[platform];
+    const verify = verifiers[platform];
     if (!verify) continue;
     for (const slug of slugCandidates(name, platform)) {
       tried.push({ platform, slug });
@@ -131,4 +137,54 @@ export async function discoverCompany(name, options = {}) {
   }
 
   return { ok: false, reason: 'no slug matched', tried };
+}
+
+export async function main({
+  argv = process.argv,
+  verifiers,
+  _write = (s) => process.stdout.write(s),
+} = {}) {
+  const args = argv.slice(2).filter((a) => !a.startsWith('--'));
+  const flags = argv.slice(2).filter((a) => a.startsWith('--'));
+
+  const name = args[0];
+  if (!name) {
+    process.stderr.write(
+      'Usage: node src/scan/discover-company.mjs "<CompanyName>" [--cache-path <path>] [--workday-registry <path>]\n'
+    );
+    return 1;
+  }
+
+  const flag = (key) => {
+    const idx = flags.indexOf(key);
+    return idx >= 0 ? argv[argv.indexOf(key) + 1] : null;
+  };
+
+  const cachePath = flag('--cache-path');
+  const workdayRegistryPath = flag('--workday-registry');
+  const delayMs = Number(process.env.DISCOVER_DELAY_MS ?? 100);
+
+  const __repoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+  const resolvedCache = cachePath ? path.resolve(__repoRoot, cachePath) : null;
+  const resolvedRegistry = workdayRegistryPath
+    ? path.resolve(__repoRoot, workdayRegistryPath)
+    : null;
+
+  const result = await discoverCompany(name, {
+    cachePath: resolvedCache,
+    workdayRegistryPath: resolvedRegistry,
+    delayMs,
+    verifiers,
+  });
+
+  _write(JSON.stringify(result) + '\n');
+  return 0;
+}
+
+const isMain = import.meta.url === `file://${process.argv[1]}`;
+if (isMain) {
+  main().then(process.exit).catch((err) => {
+    process.stderr.write(`${err.message}\n`);
+    process.exit(1);
+  });
 }

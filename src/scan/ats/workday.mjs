@@ -61,7 +61,8 @@ export async function verifySlug(url) {
     return { ok: false, status: res.status, reason: `HTTP ${res.status}` };
   }
   const data = await res.json();
-  const count = Array.isArray(data?.jobPostings) ? data.jobPostings.length : 0;
+  const postings = Array.isArray(data?.jobPostings) ? data.jobPostings : [];
+  const count = typeof data?.total === 'number' ? data.total : postings.length;
   return { ok: true, count };
 }
 
@@ -73,6 +74,7 @@ export async function fetchWorkday(url, companyName, opts = {}) {
     Array.isArray(opts.searchTerms) && opts.searchTerms.length > 0 ? opts.searchTerms : [''];
 
   const byUrl = new Map();
+  const warnings = [];
   let capped = false;
 
   outer: for (const searchText of terms) {
@@ -101,12 +103,12 @@ export async function fetchWorkday(url, companyName, opts = {}) {
       offset += pageSize;
     }
     if (capped) {
-      console.warn(
+      warnings.push(
         `[workday] ${parts.tenant}/${parts.site}: stopped at ${byUrl.size} offers (maxOffers=${maxOffers})`
       );
       break outer;
     }
   }
 
-  return [...byUrl.values()];
+  return { offers: [...byUrl.values()], warnings };
 }
