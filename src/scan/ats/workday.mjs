@@ -80,9 +80,10 @@ export async function fetchWorkday(url, companyName, opts = {}) {
   const warnings = [];
   let capped = false;
 
-  outer: for (const searchText of terms) {
+  async function fetchAllPagesForTerm(searchText) {
     let offset = 0;
     while (true) {
+      if (byUrl.size >= maxOffers) break;
       const page = await postJobs(parts, { limit: pageSize, offset, searchText });
       const postings = Array.isArray(page?.jobPostings) ? page.jobPostings : [];
       for (const p of postings) {
@@ -105,12 +106,14 @@ export async function fetchWorkday(url, companyName, opts = {}) {
       if (capped || postings.length < pageSize) break;
       offset += pageSize;
     }
-    if (capped) {
-      warnings.push(
-        `[workday] ${parts.tenant}/${parts.site}: stopped at ${byUrl.size} offers (maxOffers=${maxOffers})`
-      );
-      break outer;
-    }
+  }
+
+  await Promise.all(terms.map(fetchAllPagesForTerm));
+
+  if (capped) {
+    warnings.push(
+      `[workday] ${parts.tenant}/${parts.site}: stopped at ${byUrl.size} offers (maxOffers=${maxOffers})`
+    );
   }
 
   return { offers: [...byUrl.values()], warnings };

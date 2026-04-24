@@ -130,7 +130,7 @@ test('fetchWorkday — paginates until a partial page is returned', async () => 
   const { offers } = await fetchWorkday(
     'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers',
     'TotalEnergies',
-    { pageSize: 3 } // page1 has 3 (full), page2 has 1 (partial → stop)
+    { pageSize: 3, searchTerms: [''] } // page1 has 3 (full), page2 has 1 (partial → stop)
   );
 
   assert.equal(offers.length, 4);
@@ -147,7 +147,7 @@ test('fetchWorkday — stops on first empty page', async () => {
   const { offers } = await fetchWorkday(
     'https://sanofi.wd3.myworkdayjobs.com/SanofiCareers',
     'Sanofi',
-    { pageSize: 20 }
+    { pageSize: 20, searchTerms: [''] }
   );
 
   assert.equal(offers.length, 0);
@@ -272,7 +272,7 @@ test('fetchWorkday — issues one POST per searchTerm and dedupes by url', async
 
   assert.equal(bodies.length, 2);
   assert.deepEqual(
-    bodies.map((b) => b.searchText),
+    bodies.map((b) => b.searchText).sort(),
     ['Intern', 'Stage']
   );
   assert.equal(offers.length, 3);
@@ -357,6 +357,7 @@ test('fetchWorkday — stops pagination when MAX_OFFERS reached', async () => {
   const { offers } = await fetchWorkday('https://big.wd3.myworkdayjobs.com/BigCorp', 'BigCorp', {
     pageSize: 5,
     maxOffers: 12,
+    searchTerms: [''],
   });
 
   // Should stop at 12 (or after the page that crosses 12), not loop forever
@@ -392,6 +393,7 @@ test('fetchWorkday — returns warnings array when maxOffers cap is hit', async 
   const res = await fetchWorkday('https://acme.wd3.myworkdayjobs.com/AcmeCareers', 'Acme', {
     pageSize: 3,
     maxOffers: 2,
+    searchTerms: [''],
   });
 
   assert.equal(typeof res, 'object');
@@ -414,4 +416,33 @@ test('fetchWorkday — warnings empty when cap not reached', async () => {
 
   assert.ok(Array.isArray(res.warnings), 'expected warnings array');
   assert.equal(res.warnings.length, 0);
+});
+
+test('fetchWorkday — runs the 5 default terms in parallel, not sequentially', async () => {
+  const original = globalThis.fetch;
+  const startTimes = [];
+  globalThis.fetch = async () => {
+    startTimes.push(Date.now());
+    await new Promise((r) => setTimeout(r, 50));
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ total: 0, jobPostings: [] }),
+      text: async () => '',
+    };
+  };
+  restore = () => {
+    globalThis.fetch = original;
+  };
+
+  await fetchWorkday('https://acme.wd3.myworkdayjobs.com/AcmeCareers', 'Acme', {
+    pageSize: 20,
+  });
+
+  assert.equal(startTimes.length, 5, 'expected one fetch per default term');
+  const span = startTimes[4] - startTimes[0];
+  assert.ok(
+    span < 30,
+    `expected concurrent start (span < 30ms), got span=${span}ms — suggests sequential execution`
+  );
 });
