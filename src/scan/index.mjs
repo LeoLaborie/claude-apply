@@ -59,12 +59,7 @@ function reasonToStatus(reason) {
   return 'skipped_other';
 }
 
-function buildSearchTerms(positiveTerms) {
-  if (!Array.isArray(positiveTerms) || positiveTerms.length === 0) return [];
-  return positiveTerms.filter((t) => typeof t === 'string' && !t.startsWith('/'));
-}
-
-async function fetchCompanyOffers(company, whitelist) {
+async function fetchCompanyOffers(company) {
   const det = detectPlatform(company.careers_url);
   if (!det) {
     return { company: company.name, platform: null, offers: [], error: 'platform not detected' };
@@ -73,8 +68,20 @@ async function fetchCompanyOffers(company, whitelist) {
   if (!fn) {
     return { company: company.name, platform: det.platform, offers: [], error: 'no fetcher' };
   }
-  const opts =
-    det.platform === 'workday' ? { searchTerms: buildSearchTerms(whitelist.positive) } : undefined;
+  let opts;
+  if (det.platform === 'workday') {
+    opts = {
+      onProgress: (e) => {
+        if (e.type === 'term_start') {
+          process.stderr.write(`[workday ${e.tenant}] fetching "${e.term}"…\n`);
+        } else if (e.type === 'term_done') {
+          process.stderr.write(
+            `[workday ${e.tenant}] "${e.term}" done — ${e.pages} pages, ${e.total} offers total\n`
+          );
+        }
+      },
+    };
+  }
 
   let lastError = null;
   // Retry once on transient network errors (e.g. "fetch failed" from concurrent
@@ -162,7 +169,7 @@ export async function runScan(opts) {
   const companyByName = new Map(companies.map((c) => [c.name, c]));
   const limit = pLimit(FETCH_CONCURRENCY);
   const fetchResults = await Promise.all(
-    companies.map((c) => limit(() => fetchCompanyOffers(c, whitelist)))
+    companies.map((c) => limit(() => fetchCompanyOffers(c)))
   );
 
   const seen = loadSeenUrls(historyPath, applicationsPath);
