@@ -492,3 +492,167 @@ test('fetchWorkday — emits term_start and term_done progress events', async ()
     assert.ok(typeof e.total === 'number' && e.total >= 1);
   }
 });
+
+test('fetchWorkday — respects `total` and stops before overflow offset', async () => {
+  const original = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (_url, opts) => {
+    const body = JSON.parse(opts.body);
+    calls.push({ offset: body.offset, searchText: body.searchText });
+    if (calls.length > 500) throw new Error('runaway — guard 1 not implemented yet');
+    const postings = Array.from({ length: 20 }, (_, i) => ({
+      externalPath: `/job/p${body.offset + i}`,
+      title: `Title ${body.offset + i}`,
+      locationsText: 'Paris',
+    }));
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ total: 20, jobPostings: postings }),
+      text: async () => '',
+    };
+  };
+  restore = () => {
+    globalThis.fetch = original;
+  };
+
+  const res = await fetchWorkday(
+    'https://ten.wd3.myworkdayjobs.com/Site',
+    'Tenant',
+    { searchTerms: ['x'], pageSize: 20, maxOffers: 1000 }
+  );
+  assert.equal(calls.length, 1, 'should POST exactly once');
+  assert.equal(res.offers.length, 20);
+});
+
+test('fetchWorkday — breaks on wrap-around when a page contributes no new paths', async () => {
+  const original = globalThis.fetch;
+  const calls = [];
+  const samePage = Array.from({ length: 20 }, (_, i) => ({
+    externalPath: `/job/wrap${i}`,
+    title: `Title ${i}`,
+    locationsText: 'Paris',
+  }));
+  globalThis.fetch = async (_url, opts) => {
+    const body = JSON.parse(opts.body);
+    calls.push({ offset: body.offset });
+    if (calls.length > 500) throw new Error('runaway — guard 2 not implemented yet');
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ jobPostings: samePage }),
+      text: async () => '',
+    };
+  };
+  restore = () => {
+    globalThis.fetch = original;
+  };
+
+  const res = await fetchWorkday(
+    'https://ten.wd3.myworkdayjobs.com/Site',
+    'Tenant',
+    { searchTerms: ['x'], pageSize: 20, maxOffers: 1000 }
+  );
+  assert.equal(calls.length, 2, 'should POST twice — first fills set, second breaks on zero new paths');
+  assert.equal(res.offers.length, 20);
+});
+
+test('fetchWorkday — safety cap fires at 50 pages per term with warning', async () => {
+  const original = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (_url, opts) => {
+    const body = JSON.parse(opts.body);
+    calls.push({ offset: body.offset });
+    if (calls.length > 500) throw new Error('runaway — guard 3 not implemented yet');
+    const postings = Array.from({ length: 20 }, (_, i) => ({
+      externalPath: `/job/fresh-${body.offset + i}`,
+      title: `T ${body.offset + i}`,
+      locationsText: 'Paris',
+    }));
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ jobPostings: postings }),
+      text: async () => '',
+    };
+  };
+  restore = () => {
+    globalThis.fetch = original;
+  };
+
+  const res = await fetchWorkday(
+    'https://ten.wd3.myworkdayjobs.com/Site',
+    'Tenant',
+    { searchTerms: ['x'], pageSize: 20, maxOffers: 5000 }
+  );
+  assert.equal(calls.length, 50, 'should POST exactly 50 times (safety cap)');
+  assert.equal(res.offers.length, 1000);
+  assert.ok(
+    res.warnings.some((w) => /hit page cap/.test(w)),
+    'warnings should include page-cap notice'
+  );
+});
+
+test('fetchWorkday — Criteo-like mock terminates with bounded POST count', async () => {
+  const original = globalThis.fetch;
+  const calls = [];
+
+  const TERM_FIXTURES = {
+    Intern: { total: 107, pages: 6 },
+    Internship: { total: 47, pages: 3 },
+    Stage: { total: 20, pages: 1, wrap: true },
+    Stagiaire: { total: 5, pages: 1 },
+    Apprenti: { total: 2, pages: 1 },
+  };
+
+  function responseFor(searchText, offset) {
+    const fx = TERM_FIXTURES[searchText];
+    if (!fx) return { total: 0, jobPostings: [] };
+
+    if (fx.wrap) {
+      const postings = Array.from({ length: 20 }, (_, i) => ({
+        externalPath: `/job/${searchText}-wrap-${i}`,
+        title: `${searchText} Title ${i}`,
+        locationsText: 'Paris',
+      }));
+      const total = offset === 0 ? fx.total : 0;
+      return { total, jobPostings: postings };
+    }
+
+    const pageIndex = offset / 20;
+    if (pageIndex >= fx.pages) return { total: fx.total, jobPostings: [] };
+
+    const remaining = fx.total - offset;
+    const count = Math.min(20, remaining);
+    const postings = Array.from({ length: count }, (_, i) => ({
+      externalPath: `/job/${searchText}-${offset + i}`,
+      title: `${searchText} Title ${offset + i}`,
+      locationsText: 'Paris',
+    }));
+    return { total: fx.total, jobPostings: postings };
+  }
+
+  globalThis.fetch = async (_url, opts) => {
+    const body = JSON.parse(opts.body);
+    calls.push({ offset: body.offset, term: body.searchText });
+    if (calls.length > 500) throw new Error('runaway — integration test exceeded bound');
+    const payload = responseFor(body.searchText, body.offset);
+    return {
+      ok: true,
+      status: 200,
+      json: async () => payload,
+      text: async () => '',
+    };
+  };
+  restore = () => {
+    globalThis.fetch = original;
+  };
+
+  const res = await fetchWorkday(
+    'https://criteo.wd3.myworkdayjobs.com/Criteo_Career_Site',
+    'Criteo'
+  );
+  assert.ok(calls.length <= 30, `POST count should be ≤ 30, got ${calls.length}`);
+  assert.ok(res.offers.length > 0 && res.offers.length <= 200);
+  assert.equal(res.warnings.length, 0, 'no page-cap warning expected for this scenario');
+});
