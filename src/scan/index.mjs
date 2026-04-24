@@ -28,6 +28,16 @@ import { readPipelineMd, appendOffer, writePipelineMd } from '../lib/pipeline-md
 import { loadSeenUrls, appendHistoryRow } from '../lib/scan-history.mjs';
 import { loadProfile } from '../lib/load-profile.mjs';
 import { MissingConfigError, requireConfig } from '../lib/config-loader.mjs';
+import { pLimit } from '../lib/p-limit.mjs';
+import {
+  hashFilterConfig,
+  loadFilterState,
+  saveFilterState,
+  purgeSkippedFromHistory,
+} from '../lib/scan-filter-state.mjs';
+
+const FETCH_CONCURRENCY = 6;
+const FETCH_RETRY_DELAY_MS = 750;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -63,24 +73,33 @@ async function fetchCompanyOffers(company, whitelist) {
   if (!fn) {
     return { company: company.name, platform: det.platform, offers: [], error: 'no fetcher' };
   }
-  try {
-    const opts =
-      det.platform === 'workday'
-        ? { searchTerms: buildSearchTerms(whitelist.positive) }
-        : undefined;
-    const raw = opts ? await fn(det.slug, company.name, opts) : await fn(det.slug, company.name);
-    const offers = Array.isArray(raw) ? raw : raw.offers;
-    const fetchWarnings = Array.isArray(raw) ? [] : raw.warnings || [];
-    return { company: company.name, platform: det.platform, offers, fetchWarnings, error: null };
-  } catch (err) {
-    return {
-      company: company.name,
-      platform: det.platform,
-      offers: [],
-      fetchWarnings: [],
-      error: err.message,
-    };
+  const opts =
+    det.platform === 'workday' ? { searchTerms: buildSearchTerms(whitelist.positive) } : undefined;
+
+  let lastError = null;
+  // Retry once on transient network errors (e.g. "fetch failed" from concurrent
+  // ATS calls). A 750 ms backoff is enough to clear most rate-limits without
+  // slowing the happy path.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const raw = opts ? await fn(det.slug, company.name, opts) : await fn(det.slug, company.name);
+      const offers = Array.isArray(raw) ? raw : raw.offers;
+      const fetchWarnings = Array.isArray(raw) ? [] : raw.warnings || [];
+      return { company: company.name, platform: det.platform, offers, fetchWarnings, error: null };
+    } catch (err) {
+      lastError = err;
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, FETCH_RETRY_DELAY_MS));
+      }
+    }
   }
+  return {
+    company: company.name,
+    platform: det.platform,
+    offers: [],
+    fetchWarnings: [],
+    error: lastError?.message || 'fetch failed',
+  };
 }
 
 export async function runScan(opts) {
@@ -91,6 +110,7 @@ export async function runScan(opts) {
     historyPath,
     filteredPath,
     applicationsPath,
+    filterStatePath = null,
     dryRun = false,
     onlySlug = null,
     onProgress = null,
@@ -108,6 +128,24 @@ export async function runScan(opts) {
     fetchBody: fetchOfferBody,
   };
 
+  // Filter-change detection: if the user changed title_filter / targetLocations
+  // / min_start_date / blacklist / languages since the last scan, we purge all
+  // `skipped_*` rows from scan-history.tsv so they get re-evaluated against
+  // the new config. `added` and `error_fetch` rows are preserved.
+  const currentFilterHash = hashFilterConfig(prefilterConfig);
+  let filterChanged = false;
+  let purgedCount = 0;
+  if (filterStatePath && !onlySlug) {
+    const previous = loadFilterState(filterStatePath);
+    if (previous && previous.filter_hash && previous.filter_hash !== currentFilterHash) {
+      filterChanged = true;
+      if (!dryRun) {
+        const result = purgeSkippedFromHistory(historyPath);
+        purgedCount = result.purged;
+      }
+    }
+  }
+
   let companies = (portalsConfig.tracked_companies || [])
     .filter((c) => c.enabled !== false)
     .filter((c) => detectPlatform(c.careers_url) !== null);
@@ -122,7 +160,10 @@ export async function runScan(opts) {
   const eligibleTotal = companies.length;
 
   const companyByName = new Map(companies.map((c) => [c.name, c]));
-  const fetchResults = await Promise.all(companies.map((c) => fetchCompanyOffers(c, whitelist)));
+  const limit = pLimit(FETCH_CONCURRENCY);
+  const fetchResults = await Promise.all(
+    companies.map((c) => limit(() => fetchCompanyOffers(c, whitelist)))
+  );
 
   const seen = loadSeenUrls(historyPath, applicationsPath);
 
@@ -311,6 +352,14 @@ export async function runScan(opts) {
     writePipelineMd(pipelinePath, doc);
   }
 
+  // Persist the current filter hash so the NEXT scan can detect further
+  // config changes and purge accordingly. We only write after a successful
+  // scan — otherwise a crash mid-scan would silently mark the config as
+  // "fully processed".
+  if (!dryRun && filterStatePath && !onlySlug) {
+    saveFilterState(filterStatePath, { filter_hash: currentFilterHash });
+  }
+
   return {
     scanned: companies.length,
     eligibleTotal,
@@ -321,6 +370,9 @@ export async function runScan(opts) {
     errors,
     historyWrites,
     filteredWrites,
+    filterChanged,
+    purgedCount,
+    filterHash: currentFilterHash,
   };
 }
 
@@ -329,6 +381,12 @@ export function formatSummary(result, dryRun) {
   const now = new Date().toISOString().slice(0, 16).replace('T', ' ');
   lines.push(`Portal Scan — ${now}`);
   lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  if (result.filterChanged) {
+    const suffix = dryRun
+      ? '(would be purged — dry-run)'
+      : `(${result.purgedCount} skipped_* rows purged)`;
+    lines.push(`🔄 Filter config changed since last scan ${suffix}`);
+  }
   lines.push(`Entreprises scannées : ${result.scanned}/${result.eligibleTotal ?? result.scanned}`);
   lines.push(`Offres brutes         : ${result.raw}`);
   for (const c of result.perCompany) {
@@ -439,6 +497,7 @@ async function main() {
     historyPath: path.join(DATA_DIR, 'scan-history.tsv'),
     filteredPath: path.join(DATA_DIR, 'filtered-out.tsv'),
     applicationsPath: path.join(DATA_DIR, 'applications.md'),
+    filterStatePath: path.join(DATA_DIR, 'scan-filter-state.json'),
     dryRun,
     onlySlug,
     onProgress: ({ index, total, company, rawCount, afterFilterCount, newCount, error }) => {
