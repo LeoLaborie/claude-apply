@@ -499,7 +499,6 @@ test('fetchWorkday — respects `total` and stops before overflow offset', async
   globalThis.fetch = async (_url, opts) => {
     const body = JSON.parse(opts.body);
     calls.push({ offset: body.offset, searchText: body.searchText });
-    if (calls.length > 500) throw new Error('runaway — guard 1 not implemented yet');
     const postings = Array.from({ length: 20 }, (_, i) => ({
       externalPath: `/job/p${body.offset + i}`,
       title: `Title ${body.offset + i}`,
@@ -516,11 +515,11 @@ test('fetchWorkday — respects `total` and stops before overflow offset', async
     globalThis.fetch = original;
   };
 
-  const res = await fetchWorkday(
-    'https://ten.wd3.myworkdayjobs.com/Site',
-    'Tenant',
-    { searchTerms: ['x'], pageSize: 20, maxOffers: 1000 }
-  );
+  const res = await fetchWorkday('https://ten.wd3.myworkdayjobs.com/Site', 'Tenant', {
+    searchTerms: ['x'],
+    pageSize: 20,
+    maxOffers: 1000,
+  });
   assert.equal(calls.length, 1, 'should POST exactly once');
   assert.equal(res.offers.length, 20);
 });
@@ -536,7 +535,6 @@ test('fetchWorkday — breaks on wrap-around when a page contributes no new path
   globalThis.fetch = async (_url, opts) => {
     const body = JSON.parse(opts.body);
     calls.push({ offset: body.offset });
-    if (calls.length > 500) throw new Error('runaway — guard 2 not implemented yet');
     return {
       ok: true,
       status: 200,
@@ -548,12 +546,16 @@ test('fetchWorkday — breaks on wrap-around when a page contributes no new path
     globalThis.fetch = original;
   };
 
-  const res = await fetchWorkday(
-    'https://ten.wd3.myworkdayjobs.com/Site',
-    'Tenant',
-    { searchTerms: ['x'], pageSize: 20, maxOffers: 1000 }
+  const res = await fetchWorkday('https://ten.wd3.myworkdayjobs.com/Site', 'Tenant', {
+    searchTerms: ['x'],
+    pageSize: 20,
+    maxOffers: 1000,
+  });
+  assert.equal(
+    calls.length,
+    2,
+    'should POST twice — first fills set, second breaks on zero new paths'
   );
-  assert.equal(calls.length, 2, 'should POST twice — first fills set, second breaks on zero new paths');
   assert.equal(res.offers.length, 20);
 });
 
@@ -563,7 +565,6 @@ test('fetchWorkday — safety cap fires at 50 pages per term with warning', asyn
   globalThis.fetch = async (_url, opts) => {
     const body = JSON.parse(opts.body);
     calls.push({ offset: body.offset });
-    if (calls.length > 500) throw new Error('runaway — guard 3 not implemented yet');
     const postings = Array.from({ length: 20 }, (_, i) => ({
       externalPath: `/job/fresh-${body.offset + i}`,
       title: `T ${body.offset + i}`,
@@ -580,11 +581,11 @@ test('fetchWorkday — safety cap fires at 50 pages per term with warning', asyn
     globalThis.fetch = original;
   };
 
-  const res = await fetchWorkday(
-    'https://ten.wd3.myworkdayjobs.com/Site',
-    'Tenant',
-    { searchTerms: ['x'], pageSize: 20, maxOffers: 5000 }
-  );
+  const res = await fetchWorkday('https://ten.wd3.myworkdayjobs.com/Site', 'Tenant', {
+    searchTerms: ['x'],
+    pageSize: 20,
+    maxOffers: 5000,
+  });
   assert.equal(calls.length, 50, 'should POST exactly 50 times (safety cap)');
   assert.equal(res.offers.length, 1000);
   assert.ok(
@@ -635,7 +636,6 @@ test('fetchWorkday — Criteo-like mock terminates with bounded POST count', asy
   globalThis.fetch = async (_url, opts) => {
     const body = JSON.parse(opts.body);
     calls.push({ offset: body.offset, term: body.searchText });
-    if (calls.length > 500) throw new Error('runaway — integration test exceeded bound');
     const payload = responseFor(body.searchText, body.offset);
     return {
       ok: true,

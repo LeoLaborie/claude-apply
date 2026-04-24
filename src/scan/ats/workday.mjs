@@ -18,6 +18,7 @@ export function parseWorkdayUrl(url) {
 
 const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_MAX_OFFERS = 200;
+const MAX_PAGES_PER_TERM = 50;
 const WORKDAY_SEARCH_TERMS = ['Intern', 'Internship', 'Stage', 'Stagiaire', 'Apprenti'];
 
 function buildJobUrl({ tenant, pod, site }, externalPath) {
@@ -85,13 +86,35 @@ export async function fetchWorkday(url, companyName, opts = {}) {
     onProgress?.({ type: 'term_start', tenant: parts.tenant, term: searchText });
     let offset = 0;
     let pages = 0;
+    let lastTotal = null;
+    const seenPathsThisTerm = new Set();
+
     while (true) {
       if (byUrl.size >= maxOffers) break;
+      if (lastTotal !== null && lastTotal > 0 && offset >= lastTotal) break;
+      if (pages >= MAX_PAGES_PER_TERM) {
+        warnings.push(
+          `[workday] ${parts.tenant}/${parts.site}: term "${searchText}" hit page cap ` +
+            `(${MAX_PAGES_PER_TERM} pages) — likely wrap-around`
+        );
+        break;
+      }
+
       const page = await postJobs(parts, { limit: pageSize, offset, searchText });
       pages++;
+      if (typeof page?.total === 'number' && page.total > 0 && lastTotal === null) {
+        lastTotal = page.total;
+      }
+
       const postings = Array.isArray(page?.jobPostings) ? page.jobPostings : [];
+      let newInThisPage = 0;
       for (const p of postings) {
-        const offerUrl = buildJobUrl(parts, p.externalPath || '');
+        const path = p.externalPath || '';
+        if (seenPathsThisTerm.has(path)) continue;
+        seenPathsThisTerm.add(path);
+        newInThisPage++;
+
+        const offerUrl = buildJobUrl(parts, path);
         if (!byUrl.has(offerUrl)) {
           byUrl.set(offerUrl, {
             url: offerUrl,
@@ -107,9 +130,13 @@ export async function fetchWorkday(url, companyName, opts = {}) {
           break;
         }
       }
-      if (capped || postings.length < pageSize) break;
+
+      if (capped) break;
+      if (postings.length < pageSize) break;
+      if (newInThisPage === 0) break;
       offset += pageSize;
     }
+
     onProgress?.({
       type: 'term_done',
       tenant: parts.tenant,
