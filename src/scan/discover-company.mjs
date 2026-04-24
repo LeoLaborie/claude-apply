@@ -144,22 +144,26 @@ export async function main({
   verifiers,
   _write = (s) => process.stdout.write(s),
 } = {}) {
-  const args = argv.slice(2).filter((a) => !a.startsWith('--'));
-  const flags = argv.slice(2).filter((a) => a.startsWith('--'));
-
-  const name = args[0];
-  if (!name) {
-    process.stderr.write(
-      'Usage: node src/scan/discover-company.mjs "<CompanyName>" [--cache-path <path>] [--workday-registry <path>]\n'
-    );
-    return 1;
-  }
+  const rest = argv.slice(2);
 
   const flag = (key) => {
-    const idx = flags.indexOf(key);
-    return idx >= 0 ? argv[argv.indexOf(key) + 1] : null;
+    const idx = rest.indexOf(key);
+    return idx >= 0 ? (rest[idx + 1] ?? null) : null;
   };
 
+  const FLAGS_WITH_VALUES = ['--batch', '--cache-path', '--workday-registry'];
+  const positional = [];
+  for (let i = 0; i < rest.length; i++) {
+    const tok = rest[i];
+    if (FLAGS_WITH_VALUES.includes(tok)) {
+      i += 1;
+      continue;
+    }
+    if (tok.startsWith('--')) continue;
+    positional.push(tok);
+  }
+
+  const batchPath = flag('--batch');
   const cachePath = flag('--cache-path');
   const workdayRegistryPath = flag('--workday-registry');
   const delayMs = Number(process.env.DISCOVER_DELAY_MS ?? 100);
@@ -169,6 +173,44 @@ export async function main({
   const resolvedRegistry = workdayRegistryPath
     ? path.resolve(__repoRoot, workdayRegistryPath)
     : null;
+
+  if (batchPath) {
+    if (positional.length > 0) {
+      process.stderr.write('--batch is mutually exclusive with a positional name argument\n');
+      return 1;
+    }
+    let contents;
+    try {
+      contents = fs.readFileSync(batchPath, 'utf8');
+    } catch (err) {
+      process.stderr.write(`cannot read --batch file ${batchPath}: ${err.message}\n`);
+      return 1;
+    }
+    const names = contents
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0 && !l.startsWith('#'));
+
+    for (const name of names) {
+      const result = await discoverCompany(name, {
+        cachePath: resolvedCache,
+        workdayRegistryPath: resolvedRegistry,
+        delayMs,
+        verifiers,
+      });
+      _write(JSON.stringify({ name, result }) + '\n');
+    }
+    return 0;
+  }
+
+  const name = positional[0];
+  if (!name) {
+    process.stderr.write(
+      'Usage: node src/scan/discover-company.mjs "<CompanyName>" [--cache-path <path>] [--workday-registry <path>]\n' +
+        '   or: node src/scan/discover-company.mjs --batch <names-file> [--cache-path <path>] [--workday-registry <path>]\n'
+    );
+    return 1;
+  }
 
   const result = await discoverCompany(name, {
     cachePath: resolvedCache,
@@ -183,8 +225,10 @@ export async function main({
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
-  main().then(process.exit).catch((err) => {
-    process.stderr.write(`${err.message}\n`);
-    process.exit(1);
-  });
+  main()
+    .then(process.exit)
+    .catch((err) => {
+      process.stderr.write(`${err.message}\n`);
+      process.exit(1);
+    });
 }
