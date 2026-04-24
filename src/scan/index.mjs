@@ -68,20 +68,7 @@ async function fetchCompanyOffers(company) {
   if (!fn) {
     return { company: company.name, platform: det.platform, offers: [], error: 'no fetcher' };
   }
-  let opts;
-  if (det.platform === 'workday') {
-    opts = {
-      onProgress: (e) => {
-        if (e.type === 'term_start') {
-          process.stderr.write(`[workday ${e.tenant}] fetching "${e.term}"…\n`);
-        } else if (e.type === 'term_done') {
-          process.stderr.write(
-            `[workday ${e.tenant}] "${e.term}" done — ${e.pages} pages, ${e.total} offers total\n`
-          );
-        }
-      },
-    };
-  }
+  const opts = undefined;
 
   let lastError = null;
   // Retry once on transient network errors (e.g. "fetch failed" from concurrent

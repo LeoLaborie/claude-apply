@@ -963,6 +963,65 @@ test('formatSummary: includes Langue line even when zero', () => {
   assert.match(summary, /Langue\s+0/);
 });
 
+test('runScan — Workday fetch emits no [workday ...] line on stderr', async () => {
+  const fxPath = path.join(REPO_ROOT, 'tests', 'fixtures', 'workday-totalenergies-page2.json');
+  const workdayBody = JSON.parse(fs.readFileSync(fxPath, 'utf8'));
+
+  const portalsConfig = {
+    title_filter: { positive: [], negative: [] },
+    tracked_companies: [
+      {
+        name: 'TotalEnergies',
+        careers_url: 'https://totalenergies.wd3.myworkdayjobs.com/TotalEnergies_careers',
+        enabled: true,
+      },
+    ],
+  };
+  const profile = {
+    min_start_date: '2020-01-01',
+    blacklist_companies: [],
+    target_locations: ['France', 'Paris', 'Remote'],
+  };
+
+  const workdayEndpoint =
+    'https://totalenergies.wd3.myworkdayjobs.com/wday/cxs/totalenergies/TotalEnergies_careers/jobs';
+  const restoreFetch = installMockFetch({ [workdayEndpoint]: workdayBody });
+
+  const captured = [];
+  const origWrite = process.stderr.write.bind(process.stderr);
+  process.stderr.write = (chunk, ...rest) => {
+    captured.push(typeof chunk === 'string' ? chunk : chunk.toString('utf8'));
+    return origWrite(chunk, ...rest);
+  };
+
+  const pipelinePath = path.join(tmp, 'pipeline.md');
+  const historyPath = path.join(tmp, 'scan-history.tsv');
+  const filteredPath = path.join(tmp, 'filtered-out.tsv');
+  const applicationsPath = path.join(tmp, 'applications.md');
+  fs.writeFileSync(applicationsPath, '# Apps\n');
+
+  try {
+    await runScan({
+      portalsConfig,
+      profile,
+      pipelinePath,
+      historyPath,
+      filteredPath,
+      applicationsPath,
+      dryRun: false,
+    });
+  } finally {
+    process.stderr.write = origWrite;
+    restoreFetch();
+  }
+
+  const joined = captured.join('');
+  assert.ok(
+    !/\[workday\s/.test(joined),
+    `expected no [workday ...] line on stderr, got:\n${joined}`
+  );
+});
+
 test('runScan — Workday { offers, warnings } shape is normalised correctly', async () => {
   const portalsConfig = {
     title_filter: { positive: [], negative: [] },
