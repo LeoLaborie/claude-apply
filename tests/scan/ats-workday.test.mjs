@@ -271,10 +271,7 @@ test('fetchWorkday — issues one POST per searchTerm and dedupes by url', async
   );
 
   assert.equal(bodies.length, 2);
-  assert.deepEqual(
-    bodies.map((b) => b.searchText).sort(),
-    ['Intern', 'Stage']
-  );
+  assert.deepEqual(bodies.map((b) => b.searchText).sort(), ['Intern', 'Stage']);
   assert.equal(offers.length, 3);
   const urls = offers.map((o) => o.url).sort();
   assert.deepEqual(urls, [

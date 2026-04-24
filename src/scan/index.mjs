@@ -168,9 +168,7 @@ export async function runScan(opts) {
 
   const companyByName = new Map(companies.map((c) => [c.name, c]));
   const limit = pLimit(FETCH_CONCURRENCY);
-  const fetchResults = await Promise.all(
-    companies.map((c) => limit(() => fetchCompanyOffers(c)))
-  );
+  const fetchResults = await Promise.all(companies.map((c) => limit(() => fetchCompanyOffers(c))));
 
   const seen = loadSeenUrls(historyPath, applicationsPath);
 
