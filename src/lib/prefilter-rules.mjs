@@ -4,7 +4,7 @@
 import { detectRequiredLanguages, levelRank, MIN_LANGUAGE_LEVEL } from './language-detect.mjs';
 
 const LOCATION_FR_RE =
-  /\b(france|paris|lyon|toulouse|marseille|bordeaux|lille|nantes|grenoble|sophia[- ]antipolis|rennes|compi[eè]gne|strasbourg|montpellier|nice|remote.*france|t[eé]l[eé]travail|full.remote.eu)\b/i;
+  /\b(france|paris|lyon|toulouse|marseille|bordeaux|lille|nantes|grenoble|sophia[- ]antipolis|rennes|compi[eè]gne|strasbourg|montpellier|nice|saclay|issy[- ]les[- ]moulineaux|boulogne[- ]billancourt|la d[eé]fense|courbevoie|nanterre|suresnes|massy|clermont[- ]ferrand|aix[- ]en[- ]provence|toulon|dijon|reims|tours|metz|brest|caen|rouen|le mans|remote.*france|t[eé]l[eé]travail|full.remote.eu)\b/i;
 const LOCATION_FOREIGN_RE =
   /\b(new york|nyc|london|berlin|munich|san francisco|sf bay|palo alto|tokyo|seoul|singapore|dubai|mena|morocco|sydney|australia|montreal|warsaw|poland|sweden|stockholm|netherlands|amsterdam|spain|madrid|barcelona|germany|luxembourg|italy|italian|milan|rome|austria|vienna|switzerland|zurich|geneva|denmark|copenhagen|norway|oslo|finland|helsinki|ireland|dublin|belgium|brussels|usa only|uk only|us citizens? only|green card|visa sponsorship not)\b/i;
 
@@ -16,6 +16,10 @@ function splitLocationSegments(loc) {
     .split(LOCATION_SEG_RE)
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+function targetsFrance(targetLocations) {
+  return (targetLocations || []).some((t) => LOCATION_FR_RE.test(String(t)));
 }
 
 export function checkLocation(offer, targetLocations) {
@@ -35,6 +39,14 @@ export function checkLocation(offer, targetLocations) {
       (targetLocations || []).some((t) => seg.toLowerCase().includes(t.toLowerCase()))
     );
     if (match) return { pass: true };
+
+    // France-oriented fallback: if the user targets France (country or any FR
+    // city in targetLocations) and the offer's location is a recognized French
+    // city, accept it. Handles ATSes that return "Paris" bare without country.
+    if (targetsFrance(targetLocations) && geoSegments.some((seg) => LOCATION_FR_RE.test(seg))) {
+      return { pass: true };
+    }
+
     return { pass: false, reason: `location: ${loc} not in target zones` };
   }
 
