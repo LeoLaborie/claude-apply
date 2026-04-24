@@ -95,10 +95,25 @@ Add a 100 ms delay between verifications to be polite to the APIs.
 If you only have a company **name** (no URL, or your guessed URL 404s), use `discoverCompany` from `src/scan/discover-company.mjs`. It walks platform-specific slug variations (`x`, `x-ai`, `xhq`, `xlabs`, `x-labs`, …) across Lever → Greenhouse → Ashby → Workday registry and returns the first hit. Successful resolutions are cached in `data/known-ats-slugs.json` so the next run is instant.
 
 ```bash
-node src/scan/discover-company.mjs "Doctolib" \
+cat > /tmp/names.txt <<'EOF'
+Doctolib
+Cohere
+Modal
+EOF
+node src/scan/discover-company.mjs --batch /tmp/names.txt \
   --cache-path data/known-ats-slugs.json \
   --workday-registry data/known-workday-slugs.json
 ```
+
+Output is JSON Lines, one record per input name, in input order:
+
+```
+{"name":"Doctolib","result":{"ok":true,"cached":false,"platform":"greenhouse","slug":"doctolib","careersUrl":"https://boards.greenhouse.io/doctolib","count":12}}
+{"name":"Cohere","result":{"ok":true,"cached":false,"platform":"lever","slug":"cohere","careersUrl":"https://jobs.lever.co/cohere","count":8}}
+{"name":"Modal","result":{"ok":false,"reason":"no slug matched","tried":[…]}}
+```
+
+Parse the stream line-by-line. **Do not loop one name at a time via bash** — that pattern was causing duplicated, out-of-order output in onboarding sessions.
 
 Use this whenever your naive guess returns `ok: false` before dropping the candidate — many companies (Doctolib, Cohere, Modal, Scale AI, Writer, OpenAI, …) live on a different ATS or under a non-obvious slug.
 
