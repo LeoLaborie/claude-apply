@@ -75,16 +75,20 @@ export async function fetchWorkday(url, companyName, opts = {}) {
     Array.isArray(opts.searchTerms) && opts.searchTerms.length > 0
       ? opts.searchTerms
       : WORKDAY_SEARCH_TERMS;
+  const onProgress = typeof opts.onProgress === 'function' ? opts.onProgress : null;
 
   const byUrl = new Map();
   const warnings = [];
   let capped = false;
 
   async function fetchAllPagesForTerm(searchText) {
+    onProgress?.({ type: 'term_start', tenant: parts.tenant, term: searchText });
     let offset = 0;
+    let pages = 0;
     while (true) {
       if (byUrl.size >= maxOffers) break;
       const page = await postJobs(parts, { limit: pageSize, offset, searchText });
+      pages++;
       const postings = Array.isArray(page?.jobPostings) ? page.jobPostings : [];
       for (const p of postings) {
         const offerUrl = buildJobUrl(parts, p.externalPath || '');
@@ -106,6 +110,13 @@ export async function fetchWorkday(url, companyName, opts = {}) {
       if (capped || postings.length < pageSize) break;
       offset += pageSize;
     }
+    onProgress?.({
+      type: 'term_done',
+      tenant: parts.tenant,
+      term: searchText,
+      pages,
+      total: byUrl.size,
+    });
   }
 
   await Promise.all(terms.map(fetchAllPagesForTerm));

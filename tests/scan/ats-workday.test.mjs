@@ -446,3 +446,52 @@ test('fetchWorkday — runs the 5 default terms in parallel, not sequentially', 
     `expected concurrent start (span < 30ms), got span=${span}ms — suggests sequential execution`
   );
 });
+
+test('fetchWorkday — emits term_start and term_done progress events', async () => {
+  const original = globalThis.fetch;
+  let callCount = 0;
+  globalThis.fetch = async (url, opts) => {
+    callCount++;
+    const body = JSON.parse(opts.body);
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        total: 1,
+        jobPostings: [
+          {
+            title: `${body.searchText} role`,
+            externalPath: `/job/${body.searchText}-${callCount}`,
+            locationsText: 'Paris',
+          },
+        ],
+      }),
+      text: async () => '',
+    };
+  };
+  restore = () => {
+    globalThis.fetch = original;
+  };
+
+  const events = [];
+  await fetchWorkday('https://acme.wd3.myworkdayjobs.com/AcmeCareers', 'Acme', {
+    pageSize: 20,
+    onProgress: (e) => events.push(e),
+  });
+
+  const starts = events.filter((e) => e.type === 'term_start');
+  const dones = events.filter((e) => e.type === 'term_done');
+  assert.equal(starts.length, 5);
+  assert.equal(dones.length, 5);
+
+  for (const e of starts) {
+    assert.equal(e.tenant, 'acme');
+    assert.ok(typeof e.term === 'string' && e.term.length > 0);
+  }
+  for (const e of dones) {
+    assert.equal(e.tenant, 'acme');
+    assert.ok(typeof e.term === 'string' && e.term.length > 0);
+    assert.ok(typeof e.pages === 'number' && e.pages >= 1, `expected pages >= 1, got ${e.pages}`);
+    assert.ok(typeof e.total === 'number' && e.total >= 1);
+  }
+});
