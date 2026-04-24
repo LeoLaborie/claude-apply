@@ -4,6 +4,7 @@
 // data/known-ats-slugs.json so subsequent runs are instant.
 //
 // CLI: node src/scan/discover-company.mjs "<CompanyName>" [--cache-path <path>] [--workday-registry <path>]
+//   or: node src/scan/discover-company.mjs --batch <names-file> [--cache-path <path>] [--workday-registry <path>]
 
 import fs from 'node:fs';
 import path from 'node:path';
