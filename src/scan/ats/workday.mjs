@@ -18,6 +18,7 @@ export function parseWorkdayUrl(url) {
 
 const DEFAULT_PAGE_SIZE = 20;
 const DEFAULT_MAX_OFFERS = 200;
+const WORKDAY_SEARCH_TERMS = ['Intern', 'Internship', 'Stage', 'Stagiaire', 'Apprenti'];
 
 function buildJobUrl({ tenant, pod, site }, externalPath) {
   return `https://${tenant}.${pod}.myworkdayjobs.com/en-US/${site}${externalPath}`;
@@ -71,7 +72,9 @@ export async function fetchWorkday(url, companyName, opts = {}) {
   const pageSize = opts.pageSize ?? DEFAULT_PAGE_SIZE;
   const maxOffers = opts.maxOffers ?? DEFAULT_MAX_OFFERS;
   const terms =
-    Array.isArray(opts.searchTerms) && opts.searchTerms.length > 0 ? opts.searchTerms : [''];
+    Array.isArray(opts.searchTerms) && opts.searchTerms.length > 0
+      ? opts.searchTerms
+      : WORKDAY_SEARCH_TERMS;
 
   const byUrl = new Map();
   const warnings = [];

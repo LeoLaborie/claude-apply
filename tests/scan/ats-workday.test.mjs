@@ -284,7 +284,31 @@ test('fetchWorkday — issues one POST per searchTerm and dedupes by url', async
   ]);
 });
 
-test('fetchWorkday — empty searchTerms falls back to single empty-search request', async () => {
+test('fetchWorkday — absent searchTerms falls back to WORKDAY_SEARCH_TERMS', async () => {
+  const original = globalThis.fetch;
+  const bodies = [];
+  globalThis.fetch = async (url, opts) => {
+    bodies.push(JSON.parse(opts.body));
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ total: 0, jobPostings: [] }),
+      text: async () => '',
+    };
+  };
+  restore = () => {
+    globalThis.fetch = original;
+  };
+
+  await fetchWorkday('https://acme.wd3.myworkdayjobs.com/AcmeCareers', 'Acme', {
+    pageSize: 20,
+  });
+
+  const terms = bodies.map((b) => b.searchText).sort();
+  assert.deepEqual(terms, ['Apprenti', 'Intern', 'Internship', 'Stage', 'Stagiaire']);
+});
+
+test('fetchWorkday — empty searchTerms array also falls back to WORKDAY_SEARCH_TERMS', async () => {
   const original = globalThis.fetch;
   const bodies = [];
   globalThis.fetch = async (url, opts) => {
@@ -305,8 +329,7 @@ test('fetchWorkday — empty searchTerms falls back to single empty-search reque
     pageSize: 20,
   });
 
-  assert.equal(bodies.length, 1);
-  assert.equal(bodies[0].searchText, '');
+  assert.equal(bodies.length, 5);
 });
 
 test('fetchWorkday — stops pagination when MAX_OFFERS reached', async () => {
