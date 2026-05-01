@@ -183,8 +183,10 @@ export async function main({
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
-  main().then(process.exit).catch((err) => {
-    process.stderr.write(`${err.message}\n`);
-    process.exit(1);
-  });
+  main()
+    .then(process.exit)
+    .catch((err) => {
+      process.stderr.write(`${err.message}\n`);
+      process.exit(1);
+    });
 }

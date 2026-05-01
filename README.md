@@ -83,24 +83,24 @@ Or, manually:
 
 ## Commands reference
 
-| Command                          | Purpose                                                                                                         |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `node src/scan/index.mjs`        | Scan ATSes listed in `portals.yml`; append new offers to `data/pipeline.md`.                                    |
-| `node src/score/index.mjs <url>` | LLM-evaluate an offer; append to `data/evaluations.jsonl`.                                                      |
-| `node src/scan/explain.mjs`      | Trace which prefilter rule accepts or rejects a given title (`npm run explain -- "<title>"`).                   |
-| `node src/apply/upload-file.mjs` | CDP file upload helper (called by `/apply`).                                                                    |
-| `node src/dashboard/build.mjs`   | Regenerate `dashboard.html` from `data/` and `reports/`.                                                        |
-| `bash scripts/setup.sh`          | Interactive first-time setup (Chrome CDP profile + templates + rc).                                             |
-| `bash scripts/check-no-pii.sh`   | Grep the tree for personal data patterns (CI gate).                                                             |
-| `npm test`                       | Run the node test suite.                                                                                        |
-| `/apply-onboard [cv.pdf]`        | First-time setup — extract CV, build configs, discover companies, run `scripts/setup.sh` non-interactively.     |
-| `/add-company <name or URL>`     | Discover and append a new company to `config/portals.yml` (no hand-editing YAML).                               |
-| `/scan`                          | Claude Code slash command wrapping `node src/scan/index.mjs`.                                                   |
-| `/score <url>`                   | Claude Code slash command wrapping `node src/score/index.mjs`.                                                  |
-| `/explain "<title>"`             | Trace which prefilter rule accepts or rejects a given title against your current config.                        |
-| `/tune-filter`                   | Interactive calibration of `title_filter` against cached `scan-history.tsv`. No network calls.                  |
-| `/apply <url>`                   | Claude Code orchestrator: open → classify → fill → upload → submit.                                             |
-| `/dashboard`                     | Rebuild `dashboard.html` from `data/` and `reports/`.                                                           |
+| Command                          | Purpose                                                                                                     |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `node src/scan/index.mjs`        | Scan ATSes listed in `portals.yml`; append new offers to `data/pipeline.md`.                                |
+| `node src/score/index.mjs <url>` | LLM-evaluate an offer; append to `data/evaluations.jsonl`.                                                  |
+| `node src/scan/explain.mjs`      | Trace which prefilter rule accepts or rejects a given title (`npm run explain -- "<title>"`).               |
+| `node src/apply/upload-file.mjs` | CDP file upload helper (called by `/apply`).                                                                |
+| `node src/dashboard/build.mjs`   | Regenerate `dashboard.html` from `data/` and `reports/`.                                                    |
+| `bash scripts/setup.sh`          | Interactive first-time setup (Chrome CDP profile + templates + rc).                                         |
+| `bash scripts/check-no-pii.sh`   | Grep the tree for personal data patterns (CI gate).                                                         |
+| `npm test`                       | Run the node test suite.                                                                                    |
+| `/apply-onboard [cv.pdf]`        | First-time setup — extract CV, build configs, discover companies, run `scripts/setup.sh` non-interactively. |
+| `/add-company <name or URL>`     | Discover and append a new company to `config/portals.yml` (no hand-editing YAML).                           |
+| `/scan`                          | Claude Code slash command wrapping `node src/scan/index.mjs`.                                               |
+| `/score <url>`                   | Claude Code slash command wrapping `node src/score/index.mjs`.                                              |
+| `/explain "<title>"`             | Trace which prefilter rule accepts or rejects a given title against your current config.                    |
+| `/tune-filter`                   | Interactive calibration of `title_filter` against cached `scan-history.tsv`. No network calls.              |
+| `/apply <url>`                   | Claude Code orchestrator: open → classify → fill → upload → submit.                                         |
+| `/dashboard`                     | Rebuild `dashboard.html` from `data/` and `reports/`.                                                       |
 
 ## Configuration
 
@@ -123,16 +123,16 @@ See also `docs/for-agents.md` for typical workflows, patterns to follow, and ant
 
 ## Supported ATS
 
-| ATS                                       | Scanner    | Form fill  | File upload | Notes                                                                        |
-| ----------------------------------------- | ---------- | ---------- | ----------- | ---------------------------------------------------------------------------- |
-| Lever                                     | ✅ auto    | ✅         | ✅ CDP      | Dedup by URL; blocks re-submission for ~3 months.                            |
-| Greenhouse                                | ✅ auto    | ✅         | ✅ CDP      | Splits first/last name; many optional subforms.                              |
-| Ashby                                     | ✅ auto    | ✅         | ✅ CDP      | `_systemfield_*` naming; custom questions are free text.                     |
-| Workable                                  | ✅ auto    | ✅         | ✅ CDP      | Public widget API; `body` is empty (no job description).                     |
-| Workday                                   | ✅ auto    | —          | —           | Scanner supports paginated public API; `/apply` support not yet implemented. |
-| WTTJ                                      | ⚠️ partial | ✅         | ✅ CDP      | Aggregator — jumps to the real ATS in most cases.                            |
-| Teamtailor, SmartRecruiters               | ❌         | ⚠️ partial | ✅ CDP      | Custom React form; standard fields classify correctly; add-ons may need help. |
-| Custom career pages                       | ❌         | —          | —           | Manual fallback; PRs welcome (see `docs/extending.md`).                      |
+| ATS                         | Scanner    | Form fill  | File upload | Notes                                                                         |
+| --------------------------- | ---------- | ---------- | ----------- | ----------------------------------------------------------------------------- |
+| Lever                       | ✅ auto    | ✅         | ✅ CDP      | Dedup by URL; blocks re-submission for ~3 months.                             |
+| Greenhouse                  | ✅ auto    | ✅         | ✅ CDP      | Splits first/last name; many optional subforms.                               |
+| Ashby                       | ✅ auto    | ✅         | ✅ CDP      | `_systemfield_*` naming; custom questions are free text.                      |
+| Workable                    | ✅ auto    | ✅         | ✅ CDP      | Public widget API; `body` is empty (no job description).                      |
+| Workday                     | ✅ auto    | —          | —           | Scanner supports paginated public API; `/apply` support not yet implemented.  |
+| WTTJ                        | ⚠️ partial | ✅         | ✅ CDP      | Aggregator — jumps to the real ATS in most cases.                             |
+| Teamtailor, SmartRecruiters | ❌         | ⚠️ partial | ✅ CDP      | Custom React form; standard fields classify correctly; add-ons may need help. |
+| Custom career pages         | ❌         | —          | —           | Manual fallback; PRs welcome (see `docs/extending.md`).                       |
 
 ## Contributing
 
