@@ -12,7 +12,10 @@
 // within the API's intended use.
 
 import { fetchGreenhouse } from '../ats/greenhouse.mjs';
+import { pLimit } from '../../lib/p-limit.mjs';
 import knownBoards from './known-greenhouse-boards.json' with { type: 'json' };
+
+const FETCH_CONCURRENCY = 6;
 
 function compileWordRegex(terms) {
   if (!Array.isArray(terms) || terms.length === 0) return null;
@@ -35,25 +38,39 @@ export async function fetchAggregator({
   const titleRe = compileWordRegex(keywords);
   const locationRe = compileSubstringRegex(locations);
 
+  const validBoards = boards.filter((b) => b && typeof b.slug === 'string');
+  const concurrency = pLimit(FETCH_CONCURRENCY);
+
+  const settled = await Promise.all(
+    validBoards.map((board) =>
+      concurrency(async () => {
+        const company = board.company || board.slug;
+        try {
+          const raw = await fetchGreenhouse(board.slug, company);
+          return { board, company, raw, error: null };
+        } catch (err) {
+          return { board, company, raw: null, error: err };
+        }
+      })
+    )
+  );
+
   const offers = [];
   const warnings = [];
 
-  for (const board of boards) {
-    if (!board || typeof board.slug !== 'string') continue;
-    const company = board.company || board.slug;
-    try {
-      const raw = await fetchGreenhouse(board.slug, company);
-      for (const o of raw) {
-        const tagged = { ...o, source: 'aggregator:greenhouse' };
-        if (titleRe && !titleRe.test(tagged.title || '')) continue;
-        if (locationRe && !locationRe.test(tagged.location || '')) continue;
-        offers.push(tagged);
-        if (offers.length >= limit) {
-          return { offers, warnings };
-        }
+  for (const r of settled) {
+    if (r.error) {
+      warnings.push({ slug: r.board.slug, company: r.company, error: r.error?.message });
+      continue;
+    }
+    for (const o of r.raw) {
+      const tagged = { ...o, source: 'aggregator:greenhouse' };
+      if (titleRe && !titleRe.test(tagged.title || '')) continue;
+      if (locationRe && !locationRe.test(tagged.location || '')) continue;
+      offers.push(tagged);
+      if (offers.length >= limit) {
+        return { offers, warnings };
       }
-    } catch (err) {
-      warnings.push({ slug: board.slug, company, error: err.message });
     }
   }
 

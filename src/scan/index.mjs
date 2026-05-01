@@ -234,8 +234,8 @@ export async function runScan(opts) {
     ? await fetchAggregatorOffers(portalsConfig.aggregators)
     : [];
 
-  const eligibleTotal = companies.length + aggregatorResults.length;
   const fetchResults = [...atsResults, ...aggregatorResults];
+  const eligibleTotal = fetchResults.length;
 
   const seen = loadSeenUrls(historyPath, applicationsPath);
 
@@ -433,7 +433,7 @@ export async function runScan(opts) {
   }
 
   return {
-    scanned: companies.length,
+    scanned: fetchResults.length,
     eligibleTotal,
     raw,
     perCompany,

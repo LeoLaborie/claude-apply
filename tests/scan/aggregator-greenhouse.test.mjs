@@ -111,6 +111,33 @@ test('fetchAggregator — une erreur sur un board ne casse pas la moisson, warni
   assert.ok(/HTTP 503/.test(warnings[0].error));
 });
 
+test('fetchAggregator — fetches boards en parallèle (concurrency > 1)', async () => {
+  const slugs = Array.from({ length: 5 }, (_, i) => `board-${i}`);
+  const testBoards = slugs.map((slug) => ({ slug, company: slug }));
+
+  const original = globalThis.fetch;
+  let inFlight = 0;
+  let maxInFlight = 0;
+  globalThis.fetch = async () => {
+    inFlight++;
+    maxInFlight = Math.max(maxInFlight, inFlight);
+    await new Promise((r) => setTimeout(r, 20));
+    inFlight--;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ jobs: [] }),
+      text: async () => '{"jobs":[]}',
+    };
+  };
+  restore = () => {
+    globalThis.fetch = original;
+  };
+
+  await fetchAggregator({ boards: testBoards });
+  assert.ok(maxInFlight > 1, `expected concurrent fetches, got max=${maxInFlight}`);
+});
+
 test('fetchAggregator — boards par défaut chargés depuis known-greenhouse-boards.json', async () => {
   const mod = await import('../../src/scan/aggregators/known-greenhouse-boards.json', {
     with: { type: 'json' },
