@@ -13,6 +13,7 @@
     "format": "prettier --write .",
     "check:pii": "bash scripts/check-no-pii.sh",
     "scan": "node src/scan/index.mjs",
+    "scan:aggregator": "node src/scan/index.mjs --source aggregator",
     "score": "node src/score/index.mjs",
     "score:batch": "node src/score/index.mjs --batch",
     "dashboard": "node src/dashboard/build.mjs",

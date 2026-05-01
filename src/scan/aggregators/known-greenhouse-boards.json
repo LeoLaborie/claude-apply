@@ -1,0 +1,22 @@
+[
+  { "slug": "anthropic", "company": "Anthropic" },
+  { "slug": "openai", "company": "OpenAI" },
+  { "slug": "stripe", "company": "Stripe" },
+  { "slug": "airbnb", "company": "Airbnb" },
+  { "slug": "doordash", "company": "DoorDash" },
+  { "slug": "instacart", "company": "Instacart" },
+  { "slug": "shopify", "company": "Shopify" },
+  { "slug": "gitlab", "company": "GitLab" },
+  { "slug": "datadog", "company": "Datadog" },
+  { "slug": "cloudflare", "company": "Cloudflare" },
+  { "slug": "discord", "company": "Discord" },
+  { "slug": "figma", "company": "Figma" },
+  { "slug": "notion", "company": "Notion" },
+  { "slug": "vercel", "company": "Vercel" },
+  { "slug": "scaleai", "company": "Scale AI" },
+  { "slug": "asana", "company": "Asana" },
+  { "slug": "deepmind", "company": "DeepMind" },
+  { "slug": "robinhood", "company": "Robinhood" },
+  { "slug": "twitch", "company": "Twitch" },
+  { "slug": "reddit", "company": "Reddit" }
+]

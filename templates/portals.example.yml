@@ -63,3 +63,34 @@ title_filter:
   # Only required_any is soft-matched — positive and negative remain title-only.
   # Note: Workday descriptions are not fetched in v1 (soft match disabled there).
   required_any_in: [title]
+
+# Aggregator-based discovery (company-agnostic).
+#
+# Aggregators query a curated set of public ATS boards in a single shot, so
+# you don't have to add each company to `tracked_companies` above. Run:
+#   /scan --source aggregator     # only aggregators
+#   /scan --source all            # tracked_companies + aggregators
+#   /scan                         # default — only tracked_companies
+#
+# Each entry is optional. Omit the whole `aggregators:` block to disable.
+aggregators:
+  # Greenhouse public aggregator. Hits boards-api.greenhouse.io for a curated
+  # list of well-known boards. The default list ships with the project; you
+  # can override it via `boards: [{ slug, company }, …]`.
+  greenhouse:
+    enabled: true
+    # Optional pre-filter on title (whole word, case-insensitive). Most users
+    # leave this empty — title_filter above is applied AFTER the aggregator
+    # returns its raw list and is more powerful.
+    keywords: []
+    # Optional pre-filter on location (substring, case-insensitive). Useful
+    # to short-circuit foreign offers BEFORE they hit the global filter.
+    locations: []
+    # Optional cap on the total number of aggregator-derived offers returned
+    # in one scan. Default: no cap.
+    # limit: 200
+    # Optional override of the curated boards list. Keep the default for the
+    # broadest coverage; override only if you want to narrow the search.
+    # boards:
+    #   - { slug: anthropic, company: Anthropic }
+    #   - { slug: stripe, company: Stripe }
