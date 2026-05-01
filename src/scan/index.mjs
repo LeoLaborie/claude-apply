@@ -21,6 +21,7 @@ import { fetchGreenhouse } from './ats/greenhouse.mjs';
 import { fetchAshby } from './ats/ashby.mjs';
 import { fetchWorkable } from './ats/workable.mjs';
 import { fetchWorkday } from './ats/workday.mjs';
+import { fetchAggregator as fetchGreenhouseAggregator } from './aggregators/greenhouse.mjs';
 import { runPrefilter } from '../lib/prefilter-rules.mjs';
 import { fetchOfferBody } from './fetch-offer-body.mjs';
 import { appendFilteredOut } from '../lib/jsonl-writer.mjs';
@@ -48,6 +49,58 @@ const DISPATCH = {
   workable: fetchWorkable,
   workday: fetchWorkday,
 };
+
+const AGGREGATOR_DISPATCH = {
+  greenhouse: fetchGreenhouseAggregator,
+};
+
+const VALID_SOURCES = new Set(['ats', 'aggregator', 'all']);
+
+async function fetchAggregatorOffers(aggregatorsConfig) {
+  const results = [];
+  if (!aggregatorsConfig || typeof aggregatorsConfig !== 'object') return results;
+  for (const [name, cfg] of Object.entries(aggregatorsConfig)) {
+    if (!cfg || cfg.enabled === false) continue;
+    const fn = AGGREGATOR_DISPATCH[name];
+    if (!fn) {
+      results.push({
+        company: `${name} aggregator`,
+        platform: `aggregator:${name}`,
+        offers: [],
+        fetchWarnings: [],
+        error: `unknown aggregator "${name}"`,
+      });
+      continue;
+    }
+    try {
+      const fnArgs = {
+        keywords: cfg.keywords || [],
+        locations: cfg.locations || [],
+        limit: cfg.limit ?? Infinity,
+      };
+      if (Array.isArray(cfg.boards) && cfg.boards.length > 0) {
+        fnArgs.boards = cfg.boards;
+      }
+      const { offers, warnings } = await fn(fnArgs);
+      results.push({
+        company: `${name} aggregator`,
+        platform: `aggregator:${name}`,
+        offers,
+        fetchWarnings: (warnings || []).map((w) => `${w.slug}: ${w.error}`),
+        error: null,
+      });
+    } catch (err) {
+      results.push({
+        company: `${name} aggregator`,
+        platform: `aggregator:${name}`,
+        offers: [],
+        fetchWarnings: [],
+        error: err?.message || 'aggregator fetch failed',
+      });
+    }
+  }
+  return results;
+}
 
 function reasonToStatus(reason) {
   if (!reason) return 'skipped_other';
@@ -108,7 +161,12 @@ export async function runScan(opts) {
     dryRun = false,
     onlySlug = null,
     onProgress = null,
+    source = 'ats',
   } = opts;
+
+  if (!VALID_SOURCES.has(source)) {
+    throw new Error(`runScan: invalid source "${source}" (expected ats|aggregator|all)`);
+  }
 
   const whitelist = portalsConfig.title_filter || { positive: [], negative: [] };
   const targetLocations =
@@ -151,11 +209,20 @@ export async function runScan(opts) {
     });
   }
 
-  const eligibleTotal = companies.length;
+  const wantsAts = source === 'ats' || source === 'all';
+  const wantsAggregator = source === 'aggregator' || source === 'all';
 
   const companyByName = new Map(companies.map((c) => [c.name, c]));
   const limit = pLimit(FETCH_CONCURRENCY);
-  const fetchResults = await Promise.all(companies.map((c) => limit(() => fetchCompanyOffers(c))));
+  const atsResults = wantsAts
+    ? await Promise.all(companies.map((c) => limit(() => fetchCompanyOffers(c))))
+    : [];
+  const aggregatorResults = wantsAggregator
+    ? await fetchAggregatorOffers(portalsConfig.aggregators)
+    : [];
+
+  const fetchResults = [...atsResults, ...aggregatorResults];
+  const eligibleTotal = fetchResults.length;
 
   const seen = loadSeenUrls(historyPath, applicationsPath);
 
@@ -353,7 +420,7 @@ export async function runScan(opts) {
   }
 
   return {
-    scanned: companies.length,
+    scanned: fetchResults.length,
     eligibleTotal,
     raw,
     perCompany,
@@ -434,15 +501,20 @@ export function formatSummary(result, dryRun) {
 }
 
 function printScanHelp() {
-  console.log(`Usage: /scan [--dry-run] [--only <slug>] [--json]
+  console.log(`Usage: /scan [--dry-run] [--only <slug>] [--json] [--source ats|aggregator|all]
 
 Scan enabled ATS portals and append new offers to data/pipeline.md.
 
 Flags:
-  --dry-run         Compute everything, write nothing.
-  --only <slug>     Scan a single company by ATS slug (e.g. mistral).
-  --json            Emit machine-readable output to stdout.
-  --help, -h        Show this help and exit.
+  --dry-run                Compute everything, write nothing.
+  --only <slug>            Scan a single company by ATS slug (e.g. mistral).
+  --json                   Emit machine-readable output to stdout.
+  --source <ats|aggregator|all>
+                           Where to look for offers. Default "ats" scans
+                           tracked_companies as before. "aggregator" queries
+                           the public Greenhouse aggregator (no per-company
+                           portals.yml entry needed). "all" runs both.
+  --help, -h               Show this help and exit.
 
 Files:
   reads:  config/portals.yml, config/candidate-profile.yml
@@ -470,6 +542,16 @@ async function main() {
     }
     onlySlug = next;
   }
+  const sourceIdx = args.indexOf('--source');
+  let source = 'ats';
+  if (sourceIdx >= 0) {
+    const next = args[sourceIdx + 1];
+    if (!next || !VALID_SOURCES.has(next)) {
+      console.error('Error: --source requires one of ats|aggregator|all');
+      process.exit(2);
+    }
+    source = next;
+  }
 
   const CONFIG_DIR =
     process.env.CLAUDE_APPLY_CONFIG_DIR || path.join(__dirname, '..', '..', 'config');
@@ -492,6 +574,7 @@ async function main() {
     filterStatePath: path.join(DATA_DIR, 'scan-filter-state.json'),
     dryRun,
     onlySlug,
+    source,
     onProgress: ({ index, total, company, rawCount, afterFilterCount, newCount, error }) => {
       if (error) {
         process.stderr.write(`[${index}/${total}] \u2717 ${company} \u2014 ${error}\n`);

@@ -1,11 +1,11 @@
 # `/scan` workflow
 
-`node src/scan/index.mjs` scans Group A career pages (Lever, Greenhouse, Ashby) via their public APIs, filters by keyword, dedups against history and applications, and writes new offers to `data/pipeline.md`.
+`node src/scan/index.mjs` scans Group A career pages (Lever, Greenhouse, Ashby) via their public APIs, filters by keyword, dedups against history and applications, and writes new offers to `data/pipeline.md`. It can also query **public aggregators** (e.g. the Greenhouse aggregator) without per-company configuration.
 
 ## Entry point
 
 ```bash
-node src/scan/index.mjs [--dry-run] [--only <slug>] [--json]
+node src/scan/index.mjs [--dry-run] [--only <slug>] [--json] [--source ats|aggregator|all]
 ```
 
 ## Flow
@@ -29,6 +29,42 @@ node src/scan/index.mjs [--dry-run] [--only <slug>] [--json]
 | Ashby      | `jobs.ashbyhq.com/<slug>`         | `https://api.ashbyhq.com/posting-api/job-board/<slug>?includeCompensation=true` |
 
 A URL that doesn't match these patterns is skipped silently. To add a new ATS, see [`docs/extending.md`](extending.md).
+
+## Aggregator sources
+
+Aggregators are **company-agnostic**: they query a curated set of public boards in a single call, so you don't have to add each company to `portals.yml`. They run alongside the per-company ATS scan, share the same `title_filter` / `target_locations` / dedup pipeline, and write to the same `pipeline.md`.
+
+| Aggregator   | Endpoint                                  | Default boards                                                                     |
+| ------------ | ----------------------------------------- | ---------------------------------------------------------------------------------- |
+| `greenhouse` | `https://boards-api.greenhouse.io/v1/...` | `src/scan/aggregators/known-greenhouse-boards.json` (~20 well-known public boards) |
+
+`simplify.jobs` was the original target but its Terms of Service forbid automated scraping. We document the blocker and ship the Greenhouse aggregator instead — it uses the same unauthenticated public API that Greenhouse already exposes for board embedding, so there's no ToS conflict.
+
+### Configure
+
+In `config/portals.yml`:
+
+```yaml
+aggregators:
+  greenhouse:
+    enabled: true
+    keywords: [] # optional title pre-filter (whole word, ci)
+    locations: [] # optional location pre-filter (substring, ci)
+    # boards:             # optional override of the bundled board list
+    #   - { slug: anthropic, company: Anthropic }
+    #   - { slug: stripe, company: Stripe }
+```
+
+### Run
+
+```bash
+npm run scan -- --source aggregator      # only aggregators
+npm run scan:aggregator                  # alias for the above
+npm run scan -- --source all             # tracked_companies + aggregators
+npm run scan                             # default — only tracked_companies
+```
+
+Aggregator-derived offers carry their **real** company name (from the board), not the aggregator name, so they appear in `pipeline.md` under the right company section. Per-company overrides like `skip_required_any` and `target_locations` from `tracked_companies` do **not** apply to aggregator results in v1 — the global filter and `target_locations` from `candidate-profile.yml` are used.
 
 ## Title filter
 
@@ -103,6 +139,7 @@ Written 1 row to data/pipeline.md.
 - `--dry-run` — compute everything, write nothing.
 - `--only <slug>` — restrict to one company by ATS slug (e.g. `--only mistral`).
 - `--json` — machine-readable summary on stdout.
+- `--source <ats|aggregator|all>` — choose where offers come from. Default `ats` (backward-compatible). `aggregator` skips `tracked_companies` and queries enabled aggregators only. `all` runs both.
 
 ## Cost
 

@@ -1,0 +1,18 @@
+{
+  "jobs": [
+    {
+      "id": 3001,
+      "title": "Stage Data Science",
+      "absolute_url": "https://job-boards.greenhouse.io/board-b/jobs/3001",
+      "location": { "name": "Lyon, France" },
+      "content": "&lt;p&gt;Stage de fin d'études, septembre 2026.&lt;/p&gt;"
+    },
+    {
+      "id": 3002,
+      "title": "Marketing Manager",
+      "absolute_url": "https://job-boards.greenhouse.io/board-b/jobs/3002",
+      "location": { "name": "Paris, France" },
+      "content": "&lt;p&gt;Permanent role.&lt;/p&gt;"
+    }
+  ]
+}
